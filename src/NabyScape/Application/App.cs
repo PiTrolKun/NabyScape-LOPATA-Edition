@@ -174,7 +174,8 @@ public sealed partial class App : Application
         Media.Changed+=()=>PublishUpdate(RuntimeChange.Media);
         Audio.Changed+=()=>{PrivateDiagnostics.SetServiceState(DiagnosticService.Audio,Audio.Available?DiagnosticServiceState.Ready:DiagnosticServiceState.Degraded);PublishUpdate(RuntimeChange.Audio);};
         Productivity.Changed+=()=>PublishUpdate(RuntimeChange.Productivity);Calendar.Changed+=()=>PublishUpdate(RuntimeChange.Calendar);
-        if(assistantFixture || isolatedFixture || Array.Exists(e.Args,a=>a is "--performance-benchmark" or "--performance-checks-only" or "--stage1-only" or "--stage2-only" or "--stage3-only" or "--stage4-only" or "--stage5-only" or "--stage6-only" or "--integration-settings-only" or "--interaction-hotfix-only" or "--interaction-tuck-hide-only" or "--interaction-classic-mixer-only") || diagnosticPath!=null && Array.Exists(e.Args,a=>a=="--showcase"))Media.DiagnosticFixture=true;else Media.SetEnabled(MediaFeaturesWanted);
+        if (lopataFixture) Media.SetEnabled(false);
+        else if(assistantFixture || isolatedFixture || Array.Exists(e.Args,a=>a is "--performance-benchmark" or "--performance-checks-only" or "--stage1-only" or "--stage2-only" or "--stage3-only" or "--stage4-only" or "--stage5-only" or "--stage6-only" or "--integration-settings-only" or "--interaction-hotfix-only" or "--interaction-tuck-hide-only" or "--interaction-classic-mixer-only") || diagnosticPath!=null && Array.Exists(e.Args,a=>a=="--showcase"))Media.DiagnosticFixture=true;else Media.SetEnabled(MediaFeaturesWanted);
         Audio.Read();Usage=Native.SystemUsage();
         int counter=0;
         tick=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};
