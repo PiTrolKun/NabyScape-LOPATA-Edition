@@ -47,6 +47,7 @@ internal sealed partial class LyricsService
     internal bool HasConnector(string source)=>connectors.ContainsKey(source);
     internal async Task<LyricChoice[]> FetchProvider(string source,string title,string artist,double duration,CancellationToken token)
     {
+        if(networkBlocked)return [];
         using var budget=CancellationTokenSource.CreateLinkedTokenSource(token);budget.CancelAfter(TimeSpan.FromSeconds(20));token=budget.Token;
         if(source=="LRCLIB")return await Search(title,artist,token);
         if(source=="BiniLyrics")return await SearchBini(title,artist,token);

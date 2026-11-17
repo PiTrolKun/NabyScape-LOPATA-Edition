@@ -52,7 +52,7 @@ internal sealed class LyricsView : Grid
     {
         if(!attached)return;if(!ElementVisibility.InViewport(this)){tick.Stop();if(fixture==null)app.Lyrics.Release(this);return;}
         if(fixture!=null){Paint();return;}
-        app.Lyrics.SetTextMode(app.Settings.LyricsTextMode);app.Lyrics.Acquire(this);_=app.Lyrics.Load(app.Media.Title,app.Media.Artist,app.Media.Timeline().duration,app.Settings.LyricsEnabled,LyricTiming.CanUse(app.Media),app.Media.Selected?.SourceAppUserModelId);
+        app.Lyrics.SetTextMode(app.Settings.LyricsTextMode);app.Lyrics.Acquire(this);_=app.Lyrics.LoadFor(app.Media,app.Settings.LyricsEnabled);
         Paint();if(app.Media.Playing && app.Settings.LyricsEnabled && LyricTiming.CanUse(app.Media))tick.Start();else tick.Stop();
     }
     private void Paint()
@@ -95,7 +95,7 @@ internal static class LyricsFiles
         try
         {
             if(new System.IO.FileInfo(dialog.FileName).Length>512*1024)return "Choose an LRC file under 512 KB.";
-            app.Lyrics.Import(app.Media.Title,app.Media.Artist,app.Media.Timeline().duration,System.IO.File.ReadAllText(dialog.FileName));app.Settings.LyricsEnabled=true;app.ChangeSettings();return "Local timed lyrics loaded for this session.";
+            app.Lyrics.ImportFor(app.Media,System.IO.File.ReadAllText(dialog.FileName));app.Settings.LyricsEnabled=true;app.ChangeSettings();return "Local timed lyrics loaded for this session.";
         }
         catch(Exception ex) when(ex is System.IO.IOException or UnauthorizedAccessException or System.Text.RegularExpressions.RegexMatchTimeoutException){return "Could not load this timed lyric file.";}
     }
@@ -111,7 +111,7 @@ public sealed partial class OverlayWindow
         bool compatible=LyricTiming.CanUse(app.Media);
         bool changed=false;
         if(mediaLyrics!=null){var visible=app.Settings.LyricsEnabled && compatible?Visibility.Visible:Visibility.Collapsed;changed=mediaLyrics.Visibility!=visible;mediaLyrics.Visibility=visible;}
-        if(lyricsButton!=null){lyricsButton.Visibility=compatible?Visibility.Visible:Visibility.Collapsed;lyricsButton.Background=app.Settings.LyricsEnabled?UI.Brush(IslandPalette.SelectionFill(app.Settings)):Brushes.Transparent;lyricsButton.ToolTip=app.Settings.LyricsEnabled?"Hide lyrics":"Show synced lyrics · looks up track details with LRCLIB";System.Windows.Automation.AutomationProperties.SetItemStatus(lyricsButton,app.Settings.LyricsEnabled?"On":"Off");}
+        if(lyricsButton!=null){lyricsButton.Visibility=compatible?Visibility.Visible:Visibility.Collapsed;lyricsButton.Background=app.Settings.LyricsEnabled?UI.Brush(IslandPalette.SelectionFill(app.Settings)):Brushes.Transparent;lyricsButton.ToolTip=app.Settings.LyricsEnabled?"Hide lyrics":app.Media.NetworkLyricsAllowed?"Show synced lyrics":"Show embedded lyrics";System.Windows.Automation.AutomationProperties.SetItemStatus(lyricsButton,app.Settings.LyricsEnabled?"On":"Off");}
         if(changed && mediaLyricsLayout?.IsLoaded==true)ResizeToolPanel();
     }
 }

@@ -72,7 +72,7 @@ public sealed partial class OverlayWindow
             closedLyricTick.Stop();if(closedLyricAttached){closedLyricAttached=false;app.Lyrics.Changed-=PaintClosedLyrics;app.Lyrics.Release(closedLyricConsumer);}return;
         }
         if(!closedLyricAttached){closedLyricAttached=true;app.Lyrics.Acquire(closedLyricConsumer);app.Lyrics.Changed+=PaintClosedLyrics;}
-        app.Lyrics.SetTextMode(app.Settings.LyricsTextMode);_=app.Lyrics.Load(app.Media.Title,app.Media.Artist,app.Media.Timeline().duration,true,LyricTiming.CanUse(app.Media),app.Media.Selected?.SourceAppUserModelId);
+        app.Lyrics.SetTextMode(app.Settings.LyricsTextMode);_=app.Lyrics.LoadFor(app.Media,true);
         PaintClosedLyrics();if(app.Lyrics.Result.Lines.Length>0 && LyricTiming.CanUse(app.Media))closedLyricTick.Start();else closedLyricTick.Stop();
     }
     private void PaintClosedLyrics()

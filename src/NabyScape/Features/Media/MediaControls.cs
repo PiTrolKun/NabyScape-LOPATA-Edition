@@ -75,7 +75,7 @@ internal sealed class MediaControls : Grid
         {
             var list=new StackPanel();var heading=UI.Text("Media source",11,UI.Muted);heading.Margin=new(3,0,0,8);list.Children.Add(heading);
             var choices=sources();
-            if(!choices.Any(choice=>choice.Id!=MediaSourceSelection.NoneId && choice.Id!=MediaSourceSelection.AutoId)){var empty=UI.Text("No active media sessions.\nPlay something in Spotify or your browser.",11,UI.Muted);empty.Margin=new(3,6,3,6);list.Children.Add(empty);}
+            if(!choices.Any(choice=>choice.Id!=MediaSourceSelection.NoneId && choice.Id!=MediaSourceSelection.AutoId && !MediaService.IsLocalSource(choice.Id))){var empty=UI.Text("No active media sessions.\nPlay something in Spotify or your browser.",11,UI.Muted);empty.Margin=new(3,6,3,6);list.Children.Add(empty);}
             foreach(var item in choices)
             {
                 var button=UI.Button("Use media source "+item.Name,()=>{Close(false);item.Select();source.Focus();});button.Padding=new(6);button.Margin=new(0);button.Background=item.Id==selected()?UI.Brush("#24262B"):Brushes.Transparent;button.HorizontalContentAlignment=HorizontalAlignment.Stretch;

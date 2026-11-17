@@ -162,7 +162,7 @@ public sealed partial class OverlayWindow
     {
         var now=DateTimeOffset.UtcNow;double dt=Math.Clamp((now-lastLive).TotalSeconds,.001,.5);lastLive=now;
         bool audioWanted=AudioVisualDemand,sample=false;
-        if(audioWanted){sampledPeak=app.Audio.MediaPeak(app.Media.Selected?.SourceAppUserModelId);sample=audioSequence!=app.Audio.MediaLevel.Sequence;audioSequence=app.Audio.MediaLevel.Sequence;}
+        if(audioWanted){sampledPeak=app.Audio.MediaPeak(app.Media.AudioMeterSource);sample=audioSequence!=app.Audio.MediaLevel.Sequence;audioSequence=app.Audio.MediaLevel.Sequence;}
         else sampledPeak=0;
         double peak=app.Media.Playing && !app.Audio.MediaMeterMuted?sampledPeak:0;
         var session=ActiveCountdown();bool running=session?.Running==true;

@@ -108,7 +108,7 @@ internal sealed class AmbientAudioDriver : IDisposable
     {
         Reconcile();if(!timer.IsEnabled)return;
         long now=Stopwatch.GetTimestamp();double dt=(now-lastStamp)/(double)Stopwatch.Frequency;lastStamp=now;
-        app.Audio.MediaPeak(app.Media.Selected?.SourceAppUserModelId,includeSpectrum:false);
+        app.Audio.MediaPeak(app.Media.AudioMeterSource,includeSpectrum:false);
         var sample=app.Audio.MediaLevel;
         double gain=envelope.Sample(sample.Muted?0:sample.Peak,dt,app.Settings.AmbientAudioResponse,app.Settings.AmbientSensitivity);
         foreach(var surface in surfaces)if(Active(surface))surface.SetAmbientAudio(gain);

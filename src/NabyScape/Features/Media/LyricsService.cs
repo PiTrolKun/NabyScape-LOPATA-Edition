@@ -56,7 +56,7 @@ internal static class LyricTiming
         return index;
     }
     internal static bool CanUse(MediaService media)=>media.Available && !string.IsNullOrWhiteSpace(media.Title) && media.Timeline().duration>0 &&
-        (!string.IsNullOrWhiteSpace(media.Artist) && media.Artist!=media.Selected?.SourceAppUserModelId || LyricsMetadata.Queries(media.Title,"").Length>0);
+        (media.LocalTrack != null || !string.IsNullOrWhiteSpace(media.Artist) && media.Artist!=media.Selected?.SourceAppUserModelId || LyricsMetadata.Queries(media.Title,"").Length>0);
     internal static bool IsSpotify(string? source)=>source?.Contains("spotify",StringComparison.OrdinalIgnoreCase)==true;
 }
 
@@ -82,10 +82,60 @@ internal sealed partial class LyricsService : IDisposable
     private static string TrackKey(string title,string artist,double duration)=>title+"\n"+artist+"\n"+Math.Round(duration);
     internal LyricsService(HttpMessageHandler? handler=null,IAssistantKeys? providerKeys=null)
     {lyricKeys=providerKeys??new AssistantKeys();client=new(handler??new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false}){Timeout=TimeSpan.FromSeconds(8),MaxResponseContentBufferSize=2*1024*1024};client.DefaultRequestHeaders.UserAgent.ParseAdd("NabyScape/2.7.0 (+https://github.com/BillyNabil/nabyscape)");}
+    private bool networkBlocked;
+    private string localIdentity = "";
+    private LyricResult? localOverride;
+
+    internal void ObserveTrack(MediaService media)
+    {
+        string next = media.LocalTrack?.Path ?? "";
+        bool blocked = !media.NetworkLyricsAllowed;
+        if (localIdentity == next && networkBlocked == blocked) return;
+        localIdentity = next;
+        networkBlocked = blocked;
+        localOverride = null;
+        Cancel();
+        key = "";
+        Set(new([], "Lyrics are off."));
+    }
+
+    internal Task LoadFor(MediaService media, bool enabled)
+    {
+        ObserveTrack(media);
+        var details = media.LocalDetails;
+        if (details is null || !enabled)
+            return Load(media.Title, media.Artist, media.Timeline().duration, enabled, LyricTiming.CanUse(media), media.Selected?.SourceAppUserModelId);
+        if (localOverride is null && details.Lyrics is null && !networkBlocked)
+            return Load(media.Title, media.Artist, media.Timeline().duration, enabled, LyricTiming.CanUse(media));
+        string embeddedKey = "@local\n" + localIdentity;
+        if (key == embeddedKey) return Task.CompletedTask;
+        Cancel();
+        key = embeddedKey;
+        Set(localOverride ?? details.Lyrics ?? new([], Localization.Text("No embedded lyrics for this LOPATA track.")));
+        return Task.CompletedTask;
+    }
+
+    internal void ImportFor(MediaService media, string lrc)
+    {
+        ObserveTrack(media);
+        if (media.LocalTrack is null)
+        {
+            Import(media.Title, media.Artist, media.Timeline().duration, lrc);
+            return;
+        }
+
+        var lines = LyricTiming.Parse(lrc);
+        if (lines.Length == 0) throw new InvalidDataException("Choose an LRC file with [mm:ss] line timestamps.");
+        localOverride = new(lines, "Local LRC · this session");
+        key = "";
+        _ = LoadFor(media, true);
+    }
+
     internal async Task Load(string title,string artist,double duration,bool enabled,bool compatible,string? mediaSource=null)
     {
         if(disposed)return;
         if(!enabled || !compatible){Cancel();key="";Set(new(Array.Empty<LyricLine>(),enabled?"Choose a music session with a title, artist and playback timeline.":"Lyrics are off."));return;}
+        if(networkBlocked)return;
         string selectedSource=SelectedSource;string next=selectedSource+"\n"+TrackKey(title,artist,duration);if(next==key)return;Cancel();key=next;
         if(cache.TryGetValue(next,out var found)){Set(found);return;}
         var request=new CancellationTokenSource();pending=request;Set(new(Array.Empty<LyricLine>(),"Finding synced lyrics…"));
@@ -134,6 +184,7 @@ internal sealed partial class LyricsService : IDisposable
     }
     internal async Task<LyricChoice[]> Search(string title,string artist,CancellationToken token,Uri? endpoint=null)
     {
+        if(networkBlocked)return [];
         var baseUri=endpoint??new Uri("https://lrclib.net/");
         if(!baseUri.IsAbsoluteUri || !(baseUri.Scheme=="https" || baseUri.Scheme=="http" && baseUri.IsLoopback) || baseUri.UserInfo.Length>0 || baseUri.Query.Length>0 || baseUri.Fragment.Length>0)throw new InvalidDataException("Use an HTTPS API base URL, or a local HTTP server.");
         var url=new Uri(baseUri.AbsoluteUri.TrimEnd('/')+"/api/search?track_name="+Uri.EscapeDataString(title)+"&artist_name="+Uri.EscapeDataString(artist));
@@ -152,6 +203,7 @@ internal sealed partial class LyricsService : IDisposable
     }
     internal async Task<LyricChoice[]> SearchBini(string title,string artist,CancellationToken token,int limit=8)
     {
+        if(networkBlocked)return [];
         string json=await ReadBiniDocument(new Uri("https://lyrics-api.binimum.org/getLyrics?track="+Uri.EscapeDataString(title)+"&artist="+Uri.EscapeDataString(artist)),token);
         using var doc=JsonDocument.Parse(json);var choices=new List<LyricChoice>();
         if(!doc.RootElement.TryGetProperty("results",out var entries) || entries.ValueKind!=JsonValueKind.Array)return choices.ToArray();

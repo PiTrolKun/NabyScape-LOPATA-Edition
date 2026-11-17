@@ -106,3 +106,9 @@ node tools/check-website.mjs
 
 
 Uninstall from **Settings → General → Uninstall NabyScape**, the **Uninstall NabyScape** Start menu shortcut, or Windows Installed apps. Full cleanup is selected by default and removes application-managed models, caches, settings, history and saved API keys. Uncheck it to keep data for reinstalling. Imported files outside NabyScape and shared Windows components stay untouched.
+
+## Building LOPATA Edition
+
+This branch uses the shared collection and origin reader from [LOPATA](https://github.com/PiTrolKun/LOPATA).
+With both repositories checked out, set LopataRepositoryRoot to the LOPATA checkout. LOPATA's
+Инструменты/build-nabyscape-edition.ps1 builds the Windows x64 bundle and includes both license notices.

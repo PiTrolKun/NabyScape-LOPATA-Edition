@@ -45,6 +45,11 @@ internal sealed class LyricsSourcesControl : StackPanel
         pending?.Cancel();menu.Children.Clear();Heading("Lyrics source");AutomationPropertiesStatus(true);
         Row("Lyric text",app.Settings.LyricsTextMode=="Romaji"?"Japanese Romaji":"Original script",ShowTextChoices);
         menu.Children.Add(new Separator{Margin=new(0,6,0,6)});
+        if (!app.Media.NetworkLyricsAllowed)
+        {
+            Row("Local LRC…","",()=>{popup.IsOpen=false;local();});
+            return;
+        }
         Row("Automatic","English · Japanese · Korean",()=>{popup.IsOpen=false;app.Lyrics.SelectedSource="Automatic";retry();},app.Lyrics.SelectedSource=="Automatic");
         menu.Children.Add(new Separator{Margin=new(0,6,0,6)});
         foreach(string source in LyricsProviders.Names)
@@ -81,6 +86,7 @@ internal sealed class LyricsSourcesControl : StackPanel
     }
     private async Task Fetch(string source)
     {
+        if(!app.Media.NetworkLyricsAllowed){ShowSources();return;}
         pending?.Cancel();pending?.Dispose();var operation=new CancellationTokenSource();pending=operation;
         string title=app.Media.Title,artist=app.Media.Artist;double duration=app.Media.Timeline().duration;
         menu.Children.Clear();Heading(source);var status=UI.Text("Fetching lyrics…",12,UI.Muted);status.Margin=new(5);menu.Children.Add(status);Row("Back","",ShowSources);
@@ -92,7 +98,7 @@ internal sealed class LyricsSourcesControl : StackPanel
             if(choices.Length==0){var empty=UI.Text("No synced lyrics found. Try another source.",12,UI.Muted);empty.Margin=new(5);menu.Children.Add(empty);}
             foreach(var choice in choices.Take(30))Row(choice.Title+" · "+choice.Artist,choice.Album,()=>
             {
-                if(app.Media.Title!=title || app.Media.Artist!=artist || Math.Round(app.Media.Timeline().duration)!=Math.Round(duration)){menu.Children.Clear();Heading("Track changed — fetch again");Row("Sources","",ShowSources);return;}
+                if(!app.Media.NetworkLyricsAllowed || app.Media.Title!=title || app.Media.Artist!=artist || Math.Round(app.Media.Timeline().duration)!=Math.Round(duration)){menu.Children.Clear();Heading("Track changed — fetch again");Row("Sources","",ShowSources);return;}
                 try{app.Lyrics.SelectedSource=source;if(choice.Plain.Length>0)app.Lyrics.ImportPlain(title,artist,duration,choice.Plain,"Plain lyrics · "+source+" · "+choice.Album);else app.Lyrics.Import(title,artist,duration,choice.Lrc,"Selected lyrics · "+source);popup.IsOpen=false;}
                 catch(Exception ex){status.Text=ex.Message;}
             });

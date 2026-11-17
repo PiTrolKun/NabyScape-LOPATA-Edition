@@ -32,6 +32,7 @@ internal sealed class LyricsSearchWindow : Window
         var results=new StackPanel();
         search=UI.Button("Search synced lyrics",async()=>
         {
+            if(!app.Media.NetworkLyricsAllowed){status.Text=Localization.Text("No embedded lyrics for this LOPATA track.");return;}
             if(!search!.IsEnabled)return;search.IsEnabled=false;foreach(var row in panel.Children){if(row is RadioButton radio)radio.IsEnabled=false;}results.Children.Clear();status.Text="Searching…";
             try
             {
@@ -45,7 +46,7 @@ internal sealed class LyricsSearchWindow : Window
                     string label=choice.Title+" · "+choice.Artist+"\n"+choice.Album+$" · {choice.Duration:0}s";
                     var select=UI.Button(label,()=>
                     {
-                        if(app.Media.Title!=title || app.Media.Artist!=artist || Math.Round(app.Media.Timeline().duration)!=Math.Round(duration)){status.Text="The track changed. Reopen Find lyrics for the current song.";return;}
+                        if(!app.Media.NetworkLyricsAllowed || app.Media.Title!=title || app.Media.Artist!=artist || Math.Round(app.Media.Timeline().duration)!=Math.Round(duration)){status.Text="The track changed. Reopen Find lyrics for the current song.";return;}
                         try{app.Lyrics.Import(title,artist,duration,choice.Lrc,requestedSource==1?"Selected lyrics · BiniLyrics":custom==null?"Selected lyrics · LRCLIB":"Selected lyrics · custom API");Close();}catch(Exception ex){status.Text=ex.Message;}
                     });
                     select.Content=UI.Text(label,12);select.Margin=new(0,0,0,8);results.Children.Add(select);

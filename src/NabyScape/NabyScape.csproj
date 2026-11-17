@@ -15,13 +15,18 @@
     <Title>NabyScape — LOPATA Edition</Title>
     <Product>NabyScape — LOPATA Edition</Product>
     <Company>NabyScape</Company>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/PiTrolKun/nabyscape</RepositoryUrl>
     <!-- WPF owns DPI awareness; WinForms is used only for Screen and NotifyIcon. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <StartupObject>NabyScape.App</StartupObject>
   </PropertyGroup>
+  <Target Name="RequireLopataCheckout" BeforeTargets="PrepareForBuild"
+          Condition="!Exists('$(LopataRepositoryRoot)\Исходники\LOPATA.Collection\LOPATA.Collection.csproj')">
+    <Error Text="Set LopataRepositoryRoot to the LOPATA checkout. See the LOPATA Edition build instructions." />
+  </Target>
   <ItemGroup>
+    <ProjectReference Include="$(LopataRepositoryRoot)\Исходники\LOPATA.Collection\LOPATA.Collection.csproj" />
     <PackageReference Include="System.Management" Version="10.0.0" />
     <PackageReference Include="System.Speech" Version="10.0.13" />
     <PackageReference Include="NAudio" Version="2.2.1" />

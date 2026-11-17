@@ -99,7 +99,7 @@ public sealed partial class AudioService
                         try
                         {
                             int processId=(int)session.GetProcessID;using var process=Process.GetProcessById(processId);
-                            keep=MediaProcessMatches(source,process.ProcessName) || source.Contains('!') && MediaPackageMatches(source,PackageIdentity.FamilyName(processId));
+                            keep=source==MediaService.LocalMeterSource ? processId==Environment.ProcessId : MediaProcessMatches(source,process.ProcessName) || source.Contains('!') && MediaPackageMatches(source,PackageIdentity.FamilyName(processId));
                             if(keep)matches.Add(session);
                         }
                         catch { /* Expired/system sessions have no readable process. */ }
