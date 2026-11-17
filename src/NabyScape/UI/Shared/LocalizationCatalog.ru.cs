@@ -11,6 +11,9 @@ internal static partial class LocalizationCatalog
     {
         ["Settings"] = "Настройки",
         ["General"] = "Общие",
+        ["Nothing playing"] = "Сейчас ничего не играет",
+        ["Play something in your favorite app"] = "Включите музыку в любом плеере",
+        ["Media source is set to None"] = "Источник воспроизведения выключен",
         ["Look & colors"] = "Вид и цвета",
         ["Ambience"] = "Подсветка",
         ["Animation & speed"] = "Анимация и скорость",
