@@ -39,9 +39,11 @@ public sealed partial class OverlayWindow
 
     private void AddLopataWork(Panel panel)
     {
+        compactPageHost.Visibility = showLopataJobs ? Visibility.Collapsed : Visibility.Visible;
         lopataWork = new LopataWorkPanel(app, showLopataJobs, open =>
         {
             showLopataJobs = open;
+            compactPageHost.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
             if (expanded) ResizeToolPanel();
         });
         panel.Children.Add(lopataWork);
@@ -52,6 +54,7 @@ public sealed partial class OverlayWindow
 internal sealed class LopataWorkPanel : StackPanel
 {
     private readonly App app;
+    private readonly Action<bool> changed;
     private readonly StackPanel rows = new();
     private readonly ScrollViewer details;
     private readonly Button toggle;
@@ -61,14 +64,10 @@ internal sealed class LopataWorkPanel : StackPanel
     internal LopataWorkPanel(App app, bool open, Action<bool> changed)
     {
         this.app = app;
+        this.changed = changed;
         Margin = new(0, 0, 0, 8);
         var actions = new System.Windows.Controls.Primitives.UniformGrid { Rows = 1 };
-        toggle = UI.CaptionButton("LOPATA tasks", () =>
-        {
-            bool show = details!.Visibility != Visibility.Visible;
-            details.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            changed(show);
-        });
+        toggle = UI.CaptionButton("LOPATA tasks", () => ShowDetails(details!.Visibility != Visibility.Visible));
         var chat = UI.CaptionButton("LOPATA chat", app.ShowLopataChat);
         foreach (var action in new[] { toggle, chat })
         {
@@ -86,6 +85,12 @@ internal sealed class LopataWorkPanel : StackPanel
         details.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         Children.Add(details);
         Children.Add(warning);
+    }
+
+    internal void ShowDetails(bool open)
+    {
+        details.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        changed(open);
     }
 
     internal void Refresh(IslandResponse state)

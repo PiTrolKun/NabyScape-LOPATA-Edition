@@ -181,6 +181,7 @@ public sealed partial class OverlayWindow
         mediaControls?.Close(false);EnsureBody();
 
         if(!app.Settings.CompactLayout || commandOpen || !compactPages.ContainsKey(page))return;
+        if(animate && showLopataJobs)lopataWork?.ShowDetails(false);
         if(animate && activePage==page && compactPages[page].Visibility==Visibility.Visible)return;
         FlushNotes();EnsureCompactPage(page);InvalidateSystemMonitor();activePage=page;
         if(Settings.ToolNames.ContainsKey(page))
