@@ -26,5 +26,6 @@ public sealed partial class OverlayWindow
         Add(LopataEdition.LayerCaption, app.ToggleLopataLayer);
         Add(LopataEdition.CloseCaption, app.Quit);
         panel.Children.Add(actions);
+        AddLopataWork(panel);
     }
 }

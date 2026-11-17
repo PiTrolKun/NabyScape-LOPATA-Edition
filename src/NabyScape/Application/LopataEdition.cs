@@ -27,15 +27,19 @@ internal static class LopataEdition
         new("Updates are managed by LOPATA", "Обновления управляются ЛОПАТОЙ")
     ];
 
+    internal static string? HostExecutable()
+    {
+        var parent = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "AIHub.exe"));
+        var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Programs", "LOPATA", "AIHub.exe");
+        return File.Exists(parent) ? parent : File.Exists(installed) ? installed : null;
+    }
+
     internal static void OpenHost()
     {
         try
         {
-            var parent = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "AIHub.exe"));
-            var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Programs", "LOPATA", "AIHub.exe");
-            var target = File.Exists(parent) ? parent : installed;
-            if (!File.Exists(target)) throw new FileNotFoundException();
+            var target = HostExecutable() ?? throw new FileNotFoundException();
             // LOPATA routes a second launch to its existing instance and restores it from the tray.
             Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
         }
@@ -110,7 +114,11 @@ public partial class App
     private void ObserveLopataSettings()
     {
         hostSettingsWatcher = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(650) };
-        hostSettingsWatcher.Tick += (_, _) => RefreshLopataSettings();
+        hostSettingsWatcher.Tick += async (_, _) =>
+        {
+            RefreshLopataSettings();
+            await LopataLink.RefreshAsync();
+        };
         hostSettingsWatcher.Start();
     }
 

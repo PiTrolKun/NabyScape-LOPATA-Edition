@@ -43,6 +43,7 @@ internal static class LopataEditionDiagnostics
             Capture(island, Path.Combine(directory, "island-open.png"));
 
             await CheckScrollEdges(app, island, directory);
+            await CheckWorkAndChat(island, directory);
             var saved = IslandPreferences.Read();
             if (island.Topmost != saved.AboveWindows) throw new InvalidOperationException("Initial window layer did not match preference.");
             app.ToggleLopataLayer();
@@ -62,7 +63,7 @@ internal static class LopataEditionDiagnostics
                 throw new InvalidOperationException("Live localization did not take effect.");
             if (originalLanguage is not null) IslandPreferences.SaveJson("language.json", originalLanguage);
             IslandPreferences.Save(saved);
-            File.WriteAllText(Path.Combine(directory, "island-check.txt"), "PASS: actual WPF overlay, expanded LOPATA actions, persisted window layer, live appearance and language, complete hover controls, scroll edges at start/middle/end.");
+            File.WriteAllText(Path.Combine(directory, "island-check.txt"), "PASS: actual WPF overlay, expanded LOPATA actions, persisted window layer, live appearance and language, complete hover controls, scroll edges at start/middle/end, two job states and progress, draft kept on cancel and removed after acknowledged transfer.");
         }
         catch (Exception e)
         {
@@ -70,6 +71,86 @@ internal static class LopataEditionDiagnostics
             Environment.ExitCode = 1;
         }
         finally { app.Quit(); }
+    }
+
+    private static async Task CheckWorkAndChat(OverlayWindow island, string directory)
+    {
+        var panel = Diagnostics.Descendants(island).OfType<LopataWorkPanel>().Single();
+        var jobs = new IslandJob[]
+        {
+            new("a", "Первый эскиз", "Paused", false, true),
+            new("b", "Пакет фотографий", "Running", true, false, 0.4),
+        };
+        panel.Refresh(new("ok", jobs, true, "b"));
+        Click(Find(panel, "LOPATA tasks"));
+        island.UpdateLayout();
+        var labels = Diagnostics.Descendants(panel).OfType<TextBlock>().Select(value => value.Text).ToArray();
+        if (!labels.Contains(jobs[0].Title) || !labels.Contains(jobs[1].Title)
+            || !labels.Any(text => text.Contains("40")) || Find(panel, "resume.a").Visibility != Visibility.Visible
+            || Find(panel, "pause.b").Visibility != Visibility.Visible)
+            throw new InvalidOperationException("The expanded island did not show both jobs, selected actions and progress.");
+        await Task.Delay(260);
+        Capture(island, Path.Combine(directory, "island-model-tasks.png"));
+        Click(Find(panel, "LOPATA tasks"));
+
+        var host = Path.Combine(directory, "fixture-host");
+        Directory.CreateDirectory(host);
+        using var owner = new System.Threading.Mutex(false, @"Local\" + IslandLink.InstallationName(host));
+        using var deadline = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(12));
+        using var connection = new LopataConnection(() => Path.Combine(host, "AIHub.exe"));
+        int calls = 0;
+        var server = ServeAsync();
+        var chat = new LopataChatWindow(connection) { ShowActivated = false };
+        try
+        {
+            chat.Show();
+            var draft = Diagnostics.Descendants(chat).OfType<TextBox>().Single();
+            const string expected = "Черновик для «Если накипело»";
+            draft.Text = expected;
+            Click(Find(chat, "Send"));
+            await UntilAsync(() => Find(chat, "Pause task and continue").IsVisible);
+            Click(Find(chat, "Cancel"));
+            if (draft.Text != expected || calls != 1)
+                throw new InvalidOperationException("Cancel did not retain the draft or sent a pause.");
+            Click(Find(chat, "Send"));
+            await UntilAsync(() => Find(chat, "Pause task and continue").IsVisible);
+            Click(Find(chat, "Pause task and continue"));
+            await UntilAsync(() => !chat.IsVisible);
+            if (draft.Text.Length != 0 || calls != 3)
+                throw new InvalidOperationException("Acknowledged transfer did not consume the correct draft.");
+            await server.WaitAsync(deadline.Token);
+        }
+        finally { chat.Hide(); await deadline.CancelAsync(); }
+
+        async Task UntilAsync(Func<bool> condition)
+        {
+            while (true)
+            {
+                try { if (condition()) return; } catch (InvalidOperationException) { }
+                await Task.Delay(50, deadline.Token);
+            }
+        }
+
+        async Task ServeAsync()
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                await using var pipe = IslandLink.ListenHost(host);
+                await pipe.WaitForConnectionAsync(deadline.Token);
+                var request = await IslandLink.ReadAsync<IslandRequest>(pipe, deadline.Token);
+                if (request.Action != "draft" || request.Text != "Черновик для «Если накипело»"
+                    || request.PauseId != (i == 2 ? "b" : null))
+                    throw new InvalidOperationException("Incorrect handoff payload.");
+                calls++;
+                await IslandLink.WriteAsync(pipe, i == 2 ? new IslandResponse("transferred")
+                    : new IslandResponse("busy", jobs, true, "b"), deadline.Token);
+            }
+        }
+
+        static Button Find(DependencyObject scope, string id) => Diagnostics.Descendants(scope).OfType<Button>()
+            .Single(button => System.Windows.Automation.AutomationProperties.GetAutomationId(button) == id);
+        static void Click(Button button) =>
+            button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, button));
     }
 
     private static async Task CheckScrollEdges(App app, OverlayWindow island, string directory)

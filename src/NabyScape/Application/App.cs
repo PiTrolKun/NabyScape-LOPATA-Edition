@@ -154,7 +154,7 @@ public sealed partial class App : Application
         menu.Items.Add(Localization.Text("Send test notification"),null,(_,_)=>Dispatcher.Invoke(SendTestNotification));
         menu.Items.Add(Localization.Text("Settings"),null,(_,_)=>Dispatcher.Invoke(ShowSettings));
         menu.Items.Add(Localization.Text("Move & resize island"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleDockEditing()));
-        menu.Items.Add(Localization.Text("AI companion"),null,(_,_)=>Dispatcher.Invoke(ShowAssistant));
+        menu.Items.Add(Localization.Text("LOPATA chat"),null,(_,_)=>Dispatcher.Invoke(ShowLopataChat)).Tag = "LOPATA chat";
         var wakeMenu=menu.Items.Add(Localization.Text("Resume wake word"),null,(_,_)=>Dispatcher.Invoke(()=>Assistant.ToggleWakeListening()));
         menu.Items.Add(Localization.Text("Stop all microphones"),null,(_,_)=>Dispatcher.Invoke(()=>Assistant.StopSession()));
         menu.Opening+=(_,_)=>{wakeMenu.Text=Localization.Text(Assistant.WakeArmed?"Pause wake word":"Resume wake word");wakeMenu.Enabled=Assistant.Options.Enabled && Assistant.Options.WakeWord.Enabled;};
@@ -279,6 +279,7 @@ public sealed partial class App : Application
         Previews?.Dispose();overlay?.Cleanup();try{Awake?.Dispose();}catch(Exception ex){Store?.Log(ex);}Productivity?.Dispose();Media?.Dispose();Audio?.Dispose();Brightness?.Dispose();
         if(tray!=null) { tray.Visible=false;tray.Dispose(); }
         hostSettingsWatcher?.Stop();
+        LopataLink.Dispose();lopataChat?.Close();
         openWait?.Unregister(null);exitWait?.Unregister(null);openEvent?.Dispose();exitEvent?.Dispose();mutex?.Dispose();base.OnExit(e);
     }
     public bool Quitting=>quitting;
