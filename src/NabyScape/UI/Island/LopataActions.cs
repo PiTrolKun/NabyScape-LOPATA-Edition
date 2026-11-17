@@ -17,8 +17,8 @@ public sealed partial class OverlayWindow
             var button = UI.CaptionButton(caption, action);
             button.FontSize = 11;
             button.MinWidth = 0;
-            button.Padding = new Thickness(4, 5, 4, 5);
-            button.Margin = new Thickness(0, 0, 4, 0);
+            button.Padding = new Thickness(1, 5, 1, 5);
+            button.Margin = new Thickness(0, 0, 3, 0);
             button.HorizontalAlignment = HorizontalAlignment.Stretch;
             actions.Children.Add(button);
         }

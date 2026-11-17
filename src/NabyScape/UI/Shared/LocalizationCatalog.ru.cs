@@ -12,6 +12,7 @@ internal static partial class LocalizationCatalog
         ["Settings"] = "Настройки",
         ["LOPATA tasks"] = "Задачи ЛОПАТЫ",
         ["LOPATA updates"] = "Обновления ЛОПАТЫ",
+        ["Updates…"] = "Обновл.",
         ["LOPATA installation could not be found"] = "Установка ЛОПАТЫ не найдена",
         ["Choose an update channel in LOPATA"] = "Выберите канал обновлений в ЛОПАТЕ",
         ["LOPATA update check pending"] = "Доступна проверка обновлений",

@@ -73,14 +73,19 @@ internal sealed class LopataWorkPanel : StackPanel
         row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         toggle = UI.CaptionButton("LOPATA tasks", () => ShowDetails(details!.Visibility != Visibility.Visible));
         var chat = UI.CaptionButton("LOPATA chat", app.ShowLopataChat);
+        toggle.Content = Localization.Text("Tasks");
+        toggle.ToolTip = Localization.Text("LOPATA tasks");
+        chat.Content = Localization.Text("Chat");
+        chat.ToolTip = Localization.Text("LOPATA chat");
         var updates = UI.CaptionButton("LOPATA updates", app.ShowLopataUpdates);
         updates.ToolTip = Localization.Text("LOPATA updates");
         void RefreshUpdates()
         {
             var count = app.LopataUpdates.Versions.Length;
             var suffix = count switch { 0 => "", 1 => " ↑", _ => " ↑" + count };
-            updates.Content = Localization.Text("Updates") + suffix;
+            updates.Content = Localization.Text(row.ActualWidth < 320 ? "Updates…" : "Updates") + suffix;
         }
+        row.SizeChanged += (_, _) => RefreshUpdates();
         updates.Loaded += (_, _) => { app.LopataUpdates.Changed += RefreshUpdates; RefreshUpdates(); };
         updates.Unloaded += (_, _) => app.LopataUpdates.Changed -= RefreshUpdates;
         var vk = SocialButton("VK", LopataEdition.VkUrl);
@@ -126,7 +131,7 @@ internal sealed class LopataWorkPanel : StackPanel
     internal void Refresh(IslandResponse state)
     {
         var jobs = state.Jobs ?? [];
-        var name = Localization.Text("LOPATA tasks");
+        var name = Localization.Text("Tasks");
         toggle.Content = jobs.Length == 0 ? name : name + " · " + jobs.Length;
         var focused = System.Windows.Input.Keyboard.FocusedElement as Button;
         var focusedId = focused is null ? null : UI.Identity(focused);
