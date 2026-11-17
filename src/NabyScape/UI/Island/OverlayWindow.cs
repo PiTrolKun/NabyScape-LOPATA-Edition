@@ -48,7 +48,8 @@ public sealed partial class OverlayWindow : Window
     internal bool DiagnosticRun {get;set;}
     public OverlayWindow(App app)
     {
-        this.app=app;Title=LopataEdition.Name;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
+        this.app=app;Title=LopataEdition.Name;
+        ScrollChrome.SetFadeEdges(this,true);WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
         AllowsTransparency=true;Background=Brushes.Transparent;ShowInTaskbar=false;Topmost=app.LopataAboveWindows;ShowActivated=false;
         FontFamily=new FontFamily("Segoe UI Variable Text, Segoe UI, Malgun Gothic");FontSize=13;UseLayoutRounding=false;SnapsToDevicePixels=false;
         TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);

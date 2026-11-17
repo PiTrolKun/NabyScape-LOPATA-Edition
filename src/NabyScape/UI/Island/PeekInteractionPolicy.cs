@@ -29,10 +29,16 @@ internal static class VisibilityPolicy
 }
 internal static class PeekLayout
 {
+    internal const double TopPadding = 16;
+    internal const double BottomPadding = 20;
+    internal const double DetailedContentHeight = 124;
+    internal const double FooterHeight = 24;
+    internal const double MinimumDetailedHeight = TopPadding + DetailedContentHeight + FooterHeight + BottomPadding;
+
     internal static Rect SafeBounds(double width,double height,double radius,bool notch)
     {
         var geometry=IslandGeometry.Create(width,height,radius,notch);
-        double top=16,bottom=height-20,inset=32;
+        double top=TopPadding,bottom=height-BottomPadding,inset=32;
         while(inset<width/2-1 && (!geometry.FillContains(new Point(inset,top)) || !geometry.FillContains(new Point(inset,bottom))))inset++;
         return new Rect(inset,top,Math.Max(1,width-2*inset),Math.Max(1,bottom-top));
     }

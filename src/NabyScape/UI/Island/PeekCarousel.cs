@@ -12,7 +12,7 @@ namespace NabyScape;
 
 public sealed partial class OverlayWindow
 {
-    private double PeekExpandedHeight=>app.Settings.HoverHeight;
+    private double PeekExpandedHeight=>Math.Max(app.Settings.HoverHeight,PeekLayout.MinimumDetailedHeight);
     private double PeekSurfaceWidth=>Math.Min(app.Settings.HoverWidth,IslandScreen.WorkingArea.Width/Native.Scale(IslandScreen)-24);
     private double WindowHostWidth {get{double scale=Native.Scale(IslandScreen);return Math.Ceiling(Math.Max(Math.Max(expandedWidth,app.Settings.Width),PeekSurfaceWidth)*scale)/scale;}}
     private double PeekWidth=>PeekSurfaceWidth-64;
@@ -178,11 +178,11 @@ public sealed partial class OverlayWindow
         var safe=PeekLayout.SafeBounds(PeekSurfaceWidth,height,app.Settings.Radius,surface.Notch);
         peekPanel.Width=peekViewport.Width=safe.Width;peekPanel.Height=safe.Height;
         peekPanel.Margin=new(0,safe.Top,0,0);
-        double contentHeight=peekDetailed?124:Math.Min(64,safe.Height);
+        double contentHeight=peekDetailed?PeekLayout.DetailedContentHeight:Math.Min(64,safe.Height);
         peekFooter.ColumnDefinitions[0].Width=new(peekDetailed && safe.Width>=270?50:0);peekPageName.Visibility=safe.Width>=270?Visibility.Visible:Visibility.Collapsed;
         bool detachable=app.Settings.DetachablePreviews && peekId is "media" or "timer" or "focus" or "stopwatch" or "calendar" or "notes" or "files" or "system";peekFooter.ColumnDefinitions[3].Width=new(detachable?74:0);foreach(FrameworkElement child in peekFooter.Children)if(child.Tag as string=="detach")child.Visibility=detachable?Visibility.Visible:Visibility.Collapsed;
         foreach(var dot in peekDots.Values)dot.Width=Math.Min(14,Math.Max(7,(safe.Width-48-(app.Settings.DetachablePreviews?74:0)-(safe.Width>=270?50:0))/Math.Max(1,PeekPages().Length)));peekViewport.Height=contentHeight;peekPanel.RowDefinitions[0].Height=new(contentHeight);
-        peekPanel.RowDefinitions[1].Height=new(peekDetailed?24:0);peekFooter.Visibility=peekDetailed?Visibility.Visible:Visibility.Collapsed;
+        peekPanel.RowDefinitions[1].Height=new(peekDetailed?PeekLayout.FooterHeight:0);peekFooter.Visibility=peekDetailed?Visibility.Visible:Visibility.Collapsed;
         foreach(var pair in peekViews)
         {
             pair.Value.Width=safe.Width;pair.Value.Height=contentHeight;

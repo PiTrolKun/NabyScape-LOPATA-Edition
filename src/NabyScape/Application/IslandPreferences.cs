@@ -20,7 +20,8 @@ internal sealed record IslandPreferences
     public int ClosedWidth { get; init; } = 300;
     public int ClosedHeight { get; init; } = 36;
     public int HoverWidth { get; init; } = 355;
-    public int HoverHeight { get; init; } = 146;
+    internal const int MinimumHoverHeight = 184;
+    public int HoverHeight { get; init; } = MinimumHoverHeight;
     public int PanelWidth { get; init; } = 400;
     public int PanelHeight { get; init; } = 390;
 
@@ -34,7 +35,7 @@ internal sealed record IslandPreferences
         ClosedWidth = Math.Clamp(ClosedWidth, 240, 520),
         ClosedHeight = Math.Clamp(ClosedHeight, 30, 58),
         HoverWidth = Math.Clamp(HoverWidth, 285, 540),
-        HoverHeight = Math.Clamp(HoverHeight, 130, 260),
+        HoverHeight = Math.Clamp(HoverHeight, MinimumHoverHeight, 260),
         PanelWidth = Math.Clamp(PanelWidth, 320, 580),
         PanelHeight = Math.Clamp(PanelHeight, 270, 540)
     };
