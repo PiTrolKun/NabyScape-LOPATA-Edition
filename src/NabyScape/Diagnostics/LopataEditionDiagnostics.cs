@@ -89,7 +89,9 @@ internal static class LopataEditionDiagnostics
             || !labels.Any(text => text.Contains("40")) || Find(panel, "resume.a").Visibility != Visibility.Visible
             || Find(panel, "pause.b").Visibility != Visibility.Visible)
             throw new InvalidOperationException("The expanded island did not show both jobs, selected actions and progress.");
-        await Task.Delay(260);
+        await Task.Delay(420);
+        if (island.PaintedHeight > 280)
+            throw new InvalidOperationException("The task panel still reserves room for the hidden media page.");
         Capture(island, Path.Combine(directory, "island-model-tasks.png"));
         Click(Find(panel, "LOPATA tasks"));
 

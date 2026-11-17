@@ -96,7 +96,8 @@ public sealed partial class OverlayWindow : Window
     {
         UpdateAmbientMotion();
         var screen=Native.ChooseScreen(app.Settings);var scale=Native.Scale(screen);
-        expandedWidth=assistantOpen || VoiceRoomOpen?AssistantView.PanelSize(app.Settings,VoiceRoomOpen).Width:MediaLyricsLayout.Width(app.Settings,screen.WorkingArea.Width/scale-24,ShowLyricsLayout);
+        bool voiceRoom=VoiceRoomOpen && !showLopataJobs;
+        expandedWidth=assistantOpen || voiceRoom?AssistantView.PanelSize(app.Settings,voiceRoom).Width:MediaLyricsLayout.Width(app.Settings,screen.WorkingArea.Width/scale-24,ShowLyricsLayout && !showLopataJobs);
         double available=screen.WorkingArea.Height/scale-16;
         bodyWidth=Math.Max(140,(expandedWidth-app.Settings.PanelPadding*2)/app.Settings.PanelScale);
         body.Width=bodyWidth;
@@ -105,8 +106,8 @@ public sealed partial class OverlayWindow : Window
         // resize its layered host in the middle of the return animation.
         if(expanded){if(Width<WindowHostWidth)Width=WindowHostWidth;if(Height<HostHeight)Height=HostHeight;}
         if(body.LayoutTransform is ScaleTransform scaling){scaling.ScaleX=scaling.ScaleY=app.Settings.PanelScale;}else body.LayoutTransform=new ScaleTransform(app.Settings.PanelScale,app.Settings.PanelScale);
-        double desired=assistantOpen || VoiceRoomOpen?AssistantView.PanelSize(app.Settings,VoiceRoomOpen).Height:app.Settings.PanelMaxHeight;
-        if(!assistantOpen && !VoiceRoomOpen && app.Settings.CompactLayout && app.Settings.PanelAutoHeight)
+        double desired=assistantOpen || voiceRoom?AssistantView.PanelSize(app.Settings,voiceRoom).Height:app.Settings.PanelMaxHeight;
+        if(!assistantOpen && !voiceRoom && app.Settings.CompactLayout && app.Settings.PanelAutoHeight)
         {
             double contentHeight=0;var constraint=new Size(bodyWidth,double.PositiveInfinity);
             // Measure the selected page directly: the collapsed ScrollViewer and stretched
@@ -114,7 +115,7 @@ public sealed partial class OverlayWindow : Window
             foreach(FrameworkElement child in body.Children)
             {
                 FrameworkElement measured=child;
-                if(child==compactPageHost){if(!compactPages.TryGetValue(activePage,out var page))continue;measured=page;}
+                if(child==compactPageHost){if(child.Visibility==Visibility.Collapsed || !compactPages.TryGetValue(activePage,out var page))continue;measured=page;}
                 if(contentChanged)measured.InvalidateMeasure();measured.Measure(constraint);contentHeight+=measured.DesiredSize.Height;
             }
             desired=Math.Clamp(contentHeight*app.Settings.PanelScale+PanelFramePadding,184,app.Settings.PanelMaxHeight);
