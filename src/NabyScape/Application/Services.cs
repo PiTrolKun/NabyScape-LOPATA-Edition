@@ -374,14 +374,12 @@ public static class StartupService
 {
     private const string Key=@"Software\Microsoft\Windows\CurrentVersion\Run";
     public static bool Enabled()
-    { using var key=Registry.CurrentUser.OpenSubKey(Key); return key?.GetValue("NabyScape")!=null || key?.GetValue("BillyNabilaIsland")!=null || key?.GetValue("LumaIsland")!=null; }
+    { using var key=Registry.CurrentUser.OpenSubKey(Key); return key?.GetValue(LopataEdition.StartupName) != null; }
     public static void Set(bool enabled)
     {
         using var key=Registry.CurrentUser.CreateSubKey(Key);
-        if(enabled) key.SetValue("NabyScape","\""+Environment.ProcessPath+"\" --background");
-        else key.DeleteValue("NabyScape",false);
-        key.DeleteValue("BillyNabilaIsland",false);
-        key.DeleteValue("LumaIsland",false);
+        if(enabled) key.SetValue(LopataEdition.StartupName,"\""+Environment.ProcessPath+"\" --background");
+        else key.DeleteValue(LopataEdition.StartupName, false);
     }
 }
 public static class ShortcutService

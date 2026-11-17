@@ -47,7 +47,7 @@ internal sealed partial class AssistantView : UserControl,IDisposable
     internal AssistantView(App app,bool island=false,Action? close=null)
     {
         this.app=app;ai=app.Assistant;this.island=island;
-        Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/NabyScape;component/Features/Assistant/AssistantTheme.xaml",UriKind.Relative)});
+        Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/LopataIsland;component/Features/Assistant/AssistantTheme.xaml",UriKind.Relative)});
         input.Style=(Style)FindResource("AssistantComposer");
         Foreground=Brushes.White;UseLayoutRounding=true;
         var page=layout;page.Margin=island?new Thickness(0,2,0,4):new Thickness(20,12,20,12);

@@ -94,11 +94,11 @@ public sealed partial class App : Application
         var culture=System.Globalization.CultureInfo.GetCultureInfo("en-US");
         System.Globalization.CultureInfo.DefaultThreadCurrentCulture=culture;
         System.Globalization.CultureInfo.DefaultThreadCurrentUICulture=culture;
-        if(Array.Exists(args,a=>a=="--update-handoff")){Environment.ExitCode=UpdateHandoff.Run();return;}
+        if (Array.Exists(args, a => a is "--update-handoff" or "--install" or "--uninstall")) return;
         if(WindowFixture.TryRun(args))return;
-        if(Array.Exists(args,a=>a=="--exit")) {try {using var signal=EventWaitHandle.OpenExisting("Local\\LumaIsland.Exit");signal.Set();}catch(WaitHandleCannotBeOpenedException){}return;}
+        if(Array.Exists(args,a=>a=="--exit")) {try {using var signal=EventWaitHandle.OpenExisting(LopataEdition.Instance + ".Exit");signal.Set();}catch(WaitHandleCannotBeOpenedException){}return;}
         if(Array.Exists(args,a=>a=="--self-test")) { SelfTests.Run(args);return; }
-        if(Array.Exists(args,a=>a=="--install") || Path.GetFileNameWithoutExtension(Environment.ProcessPath!).EndsWith("-Setup",StringComparison.OrdinalIgnoreCase)) { Installer.Run(args);return; }
+
         new App().Run();
     }
     protected override void OnStartup(StartupEventArgs e)
@@ -109,7 +109,7 @@ public sealed partial class App : Application
         bool assistantFixture=Array.Exists(e.Args,a=>a=="--assistant-only") && Array.Exists(e.Args,a=>a=="--diagnostics");
         bool showcaseFixture=Array.Exists(e.Args,a=>a=="--showcase") && Array.Exists(e.Args,a=>a=="--diagnostics");
         bool isolatedFixture=Array.Exists(e.Args,a=>a=="--isolated-diagnostics") && Array.IndexOf(e.Args,"--diagnostics") is int diagnosticAt && diagnosticAt>=0 && diagnosticAt+1<e.Args.Length;
-        string instance=isolatedFixture?"Local\\LumaIsland.IsolatedDiagnostics":showcaseFixture?"Local\\LumaIsland.Showcase":assistantFixture?"Local\\LumaIsland.AssistantDiagnostics":"Local\\LumaIsland";
+        string instance = LopataEdition.Instance + (isolatedFixture ? ".IsolatedDiagnostics" : showcaseFixture ? ".Showcase" : assistantFixture ? ".AssistantDiagnostics" : "");
         mutex=new Mutex(true,instance+".Desktop",out var created);
         if(!created) {try {using var signal=EventWaitHandle.OpenExisting(instance+".OpenSettings");signal.Set();}catch(WaitHandleCannotBeOpenedException){}Shutdown();return; }
         openEvent=new EventWaitHandle(false,EventResetMode.AutoReset,instance+".OpenSettings");
@@ -117,11 +117,14 @@ public sealed partial class App : Application
         openWait=ThreadPool.RegisterWaitForSingleObject(openEvent,(_,_)=>Dispatcher.BeginInvoke(ShowSettings),null,Timeout.Infinite,false);
         exitWait=ThreadPool.RegisterWaitForSingleObject(exitEvent,(_,_)=>Dispatcher.BeginInvoke(Quit),null,Timeout.Infinite,false);
         ShutdownMode=ShutdownMode.OnExplicitShutdown;
-        Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/NabyScape;component/Theme.xaml",UriKind.Relative)});
+        Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/LopataIsland;component/Theme.xaml",UriKind.Relative)});
         var diagnosticIndex=Array.IndexOf(e.Args,"--diagnostics");
         var diagnosticPath=diagnosticIndex>=0 && diagnosticIndex+1<e.Args.Length ? e.Args[diagnosticIndex+1] : null;
         diagnosticMode=diagnosticPath!=null;
-        Store=new(diagnosticPath==null ? null : Path.Combine(diagnosticPath,"test-profile"));bool existingProfile=File.Exists(Path.Combine(Store.DirectoryPath,"settings.json"));Settings=diagnosticPath==null?Store.Load<Settings>("settings"):new Settings();Settings.Normalize();Localization.Configure(Settings);Settings.AutoStart=StartupService.Enabled();
+        Store=new(diagnosticPath==null ? LopataEdition.ProfileDirectory : Path.Combine(diagnosticPath,"test-profile"));bool existingProfile=File.Exists(Path.Combine(Store.DirectoryPath,"settings.json"));Settings=diagnosticPath==null?Store.Load<Settings>("settings"):new Settings();Settings.Normalize();Localization.Configure(Settings);Settings.AutoStart=StartupService.Enabled();
+        bool lopataFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-edition-only") &&
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
+        if (!diagnosticMode || lopataFixture) PrepareLopataSettings();
         if(assistantFixture || isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
         Updates=new(Store,Array.Exists(e.Args,a=>a=="--stage3-only")?new Stage3Diagnostics.Network():null,stagingDirectory:diagnosticPath!=null?Path.Combine(Store.DirectoryPath,"updates"):null);
         ApplyAppearance();
@@ -133,8 +136,8 @@ public sealed partial class App : Application
         Brightness=new();Brightness.Start(diagnosticPath==null && Settings.ReactiveFeedback && Settings.BrightnessFeedback);
         Calendar=new(Store);Awake=new();
         Assistant=new(this,diagnosticPath!=null?new AssistantMemoryKeys():null);
-        tray=new Forms.NotifyIcon{Text="NabyScape",Visible=diagnosticPath==null};
-        using(var stream=GetResourceStream(new Uri("pack://application:,,,/Assets/island.ico")).Stream) tray.Icon=new System.Drawing.Icon(stream);
+        tray=new Forms.NotifyIcon{Text=LopataEdition.Name,Visible=diagnosticPath==null};
+        using(var stream=GetResourceStream(new Uri("pack://application:,,,/Assets/lopata-island.ico")).Stream) tray.Icon=new System.Drawing.Icon(stream);
         var menu=new Forms.ContextMenuStrip();
         menu.Items.Add(Localization.Text("Open island"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.Reveal()));
         menu.Items.Add(Localization.Text("Command bar"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ShowCommands()));
@@ -153,7 +156,9 @@ public sealed partial class App : Application
         support.DropDownItems.Add(Localization.Text("Donate with Saweria"),null,(_,_)=>Dispatcher.Invoke(()=>SupportLinks.Open(SupportLinks.Saweria,Store.Log)));
         support.DropDownItems.Add(Localization.Text("Donate with Ko-fi"),null,(_,_)=>Dispatcher.Invoke(()=>SupportLinks.Open(SupportLinks.KoFi,Store.Log)));
         menu.Items.Add(support);
-        menu.Items.Add(Localization.Text("Quit"),null,(_,_)=>Dispatcher.Invoke(Quit));
+        menu.Items.Add(Localization.Text(LopataEdition.OpenCaption), null, (_, _) => Dispatcher.Invoke(LopataEdition.OpenHost)).Tag = LopataEdition.OpenCaption;
+        menu.Items.Add(Localization.Text(LopataEdition.LayerCaption), null, (_, _) => Dispatcher.Invoke(ToggleLopataLayer)).Tag = LopataEdition.LayerCaption;
+        menu.Items.Add(Localization.Text(LopataEdition.CloseCaption), null, (_, _) => Dispatcher.Invoke(Quit)).Tag = LopataEdition.CloseCaption;
         tray.ContextMenuStrip=menu;tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowSettings);
         overlay=new OverlayWindow(this);MainWindow=overlay;StartupTrace.Attach(overlay,e.Args,Store.Log);overlay.Show();Previews=new(this,overlay.OpenFeaturePage);
         Assistant.Changed+=RefreshAssistantTray;if(diagnosticPath==null)Assistant.StartBackgroundFeatures();
@@ -197,8 +202,9 @@ public sealed partial class App : Application
         PrivateDiagnostics.SetServiceState(DiagnosticService.Application,DiagnosticServiceState.Ready);
         PrivateDiagnostics.Record(DiagnosticStage.Application,DiagnosticCode.Completed,startupClock.Elapsed);
         if(diagnosticPath==null)UpdateHandoff.SignalStarted(e.Args);
-        if(diagnosticPath==null) _=Updates.Check(false,Settings.AutoCheckUpdates,Settings.AutoDownloadUpdates);
-        if(diagnosticPath!=null) _=Diagnostics.Run(this,overlay,diagnosticPath);
+        if (!diagnosticMode || lopataFixture) ObserveLopataSettings();
+        if(lopataFixture) _=LopataEditionDiagnostics.Run(this,overlay,diagnosticPath!);
+        else if(diagnosticPath!=null) _=Diagnostics.Run(this,overlay,diagnosticPath);
         else
         {
             bool offerWelcome=false;
@@ -207,7 +213,7 @@ public sealed partial class App : Application
             else if(Array.Exists(e.Args,a=>a=="--settings"))ShowSettings();
         }
     }
-    private void RefreshAssistantTray(){PrivateDiagnostics.SetServiceState(DiagnosticService.Assistant,!Assistant.Options.Enabled?DiagnosticServiceState.Disabled:Assistant.State==AssistantState.Error?DiagnosticServiceState.Failed:Assistant.Busy?DiagnosticServiceState.Busy:DiagnosticServiceState.Ready);if(tray!=null)tray.Text=Assistant.VoiceConnected?"NabyScape · Voice microphone on":Assistant.WakeListening?"NabyScape · Wake microphone on":Assistant.WakeArmed?"NabyScape · Wake word preparing":"NabyScape";}
+    private void RefreshAssistantTray(){PrivateDiagnostics.SetServiceState(DiagnosticService.Assistant,!Assistant.Options.Enabled?DiagnosticServiceState.Disabled:Assistant.State==AssistantState.Error?DiagnosticServiceState.Failed:Assistant.Busy?DiagnosticServiceState.Busy:DiagnosticServiceState.Ready);if(tray!=null)tray.Text=LopataEdition.Name;}
     public void CheckCountdowns()
     {
         var now=DateTimeOffset.UtcNow;bool changed=false;
@@ -261,6 +267,7 @@ public sealed partial class App : Application
         if(Session!=null) SaveSession();
         Previews?.Dispose();overlay?.Cleanup();try{Awake?.Dispose();}catch(Exception ex){Store?.Log(ex);}Productivity?.Dispose();Media?.Dispose();Audio?.Dispose();Brightness?.Dispose();
         if(tray!=null) { tray.Visible=false;tray.Dispose(); }
+        hostSettingsWatcher?.Stop();
         openWait?.Unregister(null);exitWait?.Unregister(null);openEvent?.Dispose();exitEvent?.Dispose();mutex?.Dispose();base.OnExit(e);
     }
     public bool Quitting=>quitting;

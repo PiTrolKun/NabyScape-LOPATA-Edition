@@ -14,7 +14,7 @@ internal static class AssistantWindowChrome
 {
     internal static UIElement Frame(Window window,string title,UIElement content)
     {
-        window.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/NabyScape;component/Features/Assistant/AssistantTheme.xaml",UriKind.Relative)});
+        window.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/LopataIsland;component/Features/Assistant/AssistantTheme.xaml",UriKind.Relative)});
         window.WindowStyle=WindowStyle.None;window.ResizeMode=ResizeMode.CanResize;window.Background=UI.Brush("#0D0E10");window.Foreground=Brushes.White;window.UseLayoutRounding=true;
         WindowChrome.SetWindowChrome(window,new WindowChrome{CaptionHeight=38,ResizeBorderThickness=new(6),GlassFrameThickness=new(0),CornerRadius=new(12),UseAeroCaptionButtons=false});
         var frame=new Grid();frame.RowDefinitions.Add(new(){Height=new GridLength(38)});frame.RowDefinitions.Add(new());

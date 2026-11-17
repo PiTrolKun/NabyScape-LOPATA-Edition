@@ -23,7 +23,7 @@ internal static class Installer
             catch(Exception ex) {File.WriteAllText(Path.Combine(Path.GetDirectoryName(Environment.ProcessPath)!,"install-error.txt"),ex.ToString());Environment.ExitCode=1;}
             return;
         }
-        var application=new Application();application.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/NabyScape;component/Theme.xaml",UriKind.Relative)});
+        var application=new Application();application.Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/LopataIsland;component/Theme.xaml",UriKind.Relative)});
         application.Run(CreateWindow(args));
     }
     internal static Window CreateWindow(string[] args)

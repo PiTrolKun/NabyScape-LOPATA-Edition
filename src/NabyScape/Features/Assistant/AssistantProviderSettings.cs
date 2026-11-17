@@ -27,7 +27,7 @@ internal sealed partial class AssistantProviderSettings : UserControl
     private readonly Expander connectionEditor=new(){Header="Edit connection details",IsExpanded=false,Margin=new(0,14,0,8)};
     internal AssistantProviderSettings(App app,bool embedded=true)
     {
-        this.app=app;ai=app.Assistant;Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/NabyScape;component/Features/Assistant/AssistantTheme.xaml",UriKind.Relative)});
+        this.app=app;ai=app.Assistant;Resources.MergedDictionaries.Add(new ResourceDictionary{Source=new Uri("/LopataIsland;component/Features/Assistant/AssistantTheme.xaml",UriKind.Relative)});
         var page=new StackPanel{Margin=embedded?new Thickness(0):new Thickness(24,20,24,24)};
         var header=new DockPanel();var orb=new AssistantOrb{Width=54,Height=54,ReduceMotion=app.Settings.ReduceMotion};header.Children.Add(orb);var intro=new StackPanel{Margin=new(12,0,0,0)};intro.Children.Add(UI.Heading("Your AI, your provider",22));intro.Children.Add(UI.Text("Connect an API. Choose how you chat, speak and share context.",12,UI.Muted));header.Children.Add(intro);if(!embedded)page.Children.Add(header);
         BuildSetupNavigation(page);var chatPage=setupPages["Chat"];var voicePage=setupPages["Voice"];var advancedPage=setupPages["Advanced"];

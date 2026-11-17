@@ -130,7 +130,7 @@ internal static class SettingsUxTests
         test("Color picker constructs and applies its hue template under the application theme",()=>
         {
             var application=System.Windows.Application.Current ?? new System.Windows.Application();
-            application.Resources.MergedDictionaries.Add(new System.Windows.ResourceDictionary{Source=new Uri("/NabyScape;component/Theme.xaml",UriKind.Relative)});
+            application.Resources.MergedDictionaries.Add(new System.Windows.ResourceDictionary{Source=new Uri("/LopataIsland;component/Theme.xaml",UriKind.Relative)});
             var picker=new ColorPicker("Test color","#182028",new[]{"#FFFFFF"},Array.Empty<string>(),_=>{},_=>{});
             var hue=(System.Windows.Controls.Slider)typeof(ColorPicker).GetField("hue",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic)!.GetValue(picker)!;
             var editor=(System.Windows.Controls.StackPanel)picker.Children[1];Assert(editor.Visibility==System.Windows.Visibility.Collapsed);

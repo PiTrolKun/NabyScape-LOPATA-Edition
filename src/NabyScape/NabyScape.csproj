@@ -7,16 +7,16 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets\island.ico</ApplicationIcon>
-    <AssemblyName>NabyScape</AssemblyName>
+    <ApplicationIcon>Assets\lopata-island.ico</ApplicationIcon>
+    <AssemblyName>LopataIsland</AssemblyName>
     <RootNamespace>NabyScape</RootNamespace>
     <Version>2.27.0</Version>
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
-    <Title>NabyScape</Title>
-    <Product>NabyScape</Product>
+    <Title>NabyScape — LOPATA Edition</Title>
+    <Product>NabyScape — LOPATA Edition</Product>
     <Company>NabyScape</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/BillyNabil/nabyscape</RepositoryUrl>
+    <RepositoryUrl>https://github.com/PiTrolKun/nabyscape</RepositoryUrl>
     <!-- WPF owns DPI awareness; WinForms is used only for Screen and NotifyIcon. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <StartupObject>NabyScape.App</StartupObject>
@@ -28,6 +28,7 @@
     <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00018" />
     <PackageReference Include="NTextCat" Version="0.3.65" />
     <Resource Include="Assets\island.ico" />
+    <Resource Include="Assets\lopata-island.ico" />
     <Resource Include="Assets\naby-chrome.png" />
     <Resource Include="Assets\Fonts\Manrope-Medium.ttf" />
     <Resource Include="Assets\Fonts\Manrope-SemiBold.ttf" />

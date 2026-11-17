@@ -33,6 +33,7 @@ public sealed partial class OverlayWindow : Window
     private Border? batteryCard;
     private OutsideClick? outside;
     private bool expanded,userHidden,environmentHidden,updating,positioning;
+    internal bool CloseForLanguage { private get; set; }
     private double expandedWidth=452,expandedHeight=634,bodyWidth=388;
     private string sessionKey="",playIcon="",muteIcon="";
     private IntPtr hwnd;
@@ -47,8 +48,8 @@ public sealed partial class OverlayWindow : Window
     internal bool DiagnosticRun {get;set;}
     public OverlayWindow(App app)
     {
-        this.app=app;Title="NabyScape";WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
-        AllowsTransparency=true;Background=Brushes.Transparent;ShowInTaskbar=false;Topmost=true;ShowActivated=false;
+        this.app=app;Title=LopataEdition.Name;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;
+        AllowsTransparency=true;Background=Brushes.Transparent;ShowInTaskbar=false;Topmost=app.LopataAboveWindows;ShowActivated=false;
         FontFamily=new FontFamily("Segoe UI Variable Text, Segoe UI, Malgun Gothic");FontSize=13;UseLayoutRounding=false;SnapsToDevicePixels=false;
         TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);
         var header=new Grid();header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});header.ColumnDefinitions.Add(new());header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
@@ -72,7 +73,7 @@ public sealed partial class OverlayWindow : Window
         IsVisibleChanged+=(_,_)=>{if(!IsVisible)InvalidateSystemMonitor();};
         PreviewKeyDown+=(_,e)=> {if(e.Key==Key.Escape && mediaControls?.Close()==true){e.Handled=true;return;}if(dockEditing){if(e.Key==Key.Escape){foreach(var grip in new[]{moveGrip,resizeLeft,resizeRight})if(grip.IsDragging)grip.CancelDrag();e.Handled=true;}return;}if(e.Key==Key.K && Keyboard.Modifiers==ModifierKeys.Control){ShowCommands();e.Handled=true;}else if(e.Key==Key.Escape){if(assistantOpen || assistantPeeking){app.Assistant.StopSession();CloseAssistant();}else if(commandOpen)CloseCommands();else Collapse();e.Handled=true;}};
         PreviewMouseDown+=(_,e)=>{if(mediaControls?.IsOpen==true && !mediaControls.ContainsControl(e.OriginalSource as DependencyObject))mediaControls.Close(false);};
-        Closing+=(_,e)=> {if(!app.Quitting){e.Cancel=true;SetVisibility(false);}};
+        Closing+=(_,e)=> {if(!app.Quitting && !CloseForLanguage){e.Cancel=true;SetVisibility(false);}};
         Deactivated+=(_,_)=> {if((expanded || peeking) && !DiagnosticRun && !OwnedPopupOpen)DismissMediaOrCollapse();};
         app.SettingsChanged+=ApplySettings;app.Updated+=Update;Microsoft.Win32.SystemEvents.DisplaySettingsChanged+=DisplayChanged;
         volume.ValueChanged+=(_,_)=> {if(!updating){app.Audio.SetVolume(volume.Value/100);volumeText.Text=$"{volume.Value:0}%";mediaControls?.Refresh(volume.Value,app.Audio.Muted,app.Audio.Available,false);}};
@@ -123,6 +124,7 @@ public sealed partial class OverlayWindow : Window
     }
     private void ApplySettings()
     {
+        Topmost = app.LopataAboveWindows;
         var editorState=CaptureEditorState();
         if(ApplyIncrementalSettings(OverlaySettingsState.Capture(app.Settings))){RestoreEditorState(editorState);return;}
         classicMixerOpen=false;if(activePage=="mixer")activePage="media";
@@ -256,7 +258,7 @@ public sealed partial class OverlayWindow : Window
             // belongs to placement, display, settings and follow events, not each frame.
             if(!contourOnly || !positionContextReady){var screen=Native.ChooseScreen(s);positionScale=Native.Scale(screen);positionBounds=s.DockEdge=="Top"?screen.Bounds:screen.WorkingArea;positionContextReady=true;}
             var scale=positionScale;var b=positionBounds;var width=(int)Math.Ceiling(ActualWidth*scale);var height=(int)Math.Ceiling(ActualHeight*scale);if(width<1 || height<1)return;
-            var point=MonitorFollowPolicy.Place(s,b,scale,width,Math.Min(height,(int)Math.Ceiling(PaintedHeight*scale)),TuckRequested,(int)Math.Ceiling(PaintedWidth*scale));Native.GetWindowRect(hwnd,out var current);if(followMoving){followTarget=point;return;}if(current.Left!=point.X || current.Top!=point.Y)Native.SetWindowPos(hwnd,new IntPtr(-1),point.X,point.Y,0,0,0x0010|0x0001);
+            var point=MonitorFollowPolicy.Place(s,b,scale,width,Math.Min(height,(int)Math.Ceiling(PaintedHeight*scale)),TuckRequested,(int)Math.Ceiling(PaintedWidth*scale));Native.GetWindowRect(hwnd,out var current);if(followMoving){followTarget=point;return;}if(current.Left!=point.X || current.Top!=point.Y)Native.SetWindowPos(hwnd, IntPtr.Zero, point.X, point.Y, 0, 0, 0x0010 | 0x0001 | 0x0004);
         }finally{positioning=false;}
     }
     public void CheckEnvironment()
