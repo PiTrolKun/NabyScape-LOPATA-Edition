@@ -25,7 +25,7 @@ internal sealed class LocalMusicWindow : Window
     private readonly ListBox tracks = new() { DisplayMemberPath = nameof(LocalMusicTrack.Name) };
     private readonly TextBlock status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 8, 0, 0) };
     private readonly TextBlock folder = new() { TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly TextBox search = new() { Margin = new(0, 8, 0, 8) };
+    private readonly TextBox search = new() { Margin = new(0, 3, 0, 8) };
     private readonly Button play;
     private CancellationTokenSource? loading, opening;
     private IReadOnlyList<LocalMusicTrack> listing = [];
@@ -57,6 +57,9 @@ internal sealed class LocalMusicWindow : Window
         search.Padding = new(6);
         UI.LocalizedName(search, "Filter tracks by name");
         search.TextChanged += (_, _) => ApplyFilter();
+        var filterLabel = new Label { Content = Localization.Text("Filter tracks by name"), Target = search,
+            Foreground = UI.Muted, Padding = new(0), Margin = new Thickness(0, 4, 0, 0), FontSize = 11 };
+        header.Children.Add(filterLabel);
         header.Children.Add(search);
         DockPanel.SetDock(header, Dock.Top); dock.Children.Add(header);
 

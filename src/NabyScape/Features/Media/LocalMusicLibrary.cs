@@ -20,18 +20,18 @@ internal sealed class LocalMusicLibrary
     private static readonly HashSet<string> AudioExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".wav", ".mp3", ".flac", ".opus", ".ogg", ".m4a", ".aac", ".wma", ".aif", ".aiff" };
     private readonly string collectionRoot;
+    private readonly bool includeDefaultMusic;
 
     internal LocalMusicLibrary(string? collectionRoot = null)
     {
         this.collectionRoot = collectionRoot ?? CollectionPaths.DefaultDirectory;
+        includeDefaultMusic = collectionRoot is null;
     }
 
     internal IReadOnlyList<LocalMusicTrack> Read(LocalMusicSource source, string folder, CancellationToken token)
     {
         if (source == LocalMusicSource.Folder) return ReadFolder(folder, token);
         var configuration = CollectionConfig.Load(collectionRoot);
-        var snapshot = configuration.Enabled
-            ? CollectionPublication.ReadCurrent(collectionRoot, CollectionPublication.Revision(configuration)) : [];
         if (configuration.Enabled)
         {
             try
@@ -43,11 +43,14 @@ internal sealed class LocalMusicLibrary
         }
 
         // Known locations and completed exports are available even on a machine without the Explorer worker.
-        var roots = configuration.Roots.Concat([Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)])
+        var defaultMusic = includeDefaultMusic ? new[] { Environment.GetFolderPath(Environment.SpecialFolder.MyMusic) } : [];
+        var roots = configuration.Roots.Concat(defaultMusic)
             .Where(Path.IsPathFullyQualified).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var local = configuration with { Roots = roots, SearchEnabled = false };
         using var scanner = new CollectionScanner();
         var checkedPaths = scanner.Scan(collectionRoot, local, token).Items.Select(item => item.Path);
+        var snapshot = configuration.Enabled
+            ? CollectionPublication.ReadCurrent(collectionRoot, CollectionPublication.Revision(configuration)) : [];
         return MakeList(snapshot.Select(item => item.Path).Concat(checkedPaths)
             .Where(path => CollectionFilePolicy.IsAllowed(path, configuration)), source, token);
     }

@@ -55,7 +55,11 @@ internal static class LopataMusicDiagnostics
             var config = CollectionConfig.Load(root);
             Check(CollectionOriginReader.Read(imported) is not null, "copied file retains the LOPATA origin tags");
             Check(CollectionPublication.TryPublish(root, CollectionPublication.Revision(config), [new(imported, "Audio", "Music")]), "worker snapshot admits an indexed exported file");
+            string refreshRequest = Path.Combine(root, "refresh.request");
+            var requestedAt = File.GetLastWriteTimeUtc(refreshRequest);
+            await Task.Delay(30,token);
             music = await local.TracksAsync(LocalMusicSource.Collection, "", token);
+            Check(File.GetLastWriteTimeUtc(refreshRequest)>requestedAt, "island requests a fresh collection snapshot");
             Check(music.Any(t => t.Path==imported) && music.Any(t => t.Name=="ThisPC"), "island reads refreshed snapshot and known tracks together");
             var files = await local.TracksAsync(LocalMusicSource.Folder, folder, token);
             Check(files.Any(t => t.Name=="External") && files.Any(t => t.Name=="Copied") && files.All(t => t.Path.StartsWith(folder, StringComparison.OrdinalIgnoreCase)),
