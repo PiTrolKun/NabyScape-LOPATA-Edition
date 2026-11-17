@@ -122,6 +122,12 @@ public sealed partial class App : Application
         var diagnosticPath=diagnosticIndex>=0 && diagnosticIndex+1<e.Args.Length ? e.Args[diagnosticIndex+1] : null;
         diagnosticMode=diagnosticPath!=null;
         Store=new(diagnosticPath==null ? LopataEdition.ProfileDirectory : Path.Combine(diagnosticPath,"test-profile"));bool existingProfile=File.Exists(Path.Combine(Store.DirectoryPath,"settings.json"));Settings=diagnosticPath==null?Store.Load<Settings>("settings"):new Settings();Settings.Normalize();Localization.Configure(Settings);Settings.AutoStart=StartupService.Enabled();
+        if (!diagnosticMode && !existingProfile)
+        {
+            Settings.ClipboardHistory = false;
+            Settings.DownloadsEnabled = false;
+            Settings.LyricsEnabled = false;
+        }
         bool lopataFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-edition-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         if (!diagnosticMode || lopataFixture) PrepareLopataSettings();
