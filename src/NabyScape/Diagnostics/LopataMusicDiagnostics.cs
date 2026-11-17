@@ -131,8 +131,16 @@ internal static class LopataMusicDiagnostics
             var row = (Grid)heart.Parent;
             var left = heart.TranslatePoint(new Point(heart.ActualWidth/2,heart.ActualHeight/2),row);
             var right = textButton.TranslatePoint(new Point(textButton.ActualWidth/2,textButton.ActualHeight/2),row);
-            Check(Math.Abs(left.Y-right.Y)<.5 && Math.Abs(left.X+right.X-row.ActualWidth)<.5,
-                "favorite control mirrors the lyrics button");
+            var centerButton = Diagnostics.Descendants(row).OfType<Button>().Single(button =>
+                AutomationProperties.GetAutomationId(button) == "Play or pause");
+            var playCenter = centerButton.TranslatePoint(new Point(centerButton.ActualWidth/2,centerButton.ActualHeight/2),row);
+            Check(Math.Abs(left.Y-right.Y)<.5 && Math.Abs(left.X+right.X-2*playCenter.X)<.5,
+                "favorite control mirrors the lyrics button around Play");
+            Check(left.X-heart.ActualWidth/2>=20 && row.ActualWidth-right.X-textButton.ActualWidth/2>=20,
+                "both side buttons have at least 20 DIPs of inset in the expanded player");
+            Check(heart.ActualWidth==textButton.ActualWidth && heart.ActualHeight==textButton.ActualHeight &&
+                Equals(heart.Tag,textButton.Tag) && Equals(heart.Background,textButton.Background),
+                "favorite and open lyrics buttons use the same circular background");
             Check(AutomationProperties.GetItemStatus(heart) == "Off","a track starts with an empty favorite icon");
             heart.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent,heart));
             Check(AutomationProperties.GetItemStatus(heart) == "On" && new LocalMusicLists(app.Store).Favorites.Single()==primary,

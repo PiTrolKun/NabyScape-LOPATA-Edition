@@ -198,6 +198,16 @@ public sealed partial class OverlayWindow
         Dimensions();
         if(expanded){motion.Go(surface,IslandSurface.SurfaceWidthProperty,expandedWidth,Math.Min(300,app.Settings.AnimationMs));motion.Go(surface,IslandSurface.SurfaceHeightProperty,expandedHeight,Math.Min(300,app.Settings.AnimationMs));motion.OnComplete(()=>{});}
     }
+    private static Button PlaybackSideButton(string icon,string caption,Action click)
+    {
+        var button=Icons.Button(icon,caption,click,false,28);
+        button.HorizontalAlignment=HorizontalAlignment.Center;
+        button.VerticalAlignment=VerticalAlignment.Center;
+        button.Margin=new(0);
+        button.SetResourceReference(Control.BackgroundProperty,"SelectionFill");
+        return button;
+    }
+
     private FrameworkElement BuildCompactPage(string page)
     {
         if(Settings.ToolNames.ContainsKey(page))return new StackPanel();
@@ -213,10 +223,7 @@ public sealed partial class OverlayWindow
                 var row=new Grid{Margin=new(0,0,0,6)};row.ColumnDefinitions.Add(new(){Width=GridLength.Auto});row.ColumnDefinitions.Add(new());row.Children.Add(cover);
                 previous=Icons.Button("previous","Previous track",()=>_=app.Media.Command("previous"),false,38);play=Icons.Button("play","Play or pause",()=>_=app.Media.Command("toggle"),true,46);playIcon="";next=Icons.Button("next","Next track",()=>_=app.Media.Command("next"),false,38);previous.Background=next.Background=Brushes.Transparent;
                 previous.Margin=new(0,0,8,0);play.Margin=new(0);next.Margin=new(8,0,0,0);
-                lyricsButton=Icons.Button("lyrics","Show or hide synced lyrics",ToggleLyrics,false,28);lyricsButton.Margin=new(16,0,0,0);lyricsButton.Background=Brushes.Transparent;
-                lyricsButton.HorizontalAlignment=HorizontalAlignment.Right;
-                lyricsButton.VerticalAlignment=VerticalAlignment.Center;
-                lyricsButton.Margin=new(0);
+                lyricsButton=PlaybackSideButton("lyrics","Show or hide synced lyrics",ToggleLyrics);
                 var playbackRow=new Grid();
                 playbackRow.ColumnDefinitions.Add(new());
                 playbackRow.ColumnDefinitions.Add(new(){Width=GridLength.Auto});

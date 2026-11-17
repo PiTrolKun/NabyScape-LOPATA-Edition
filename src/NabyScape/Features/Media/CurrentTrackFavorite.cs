@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Media;
 
 namespace NabyScape;
 
@@ -15,10 +14,7 @@ public sealed partial class OverlayWindow
     private Button BuildFavoriteTrackButton()
     {
         displayedFavorite = null;
-        var button = Icons.Button("heart","Toggle current track favorite",ToggleCurrentFavorite,false,28);
-        button.HorizontalAlignment = HorizontalAlignment.Left;
-        button.VerticalAlignment = VerticalAlignment.Center;
-        button.Margin = new(0);
+        var button = PlaybackSideButton("heart","Toggle current track favorite",ToggleCurrentFavorite);
         ToolTipService.SetShowOnDisabled(button,true);
         favoriteTrackButton = button;
         SyncFavoriteTrackButton();
@@ -40,8 +36,6 @@ public sealed partial class OverlayWindow
         if (saved && !Accessibility.HighContrast)
             glyph.SetResourceReference(System.Windows.Shapes.Shape.FillProperty,"Accent");
         button.Content = glyph;
-        if (saved) button.SetResourceReference(Control.BackgroundProperty,"SelectionFill");
-        else button.Background = Brushes.Transparent;
     }
 
     private void ToggleCurrentFavorite()
