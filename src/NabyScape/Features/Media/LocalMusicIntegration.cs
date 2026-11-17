@@ -29,7 +29,8 @@ public sealed partial class MediaService
 
     internal static string LocalSourceId(LocalMusicSource source) =>
         source == LocalMusicSource.Collection ? "@lopata-library" : "@music-folder";
-    internal static bool IsLocalSource(string id) => id is "@lopata-library" or "@music-folder";
+    internal const string FavoritesSourceId = "@favorite-tracks";
+    internal static bool IsLocalSource(string id) => id is "@lopata-library" or "@music-folder" or FavoritesSourceId;
     internal const string LocalMeterSource = "@island-audio";
     internal string? AudioMeterSource => localPlayback is null ? Selected?.SourceAppUserModelId : LocalMeterSource;
     internal LocalMusicDetails? LocalDetails => localPlayback?.Details;
@@ -54,6 +55,11 @@ public sealed partial class MediaService
     private async Task<bool> PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack> queue, CancellationToken token = default)
     {
         if (disposed || DiagnosticFixture) return false;
+        if (!System.IO.File.Exists(track.Path))
+        {
+            LocalOpenError = "The audio file is unavailable.";
+            return false;
+        }
         openingLocal?.Cancel();
         using var opening = CancellationTokenSource.CreateLinkedTokenSource(token);
         openingLocal = opening;

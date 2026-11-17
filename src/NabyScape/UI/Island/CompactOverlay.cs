@@ -26,7 +26,7 @@ public sealed partial class OverlayWindow
     private FrameworkElement peekFallback=null!;
     private readonly ActivityVisual peekWave=new(){Width=58,Height=16,WaveOnly=true};
     private Button? peekPlay;
-    private readonly Slider seekSlider=new(){Minimum=0,Maximum=1,TickFrequency=.001,SmallChange=.01,LargeChange=.05,IsMoveToPointEnabled=true,Height=24,Margin=new(0)};
+    private readonly Slider seekSlider=new(){Minimum=0,Maximum=1,TickFrequency=.001,SmallChange=.01,LargeChange=.05,IsMoveToPointEnabled=true,Height=32,Margin=new(0),Background=Brushes.Transparent};
     private readonly TextBlock elapsed=UI.Caption("0:00",10,UI.Muted),duration=UI.Caption("0:00",10,UI.Muted);
     private readonly DispatcherTimer hoverDelay=new(){Interval=TimeSpan.FromMilliseconds(180)},leaveDelay=new(){Interval=TimeSpan.FromMilliseconds(300)},seekDelay=new(){Interval=TimeSpan.FromMilliseconds(140)};
     private double HostHeight

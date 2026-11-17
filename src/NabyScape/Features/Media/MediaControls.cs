@@ -18,7 +18,7 @@ internal sealed class MediaControls : Grid
 {
     private readonly Border popover=new(){Tag="media-popover",Background=UI.Brush("#111216"),BorderBrush=UI.Brush("#53565D"),BorderThickness=new(.7),CornerRadius=new(10),Padding=new(8),Margin=new(0,6,0,0),Visibility=Visibility.Collapsed};
     private readonly Grid footer=new(){Margin=new(0,8,0,0)};
-    private readonly Button source,level;
+    private readonly Button source,level,library;
     private readonly TextBlock sourceName=UI.Text("Media",11),levelText=UI.Text("—",11,UI.Muted);
     private readonly Grid sourceIcon=new(){Width=16,Height=16,Margin=new(0,0,6,0)},levelIcon=new(){Width=16,Height=16,Margin=new(0,0,6,0)};
     private readonly Func<IReadOnlyList<MediaSourceChoice>> sources;
@@ -32,14 +32,26 @@ internal sealed class MediaControls : Grid
     internal Border Popover=>popover;
     internal Button SourceButton=>source;
     internal Button VolumeButton=>level;
+    internal Button LibraryButton=>library;
 
-    internal MediaControls(StackPanel content,bool media,bool volume,Func<IReadOnlyList<MediaSourceChoice>> sources,Func<string?> selected,Func<FrameworkElement> volumeContent)
+    internal MediaControls(StackPanel content,bool media,bool volume,Func<IReadOnlyList<MediaSourceChoice>> sources,Func<string?> selected,Func<FrameworkElement> volumeContent,Action? openList=null)
     {
         this.sources=sources;this.selected=selected;this.volumeContent=volumeContent;
         footer.ColumnDefinitions.Add(new());footer.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
+        footer.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         source=FooterButton("Choose media source",()=>Toggle("source"));
         var chevron=Icons.Create("chevron",8,UI.Muted);chevron.Margin=new(7,0,0,0);source.Content=UI.Row(sourceIcon,sourceName,chevron);source.HorizontalAlignment=HorizontalAlignment.Left;source.Visibility=media?Visibility.Visible:Visibility.Collapsed;source.ToolTip="Choose media source · Enter or Space to open";footer.Children.Add(source);
-        level=FooterButton("Volume controls",()=>Toggle("volume"));level.Content=UI.Row(levelIcon,levelText);level.HorizontalAlignment=HorizontalAlignment.Right;level.Visibility=volume?Visibility.Visible:Visibility.Collapsed;level.ToolTip="Volume, mute, mixer and audio devices · Enter or Space to open";Grid.SetColumn(level,1);footer.Children.Add(level);
+        library=FooterButton("Open music list",()=>{Close(false);openList?.Invoke();});
+        UI.LocalizedName(library,"Open music list");
+        library.Content=Localization.Text("Track list");
+        library.ToolTip=Localization.Text("Open music list");
+        library.Background=UI.Brush("#26333D");
+        library.Padding=new(8,3,8,3);
+        library.Margin=new(4,0,6,0);
+        library.Visibility=media && openList!=null?Visibility.Visible:Visibility.Collapsed;
+        Grid.SetColumn(library,1);
+        footer.Children.Add(library);
+        level=FooterButton("Volume controls",()=>Toggle("volume"));level.Content=UI.Row(levelIcon,levelText);level.HorizontalAlignment=HorizontalAlignment.Right;level.Visibility=volume?Visibility.Visible:Visibility.Collapsed;level.ToolTip="Volume, mute, mixer and audio devices · Enter or Space to open";Grid.SetColumn(level,2);footer.Children.Add(level);
         if(!media){content.MinHeight=144;var heading=UI.Heading("Volume",18);content.Children.Add(heading);}
         content.Children.Add(footer);RowDefinitions.Add(new(){Height=GridLength.Auto});RowDefinitions.Add(new(){Height=GridLength.Auto});Children.Add(content);Grid.SetRow(popover,1);Children.Add(popover);
         KeyboardNavigation.SetTabNavigation(popover,KeyboardNavigationMode.Cycle);
@@ -61,7 +73,7 @@ internal sealed class MediaControls : Grid
         var choices=sources();string? id=selected();var current=choices.FirstOrDefault(item=>item.Id==id);
         string signature=string.Join("\n",choices.Select(item=>item.Id+"\t"+item.Name))+"\nselected:"+id;
         if(IsOpen && kind=="source" && signature!=sourceSignature)Close(popover.IsKeyboardFocusWithin);
-        sourceSignature=signature;sourceName.Text=current?.Name??"Media";sourceName.MaxWidth=Math.Max(48,ActualWidth-145);sourceName.TextTrimming=TextTrimming.CharacterEllipsis;
+        sourceSignature=signature;sourceName.Text=current?.Name??"Media";sourceName.MaxWidth=Math.Max(48,ActualWidth-(library.Visibility==Visibility.Visible?215:145));sourceName.TextTrimming=TextTrimming.CharacterEllipsis;
         source.ToolTip=id==MediaSourceSelection.NoneId?"None · media stays hidden until you choose Auto or an app":id==MediaSourceSelection.AutoId?"Auto · follows the current Windows media app":current!=null?"Media source · "+current.Name:"Play media in an app to select its session";
         string key=current?.Id??"";if(key!=iconKey || sourceIcon.Children.Count==0){iconKey=key;sourceIcon.Children.Clear();sourceIcon.Children.Add(SourceGlyph(key));}
     }
@@ -98,12 +110,12 @@ internal sealed class MediaControls : Grid
     }
     internal bool ContainsControl(DependencyObject? target)
     {
-        for(var node=target;node!=null;node=node is Visual?VisualTreeHelper.GetParent(node):LogicalTreeHelper.GetParent(node))if(node==popover || node==source || node==level)return true;
+        for(var node=target;node!=null;node=node is Visual?VisualTreeHelper.GetParent(node):LogicalTreeHelper.GetParent(node))if(node==popover || node==source || node==level || node==library)return true;
         return false;
     }
     private void Place()
     {
-        sourceName.MaxWidth=Math.Max(48,ActualWidth-145);if(!IsOpen || ActualWidth<=0)return;
+        sourceName.MaxWidth=Math.Max(48,ActualWidth-(library.Visibility==Visibility.Visible?215:145));if(!IsOpen || ActualWidth<=0)return;
         popover.Width=Math.Min(kind=="volume"?240:224,ActualWidth);popover.MaxHeight=kind=="volume"?100:146;
         popover.HorizontalAlignment=kind=="volume"?HorizontalAlignment.Right:HorizontalAlignment.Left;
     }

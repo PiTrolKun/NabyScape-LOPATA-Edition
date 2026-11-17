@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -20,35 +21,44 @@ public sealed partial class Settings
 internal sealed class LocalMusicWindow : Window
 {
     private readonly App app;
-    private readonly LocalMusicSource source;
+    private LocalMusicList activeList;
+    private readonly Dictionary<LocalMusicList, Button> listTabs = new();
     private readonly ILocalMusicTransport transport;
     private readonly ListBox tracks = new() { DisplayMemberPath = nameof(LocalMusicTrack.Name) };
     private readonly TextBlock status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 8, 0, 0) };
     private readonly TextBlock folder = new() { TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBox search = new() { Margin = new(0, 3, 0, 8) };
-    private readonly Button play;
+    private readonly Button play, favorite, chooseFolder;
     private CancellationTokenSource? loading, opening;
     private IReadOnlyList<LocalMusicTrack> listing = [];
     private bool closed, playing;
 
-    internal LocalMusicWindow(App app, LocalMusicSource source)
+    internal LocalMusicWindow(App app, LocalMusicList list)
     {
         this.app = app;
-        this.source = source;
+        activeList = list;
         transport = app.Media;
-        Title = Localization.Text(SourceName(source));
+        Title = Localization.Text(SourceName(list));
         Width = 430; Height = 390; MinWidth = 300; MinHeight = 250;
         ResizeMode = ResizeMode.CanResize; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Background = UI.Brush("#151B25");
         var dock = new DockPanel { Margin = new(16), LastChildFill = true };
         var header = new StackPanel();
-        var actions = new WrapPanel();
-        if (source == LocalMusicSource.Folder)
+        var tabs = new UniformGrid { Rows = 1, Margin = new(0, 0, 0, 7) };
+        foreach (var item in Enum.GetValues<LocalMusicList>())
         {
-            actions.Children.Add(UI.CaptionButton("Choose music folder…", ChooseFolder));
-            folder.Foreground = UI.Muted;
-            header.Children.Add(folder);
+            var tab = UI.CaptionButton(SourceName(item), () => SelectList(item));
+            tab.Margin = new(0, 0, 3, 0);
+            tab.Padding = new(4, 3, 4, 3);
+            listTabs.Add(item, tab);
+            tabs.Children.Add(tab);
         }
+        header.Children.Add(tabs);
+        folder.Foreground = UI.Muted;
+        header.Children.Add(folder);
+        var actions = new WrapPanel();
+        chooseFolder = UI.CaptionButton("Choose music folder…", ChooseFolder);
+        actions.Children.Add(chooseFolder);
         actions.Children.Add(UI.CaptionButton("Refresh tracks", () => _ = LoadAsync()));
         header.Children.Add(actions);
         search.ToolTip = Localization.Text("Filter tracks by name");
@@ -65,10 +75,15 @@ internal sealed class LocalMusicWindow : Window
 
         play = UI.CaptionButton("Play selected track", () => _ = PlayAsync());
         play.IsEnabled = false;
+        favorite = UI.CaptionButton("Add to favorites", ToggleFavorite);
+        favorite.IsEnabled = false;
         var footer = new StackPanel();
         status.Foreground = UI.Muted;
         footer.Children.Add(status);
-        footer.Children.Add(play);
+        var trackActions = new WrapPanel();
+        trackActions.Children.Add(play);
+        trackActions.Children.Add(favorite);
+        footer.Children.Add(trackActions);
         DockPanel.SetDock(footer, Dock.Bottom); dock.Children.Add(footer);
         tracks.Background = UI.Brush("#202A39");
         tracks.Foreground = Brushes.White;
@@ -76,7 +91,7 @@ internal sealed class LocalMusicWindow : Window
         VirtualizingPanel.SetVirtualizationMode(tracks,VirtualizationMode.Recycling);
         ScrollViewer.SetCanContentScroll(tracks,true);
         UI.LocalizedName(tracks, "Local music tracks");
-        tracks.SelectionChanged += (_, _) => play.IsEnabled = tracks.SelectedItem is LocalMusicTrack && !playing;
+        tracks.SelectionChanged += (_, _) => RefreshTrackActions();
         tracks.MouseDoubleClick += (_, args) =>
         {
             if (args.OriginalSource is DependencyObject child && ItemsControl.ContainerFromElement(tracks,child) is ListBoxItem)
@@ -85,12 +100,63 @@ internal sealed class LocalMusicWindow : Window
         tracks.KeyDown += (_, args) => { if (args.Key == Key.Enter) { args.Handled = true; _ = PlayAsync(); } };
         dock.Children.Add(tracks);
         Content = dock;
-        Loaded += (_, _) => _ = LoadAsync();
+        Loaded += (_, _) => SelectList(activeList);
         Closed += (_, _) => { closed = true; loading?.Cancel(); opening?.Cancel(); };
     }
 
-    internal static string SourceName(LocalMusicSource source) =>
-        source == LocalMusicSource.Collection ? "Music made with LOPATA" : "Music folder";
+    internal static string SourceName(LocalMusicList list) => list switch
+    {
+        LocalMusicList.Folder => "Music folder",
+        LocalMusicList.Favorites => "Favorite tracks",
+        _ => "Music made with LOPATA"
+    };
+
+    private void SelectList(LocalMusicList list)
+    {
+        if (activeList != list) opening?.Cancel();
+        activeList = list;
+        Title = Localization.Text(SourceName(list));
+        try { app.MusicLists.SelectList(list); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        { app.Store.Log(error); app.Notify("Not saved yet", Localization.Text("Could not save the selected music list.")); }
+        foreach (var pair in listTabs)
+        {
+            bool selected = pair.Key == activeList;
+            pair.Value.Background = selected ? UI.Brush("#263B49") : UI.Brush("#181D25");
+            AutomationProperties.SetItemStatus(pair.Value, selected ? "Selected" : "");
+        }
+        folder.Visibility = chooseFolder.Visibility = list == LocalMusicList.Folder ? Visibility.Visible : Visibility.Collapsed;
+        _ = LoadAsync();
+    }
+
+    private void RefreshTrackActions()
+    {
+        var track = tracks.SelectedItem as LocalMusicTrack;
+        play.IsEnabled = track is not null && !playing;
+        favorite.IsEnabled = track is not null;
+        bool saved = track is not null && app.MusicLists.IsFavorite(track);
+        var caption = saved ? "Remove from favorites" : "Add to favorites";
+        favorite.Content = Localization.Text(caption);
+        UI.LocalizedName(favorite, caption);
+    }
+
+    private void ToggleFavorite()
+    {
+        if (tracks.SelectedItem is not LocalMusicTrack track) return;
+        try
+        {
+            app.MusicLists.ToggleFavorite(track);
+            if (activeList == LocalMusicList.Favorites)
+            {
+                listing = app.MusicLists.Favorites;
+                ApplyFilter();
+                if (listing.Count == 0) status.Text = Localization.Text("No favorite tracks yet.");
+            }
+            RefreshTrackActions();
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
+        { app.Store.Log(error); status.Text = Localization.Text("Could not save favorite tracks."); }
+    }
 
     private void ChooseFolder()
     {
@@ -105,6 +171,7 @@ internal sealed class LocalMusicWindow : Window
     private async Task LoadAsync()
     {
         if (closed) return;
+        var list = activeList;
         loading?.Cancel();
         using var request = new CancellationTokenSource();
         loading = request;
@@ -116,11 +183,13 @@ internal sealed class LocalMusicWindow : Window
         status.Text = Localization.Text("Reading the music list…");
         try
         {
-            var tracks = await transport.TracksAsync(source, path, request.Token);
+            var entries = list == LocalMusicList.Favorites ? app.MusicLists.Favorites :
+                await transport.TracksAsync(list == LocalMusicList.Folder ? LocalMusicSource.Folder : LocalMusicSource.Collection,
+                    path, request.Token);
             if (request.IsCancellationRequested || closed) return;
-            listing = tracks;
+            listing = entries;
             ApplyFilter();
-            status.Text = listing.Count == 0 ? Localization.Text(source == LocalMusicSource.Folder && path.Length == 0 ?
+            status.Text = listing.Count == 0 ? Localization.Text(list == LocalMusicList.Favorites ? "No favorite tracks yet." : list == LocalMusicList.Folder && path.Length == 0 ?
                 "Choose a folder to see its tracks." : "No playable audio files found.") : "";
         }
         catch (OperationCanceledException) when (request.IsCancellationRequested) { }
@@ -140,6 +209,7 @@ internal sealed class LocalMusicWindow : Window
         string query = search.Text.Trim();
         tracks.ItemsSource = query.Length == 0 ? listing : listing.Where(track => track.Name.Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToArray();
         if (selected is not null) tracks.SelectedItem = selected;
+        RefreshTrackActions();
     }
 
     private async Task PlayAsync()
@@ -162,7 +232,7 @@ internal sealed class LocalMusicWindow : Window
         {
             opening = null;
             playing = false;
-            if (!closed) play.IsEnabled = tracks.SelectedItem is LocalMusicTrack;
+            if (!closed) RefreshTrackActions();
         }
     }
 }

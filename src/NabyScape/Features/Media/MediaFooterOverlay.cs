@@ -15,17 +15,22 @@ public sealed partial class OverlayWindow
     {
         mediaControls=new MediaControls(panel,WidgetOn("media"),WidgetOn("volume"),
             ()=>new[]{new MediaSourceChoice(MediaSourceSelection.NoneId,"None",app.Media.SelectNone),new MediaSourceChoice(MediaSourceSelection.AutoId,"Auto",app.Media.SelectAutomatic),
-                LocalChoice(LocalMusicSource.Collection), LocalChoice(LocalMusicSource.Folder)}.Concat(app.Media.Sessions.Select(session=>new MediaSourceChoice(session.SourceAppUserModelId,MediaService.SessionName(session),()=>
+                LocalChoice(LocalMusicList.Collection), LocalChoice(LocalMusicList.Folder), LocalChoice(LocalMusicList.Favorites)}.Concat(app.Media.Sessions.Select(session=>new MediaSourceChoice(session.SourceAppUserModelId,MediaService.SessionName(session),()=>
             {
                 // A session may disappear after its menu was rendered.
                 if(app.Media.Sessions.Contains(session))app.Media.Select(session);
-            }))).ToArray(),()=>app.Media.SourceSelectionId,BuildVolumePopover);
+            }))).ToArray(),()=>app.Media.SourceSelectionId,BuildVolumePopover,()=>OpenLocalMusic(app.MusicLists.Selected));
         mediaControls.LayoutRequested+=QueueMediaLayout;mediaControls.SizeChanged+=(_,_)=>QueueMediaLayout();RefreshMediaControls(true);return mediaControls;
     }
-    private MediaSourceChoice LocalChoice(LocalMusicSource source) => new(MediaService.LocalSourceId(source),
+    private MediaSourceChoice LocalChoice(LocalMusicList source) => new(source switch
+        {
+            LocalMusicList.Folder => MediaService.LocalSourceId(LocalMusicSource.Folder),
+            LocalMusicList.Favorites => MediaService.FavoritesSourceId,
+            _ => MediaService.LocalSourceId(LocalMusicSource.Collection)
+        },
         Localization.Text(LocalMusicWindow.SourceName(source)), () => OpenLocalMusic(source));
 
-    private void OpenLocalMusic(LocalMusicSource source)
+    private void OpenLocalMusic(LocalMusicList source)
     {
         localMusicWindow?.Close();
         localMusicWindow = new LocalMusicWindow(app, source) { Owner = this, Topmost = Topmost };

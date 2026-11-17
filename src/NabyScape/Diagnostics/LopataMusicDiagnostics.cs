@@ -123,6 +123,12 @@ internal static class LopataMusicDiagnostics
             island.SelectPage("media",false);
             await Task.Delay(350,token);
             Capture(island,Path.Combine(directory,"local-player.png"));
+            var slider = Diagnostics.Descendants(island).OfType<Slider>().Single(control =>
+                AutomationProperties.GetAutomationId(control) == "Playback position");
+            Check(slider.ActualHeight >= 32 &&
+                HitsSlider(island,slider,new Point(slider.ActualWidth*.24,4)) &&
+                HitsSlider(island,slider,new Point(slider.ActualWidth*.78,slider.ActualHeight-4)),
+                "timeline accepts real WPF hit tests above and below the line, far from its thumb");
 
             app.Settings.LyricsEnabled = false;
             app.ChangeSettings();
@@ -151,6 +157,7 @@ internal static class LopataMusicDiagnostics
             await local.Command("previous");
             Check(local.CurrentMusic.Track==queue[0],"previous goes back in the local queue");
             await Play(files.Single(t => t.Name=="Opus"),files);
+            await CheckLists(app,island,directory,token,Check);
             app.Media.SelectNone();
             Check(local.CurrentMusic.Track is null && !local.CurrentMusic.Playing, "changing source stops local playback");
         }
@@ -160,6 +167,69 @@ internal static class LopataMusicDiagnostics
             File.WriteAllLines(Path.Combine(directory,"music-check.txt"),report);
             app.Quit();
         }
+    }
+
+    private static bool HitsSlider(OverlayWindow island, Slider slider, Point point)
+    {
+        for (var hit = island.InputHitTest(slider.TranslatePoint(point,island)) as DependencyObject;
+             hit is Visual; hit = VisualTreeHelper.GetParent(hit))
+            if (hit == slider) return true;
+        return false;
+    }
+
+    private static async Task CheckLists(App app, OverlayWindow island, string directory, CancellationToken token, Action<bool,string> check)
+    {
+        void Click(Button control) => control.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent,control));
+        Button ButtonById(Window window,string id) => Diagnostics.Descendants(window).OfType<Button>()
+            .Single(button => AutomationProperties.GetAutomationId(button) == id);
+        async Task SelectTrack(ListBox list,string name)
+        {
+            for (int i = 0; i < 40; i++)
+            {
+                var match = list.Items.OfType<LocalMusicTrack>().FirstOrDefault(item => item.Name == name);
+                if (match is not null) { list.SelectedItem = match; return; }
+                await Task.Delay(60,token);
+            }
+            throw new InvalidOperationException("Track missing from actual music list: " + name);
+        }
+
+        var controls = Diagnostics.Descendants(island).OfType<MediaControls>().Single();
+        check(controls.LibraryButton.IsVisible, "a dedicated track-list button is visible");
+        app.MusicLists.SelectList(LocalMusicList.Folder);
+        Click(controls.LibraryButton);
+        await Task.Delay(150,token);
+        var window = island.OwnedWindows.OfType<LocalMusicWindow>().Single();
+        window.UpdateLayout();
+        check(window.Title == Localization.Text("Music folder"), "dedicated button opens the selected folder view");
+        var list = Diagnostics.Descendants(window).OfType<ListBox>().Single();
+        await SelectTrack(list,"External");
+        Click(ButtonById(window,"Add to favorites"));
+        Click(ButtonById(window,"Music made with LOPATA"));
+        await SelectTrack(list,"ThisPC");
+        Click(ButtonById(window,"Add to favorites"));
+        Click(ButtonById(window,"Favorite tracks"));
+        await SelectTrack(list,"ThisPC");
+        check(list.Items.OfType<LocalMusicTrack>().Select(track => track.Source).Distinct().Count()==2 &&
+            list.Items.Count==2,"favorites combine tracks from the folder and LOPATA collection");
+        Capture(window,Path.Combine(directory,"favorite-tracks.png"));
+
+        Click(ButtonById(window,"Play selected track"));
+        for(int i=0;i<35 && island.OwnedWindows.OfType<LocalMusicWindow>().Any();i++) await Task.Delay(75,token);
+        var current = ((ILocalMusicTransport)app.Media).CurrentMusic;
+        check(current.Track?.Name=="ThisPC" && current.Playing,"favorites use the actual local player");
+        check(new LocalMusicLists(app.Store).Favorites.Count==2 &&
+            new LocalMusicLists(app.Store).Selected==LocalMusicList.Favorites, "playlist selection and favorites can be read back from disk");
+
+        Click(controls.LibraryButton);
+        await Task.Delay(120,token);
+        window=island.OwnedWindows.OfType<LocalMusicWindow>().Single();
+        check(window.Title==Localization.Text("Favorite tracks"),"list button reopens the previously selected favorites");
+        list=Diagnostics.Descendants(window).OfType<ListBox>().Single();
+        await SelectTrack(list,"ThisPC");
+        Click(ButtonById(window,"Remove from favorites"));
+        check(list.Items.Count==1 && new LocalMusicLists(app.Store).Favorites.Single().Name=="External",
+            "removing one favorite keeps the other source intact");
+        window.Close();
     }
 
     private static void Capture(Window window, string path)
