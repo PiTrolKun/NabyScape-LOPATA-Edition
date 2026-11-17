@@ -34,7 +34,7 @@ internal sealed record IslandPreferences
         Monitor = Monitor is { Length: <= 120 } ? Monitor : "",
         ClosedWidth = Math.Clamp(ClosedWidth, 240, 520),
         ClosedHeight = Math.Clamp(ClosedHeight, 30, 58),
-        HoverWidth = Math.Clamp(HoverWidth, 285, 540),
+        HoverWidth = Math.Clamp(HoverWidth, 300, 540),
         HoverHeight = Math.Clamp(HoverHeight, MinimumHoverHeight, 260),
         PanelWidth = Math.Clamp(PanelWidth, 320, 580),
         PanelHeight = Math.Clamp(PanelHeight, 270, 540)

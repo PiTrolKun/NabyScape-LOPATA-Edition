@@ -124,9 +124,16 @@ public sealed partial class OverlayWindow : Window
         scroll.Width=expandedWidth-app.Settings.PanelPadding*2;scroll.Height=Math.Max(0,expandedHeight-PanelFramePadding);scroll.Margin=new(0,PanelFramePadding==44?20:10,0,0);
         SizeVoiceViewport();
     }
+    internal void SyncLopataWindowLayer()
+    {
+        bool above = app.LopataAboveWindows;
+        Topmost = above;
+        Native.EnsureWindowLayer(hwnd, above);
+    }
+
     private void ApplySettings()
     {
-        Topmost = app.LopataAboveWindows;
+        SyncLopataWindowLayer();
         var editorState=CaptureEditorState();
         if(ApplyIncrementalSettings(OverlaySettingsState.Capture(app.Settings))){RestoreEditorState(editorState);return;}
         classicMixerOpen=false;if(activePage=="mixer")activePage="media";

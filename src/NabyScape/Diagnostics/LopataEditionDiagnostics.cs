@@ -45,14 +45,7 @@ internal static class LopataEditionDiagnostics
             await CheckScrollEdges(app, island, directory);
             await CheckWorkAndChat(island, directory);
             var saved = IslandPreferences.Read();
-            if (island.Topmost != saved.AboveWindows) throw new InvalidOperationException("Initial window layer did not match preference.");
-            app.ToggleLopataLayer();
-            if (IslandPreferences.Read().AboveWindows == saved.AboveWindows || island.Topmost == saved.AboveWindows)
-                throw new InvalidOperationException("Window layer did not change.");
-            IslandPreferences.Save(saved with { Tone = "Forest", Advanced = true, ClosedWidth = 325 });
-            await Task.Delay(1100);
-            if (app.Settings.Background != "#14251E" || app.Settings.Width != 325 || island.Topmost != saved.AboveWindows)
-                throw new InvalidOperationException("Live settings did not take effect.");
+            await CheckSharedPreferences(app, island, saved, directory);
             var originalLanguage = IslandPreferences.ReadJson<IslandLanguage>("language.json");
             IslandPreferences.SaveJson("language.json", new IslandLanguage("en", new()
             {
@@ -71,6 +64,70 @@ internal static class LopataEditionDiagnostics
             Environment.ExitCode = 1;
         }
         finally { app.Quit(); }
+    }
+
+    private static async Task CheckSharedPreferences(App app, OverlayWindow island, IslandPreferences saved, string directory)
+    {
+        var log = new System.Collections.Generic.List<string>();
+        var handle = new System.Windows.Interop.WindowInteropHelper(island).Handle;
+        int registrations = 0;
+        island.DiagnosticHotkeyRegistration = (_, _, _, _) => { registrations++; return true; };
+        var screens = System.Windows.Forms.Screen.AllScreens;
+        var primary = screens.Single(screen => screen.Primary);
+        var other = screens.FirstOrDefault(screen => !screen.Primary);
+
+        async Task Apply(IslandPreferences value)
+        {
+            IslandPreferences.Save(value);
+            await Task.Delay(850);
+            if (Native.IsTopmost(handle) != value.AboveWindows || island.Topmost != value.AboveWindows)
+                throw new InvalidOperationException("The visible Windows window did not adopt the saved layer.");
+        }
+
+        var custom = saved with
+        {
+            Tone = "Forest", AboveWindows = false, Advanced = true, ReduceMotion = true, Hotkey = true,
+            FollowPointer = false, Monitor = (other ?? primary).DeviceName,
+            ClosedWidth = 329, ClosedHeight = 43, HoverWidth = 379, HoverHeight = 213, PanelWidth = 460, PanelHeight = 415
+        };
+        await Apply(custom);
+        var s = app.Settings;
+        if (s.Background != "#14251E" || s.Accent != custom.Accent || !s.ReduceMotion || Motion.Enabled
+            || !s.HotkeyEnabled || !s.VisibilityHotkeyEnabled || registrations < 2
+            || s.Width != 329 || s.Height != 43 || s.HoverWidth != 379 || s.HoverHeight != 213
+            || s.PanelWidth != 460 || s.PanelMaxHeight != 415)
+            throw new InvalidOperationException("At least one advanced preference did not reach the running island.");
+        log.Add("PASS forest scheme and accent, six sizes, reduced motion and both hotkey registrations");
+        log.Add("PASS ordinary layer on the existing Windows window");
+        if (System.Windows.Forms.Screen.FromHandle(handle).DeviceName != custom.Monitor)
+            throw new InvalidOperationException("The real window did not move to the selected screen.");
+        await Apply(custom with { Monitor = primary.DeviceName, AboveWindows = true, FollowPointer = false, Tone = "Ocean" });
+        if (s.Monitor != primary.DeviceName || s.DisplayMode != "Selected" || s.Background != "#14233B"
+            || System.Windows.Forms.Screen.FromHandle(handle).DeviceName != primary.DeviceName)
+            throw new InvalidOperationException("Returning to the primary display or the Ocean scheme did not apply.");
+        log.Add($"PASS Ocean scheme and native topmost layer; fixed monitor verified on {screens.Length} physical screens");
+
+        Native.EnsureWindowLayer(handle, false);
+        await Task.Delay(850);
+        if (!Native.IsTopmost(handle)) throw new InvalidOperationException("Layer drift was not corrected.");
+        log.Add("PASS persisted layer survives an external change to the actual window");
+
+        var following = custom with { FollowPointer = true, Hotkey = false, HoverWidth = 285 };
+        await Apply(following);
+        if (s.DisplayMode != "Follow" || s.HotkeyEnabled || s.VisibilityHotkeyEnabled || s.HoverWidth != 300)
+            throw new InvalidOperationException("Follow-pointer mode, hotkey opt-out, or consistent hover limits did not apply.");
+        log.Add("PASS follow-pointer mode, disabled hotkeys and 300 DIP minimum for old hover widths");
+
+        await Apply(custom with { Advanced = false, Tone = "Graphite" });
+        var defaults = new IslandPreferences();
+        if (s.DisplayMode != "Primary" || s.Width != defaults.ClosedWidth || s.Height != defaults.ClosedHeight
+            || s.HoverWidth != defaults.HoverWidth || s.HoverHeight != defaults.HoverHeight
+            || s.PanelWidth != defaults.PanelWidth || s.PanelMaxHeight != defaults.PanelHeight
+            || s.ReduceMotion || s.HotkeyEnabled || s.Background != "#121820")
+            throw new InvalidOperationException("Turning off advanced options did not restore defaults.");
+        log.Add("PASS general switch restores default sizes, behavior and primary monitor");
+        await Apply(saved);
+        File.WriteAllLines(Path.Combine(directory, "live-appearance-check.txt"), log);
     }
 
     private static async Task CheckWorkAndChat(OverlayWindow island, string directory)

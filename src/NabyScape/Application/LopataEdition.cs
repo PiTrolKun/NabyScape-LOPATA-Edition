@@ -117,6 +117,7 @@ public partial class App
         hostSettingsWatcher.Tick += async (_, _) =>
         {
             RefreshLopataSettings();
+            overlay?.SyncLopataWindowLayer();
             await LopataLink.RefreshAsync();
         };
         hostSettingsWatcher.Start();

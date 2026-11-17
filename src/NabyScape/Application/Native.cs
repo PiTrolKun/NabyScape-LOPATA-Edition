@@ -21,6 +21,14 @@ internal static class Native
     [DllImport("shcore.dll")] internal static extern int GetDpiForMonitor(IntPtr monitor,int type,out uint x,out uint y);
     [DllImport("user32.dll")] internal static extern int GetWindowLong(IntPtr hwnd,int index);
     [DllImport("user32.dll")] internal static extern int SetWindowLong(IntPtr hwnd,int index,int value);
+    internal static bool IsTopmost(IntPtr window) => (GetWindowLong(window, -20) & 0x0008) != 0;
+
+    internal static void EnsureWindowLayer(IntPtr window, bool above)
+    {
+        if (window == IntPtr.Zero || IsTopmost(window) == above) return;
+        var layer = new IntPtr(above ? -1 : -2);
+        SetWindowPos(window, layer, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0200);
+    }
     [DllImport("user32.dll")] internal static extern bool GetCursorPos(out Point point);
     [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)] private struct DisplayMode
     {
