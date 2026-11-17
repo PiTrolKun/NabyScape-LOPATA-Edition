@@ -41,6 +41,7 @@ internal static partial class LocalizationCatalog
         ["Install the LOPATA core in the main app to chat with it here."] = "Установите ядро в ЛОПАТЕ, чтобы общаться с ним здесь.",
         ["Prepare the selected LOPATA engine in the main app."] = "Подготовьте выбранный движок в ЛОПАТЕ.",
         ["Finish preparing Let it out in LOPATA, then try again."] = "Завершите подготовку «Если накипело» в ЛОПАТЕ и повторите попытку.",
+        ["LOPATA could not save the draft. Your draft is still here."] = "ЛОПАТА не смогла сохранить черновик. Он остался здесь.",
         ["The local core could not answer. Your draft is still here."] = "Ядро не смогло ответить. Черновик остался здесь.",
         ["General"] = "Общие",
         ["Music made with LOPATA"] = "Музыка ЛОПАТЫ",

@@ -128,6 +128,7 @@ internal sealed class LopataChatWindow : Window
                         "core_missing" => "Install the LOPATA core in the main app to chat with it here.",
                         "engine_missing" => "Prepare the selected LOPATA engine in the main app.",
                         "preparation" => "Finish preparing Let it out in LOPATA, then try again.",
+                        "draft_save_failed" => "LOPATA could not save the draft. Your draft is still here.",
                         _ => "The local core could not answer. Your draft is still here."
                     });
                     break;
