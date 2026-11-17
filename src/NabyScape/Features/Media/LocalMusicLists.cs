@@ -32,6 +32,7 @@ internal sealed class LocalMusicLists
         };
     }
 
+    internal event Action? FavoritesChanged;
     internal LocalMusicList Selected => state.Selected;
     internal IReadOnlyList<LocalMusicTrack> Favorites => state.Favorites;
     internal bool IsFavorite(LocalMusicTrack track) => state.Favorites.Any(item => SamePath(item, track));
@@ -47,6 +48,7 @@ internal sealed class LocalMusicLists
         var favorites = IsFavorite(track) ? state.Favorites.Where(item => !SamePath(item, track)).ToArray() :
             state.Favorites.Append(track).ToArray();
         Save(state with { Favorites = favorites });
+        FavoritesChanged?.Invoke();
     }
 
     private void Save(LocalMusicListsDocument next)
@@ -66,5 +68,12 @@ internal sealed class LocalMusicLists
 public sealed partial class App
 {
     private LocalMusicLists? musicLists;
-    internal LocalMusicLists MusicLists => musicLists ??= new(Store);
+    internal LocalMusicLists MusicLists => musicLists ??= CreateMusicLists();
+
+    private LocalMusicLists CreateMusicLists()
+    {
+        var lists = new LocalMusicLists(Store);
+        lists.FavoritesChanged += () => PublishUpdate(RuntimeChange.Media);
+        return lists;
+    }
 }

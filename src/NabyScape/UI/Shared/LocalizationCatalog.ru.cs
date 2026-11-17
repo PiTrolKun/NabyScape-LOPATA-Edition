@@ -14,6 +14,8 @@ internal static partial class LocalizationCatalog
         ["Music made with LOPATA"] = "Музыка ЛОПАТЫ",
         ["Track list"] = "Список треков",
         ["Open music list"] = "Открыть выбранный список треков",
+        ["Toggle current track favorite"] = "Избранное для текущего трека",
+        ["Track favorites are available for local audio files."] = "Избранное доступно для локальных аудиофайлов.",
         ["Favorite tracks"] = "Избранное",
         ["Add to favorites"] = "♡ В избранное",
         ["Remove from favorites"] = "♥ Убрать из избранного",

@@ -122,6 +122,25 @@ internal static class LopataMusicDiagnostics
             island.Reveal(false);
             island.SelectPage("media",false);
             await Task.Delay(350,token);
+            var heart = Diagnostics.Descendants(island).OfType<Button>().Single(button =>
+                AutomationProperties.GetAutomationId(button) == "Toggle current track favorite");
+            var textButton = Diagnostics.Descendants(island).OfType<Button>().Single(button =>
+                AutomationProperties.GetAutomationId(button) == "Show or hide synced lyrics");
+            Check(heart.IsVisible && heart.IsEnabled && textButton.IsVisible && heart.Parent == textButton.Parent,
+                "favorite control and lyrics toggle are visible in the same playback row");
+            var row = (Grid)heart.Parent;
+            var left = heart.TranslatePoint(new Point(heart.ActualWidth/2,heart.ActualHeight/2),row);
+            var right = textButton.TranslatePoint(new Point(textButton.ActualWidth/2,textButton.ActualHeight/2),row);
+            Check(Math.Abs(left.Y-right.Y)<.5 && Math.Abs(left.X+right.X-row.ActualWidth)<.5,
+                "favorite control mirrors the lyrics button");
+            Check(AutomationProperties.GetItemStatus(heart) == "Off","a track starts with an empty favorite icon");
+            heart.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent,heart));
+            Check(AutomationProperties.GetItemStatus(heart) == "On" && new LocalMusicLists(app.Store).Favorites.Single()==primary,
+                "favorite button adds the currently playing track to the shared saved list");
+            Capture(island,Path.Combine(directory,"player-heart-on.png"));
+            heart.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent,heart));
+            Check(AutomationProperties.GetItemStatus(heart) == "Off" && app.MusicLists.Favorites.Count==0,
+                "pressing the favorite button again removes the current track");
             Capture(island,Path.Combine(directory,"local-player.png"));
             var slider = Diagnostics.Descendants(island).OfType<Slider>().Single(control =>
                 AutomationProperties.GetAutomationId(control) == "Playback position");
@@ -160,6 +179,7 @@ internal static class LopataMusicDiagnostics
             await CheckLists(app,island,directory,token,Check);
             app.Media.SelectNone();
             Check(local.CurrentMusic.Track is null && !local.CurrentMusic.Playing, "changing source stops local playback");
+            Check(!heart.IsEnabled,"favorite button is unavailable without an addressed local file");
         }
         catch (Exception error) { report.Add("FAIL "+error); Environment.ExitCode=1; }
         finally

@@ -204,7 +204,7 @@ public sealed partial class OverlayWindow
         if(page=="tools")return BuildToolsPage();
         if(page=="media")
         {
-            mediaLyricsLayout=null;lyricsAside=null;mediaLyrics=null;lyricsButton=null;
+            mediaLyricsLayout=null;lyricsAside=null;mediaLyrics=null;lyricsButton=null;favoriteTrackButton=null;
             var panel=new StackPanel();
             if(WidgetOn("media"))
             {
@@ -214,7 +214,19 @@ public sealed partial class OverlayWindow
                 previous=Icons.Button("previous","Previous track",()=>_=app.Media.Command("previous"),false,38);play=Icons.Button("play","Play or pause",()=>_=app.Media.Command("toggle"),true,46);playIcon="";next=Icons.Button("next","Next track",()=>_=app.Media.Command("next"),false,38);previous.Background=next.Background=Brushes.Transparent;
                 previous.Margin=new(0,0,8,0);play.Margin=new(0);next.Margin=new(8,0,0,0);
                 lyricsButton=Icons.Button("lyrics","Show or hide synced lyrics",ToggleLyrics,false,28);lyricsButton.Margin=new(16,0,0,0);lyricsButton.Background=Brushes.Transparent;
-                var buttons=UI.Row(previous,play,next);buttons.HorizontalAlignment=HorizontalAlignment.Center;var playbackRow=new Grid{Margin=new(0)};playbackRow.Children.Add(buttons);lyricsButton.HorizontalAlignment=HorizontalAlignment.Right;lyricsButton.VerticalAlignment=VerticalAlignment.Center;lyricsButton.Margin=new(0);playbackRow.Children.Add(lyricsButton);
+                lyricsButton.HorizontalAlignment=HorizontalAlignment.Right;
+                lyricsButton.VerticalAlignment=VerticalAlignment.Center;
+                lyricsButton.Margin=new(0);
+                var playbackRow=new Grid();
+                playbackRow.ColumnDefinitions.Add(new());
+                playbackRow.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
+                playbackRow.ColumnDefinitions.Add(new());
+                playbackRow.Children.Add(BuildFavoriteTrackButton());
+                var buttons=UI.Row(previous,play,next);
+                Grid.SetColumn(buttons,1);
+                playbackRow.Children.Add(buttons);
+                Grid.SetColumn(lyricsButton,2);
+                playbackRow.Children.Add(lyricsButton);
                 Grid.SetColumn(info,1);row.Children.Add(info);panel.Children.Add(row);panel.Children.Add(playbackRow);row.Loaded+=(_,_)=>QueueMediaLayout();row.IsVisibleChanged+=(_,_)=>{if(row.IsVisible)QueueMediaLayout();};
                 row.SizeChanged+=(_,_)=>{bool narrow=row.ActualWidth<310;double size=narrow?64:88;cover.Width=cover.Height=artwork.Width=artwork.Height=size;cover.Margin=new(0,0,narrow?14:20,0);if(previousArtwork.TryGetValue(artwork,out var outgoing))outgoing.Width=outgoing.Height=size;musicWave.Width=narrow?112:164;cover.Clip=new RectangleGeometry(new Rect(0,0,size,size),narrow?11:15,narrow?11:15);previous.Width=previous.Height=next.Width=next.Height=narrow?28:38;play.Width=play.Height=narrow?38:46;title.FontSize=narrow?15:18;previous.Margin=new(0,0,narrow?2:8,0);next.Margin=new(narrow?2:8,0,0,0);};
                 if(app.Settings.LiveActivity){if(musicWave.Parent is Panel oldWave)oldWave.Children.Remove(musicWave);musicWave.Height=22;musicWave.Margin=new(0,0,0,8);var waveHost=new Grid{Margin=new(0,3,0,0)};waveHost.Children.Add(musicWave);panel.Children.Add(waveHost);}mediaLyrics=new LyricsView(app);SyncLyrics();timelinePanel.Margin=new(0,0,0,10);panel.Children.Add(timelinePanel);

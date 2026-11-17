@@ -101,7 +101,8 @@ internal sealed class LocalMusicWindow : Window
         dock.Children.Add(tracks);
         Content = dock;
         Loaded += (_, _) => SelectList(activeList);
-        Closed += (_, _) => { closed = true; loading?.Cancel(); opening?.Cancel(); };
+        app.MusicLists.FavoritesChanged += FavoritesChanged;
+        Closed += (_, _) => { closed = true; loading?.Cancel(); opening?.Cancel(); app.MusicLists.FavoritesChanged -= FavoritesChanged; };
     }
 
     internal static string SourceName(LocalMusicList list) => list switch
@@ -146,16 +147,20 @@ internal sealed class LocalMusicWindow : Window
         try
         {
             app.MusicLists.ToggleFavorite(track);
-            if (activeList == LocalMusicList.Favorites)
-            {
-                listing = app.MusicLists.Favorites;
-                ApplyFilter();
-                if (listing.Count == 0) status.Text = Localization.Text("No favorite tracks yet.");
-            }
-            RefreshTrackActions();
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
         { app.Store.Log(error); status.Text = Localization.Text("Could not save favorite tracks."); }
+    }
+
+    private void FavoritesChanged()
+    {
+        if (activeList == LocalMusicList.Favorites)
+        {
+            listing = app.MusicLists.Favorites;
+            ApplyFilter();
+            status.Text = listing.Count == 0 ? Localization.Text("No favorite tracks yet.") : "";
+        }
+        RefreshTrackActions();
     }
 
     private void ChooseFolder()
