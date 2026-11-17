@@ -132,10 +132,19 @@ public sealed partial class App : Application
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         bool musicFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-music-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
-        if (!diagnosticMode || lopataFixture || musicFixture) PrepareLopataSettings();
+        bool updatesFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-updates-only") &&
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
+        if (!diagnosticMode || lopataFixture || musicFixture || updatesFixture) PrepareLopataSettings();
         if (musicFixture) { Settings.MediaIntegrationEnabled = false; Settings.LyricsEnabled = false; }
         if(assistantFixture || isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
         Updates=new(Store,Array.Exists(e.Args,a=>a=="--stage3-only")?new Stage3Diagnostics.Network():null,stagingDirectory:diagnosticPath!=null?Path.Combine(Store.DirectoryPath,"updates"):null);
+        InitializeLopataUpdates();
+        var updateDiagnostics = updatesFixture ? new LopataUpdateDiagnostics() : null;
+        if (updateDiagnostics is not null)
+        {
+            LopataUpdates.Dispose();
+            LopataUpdates = updateDiagnostics.CreateMonitor(Store.Log);
+        }
         ApplyAppearance();
         Motion.Configure(Settings);
         Session=diagnosticPath==null?Store.Load<SessionState>("session"):new SessionState();Session.Timer??=new();Session.Focus??=new();Session.Stopwatch??=new();Session.Stopwatch.Recover();
@@ -155,6 +164,7 @@ public sealed partial class App : Application
         menu.Items.Add(Localization.Text("Settings"),null,(_,_)=>Dispatcher.Invoke(ShowSettings));
         menu.Items.Add(Localization.Text("Move & resize island"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleDockEditing()));
         menu.Items.Add(Localization.Text("LOPATA chat"),null,(_,_)=>Dispatcher.Invoke(ShowLopataChat)).Tag = "LOPATA chat";
+        menu.Items.Add(Localization.Text("LOPATA updates"),null,(_,_)=>Dispatcher.Invoke(ShowLopataUpdates)).Tag = "LOPATA updates";
         var wakeMenu=menu.Items.Add(Localization.Text("Resume wake word"),null,(_,_)=>Dispatcher.Invoke(()=>Assistant.ToggleWakeListening()));
         menu.Items.Add(Localization.Text("Stop all microphones"),null,(_,_)=>Dispatcher.Invoke(()=>Assistant.StopSession()));
         menu.Opening+=(_,_)=>{wakeMenu.Text=Localization.Text(Assistant.WakeArmed?"Pause wake word":"Resume wake word");wakeMenu.Enabled=Assistant.Options.Enabled && Assistant.Options.WakeWord.Enabled;};
@@ -170,6 +180,7 @@ public sealed partial class App : Application
         menu.Items.Add(Localization.Text(LopataEdition.CloseCaption), null, (_, _) => Dispatcher.Invoke(Quit)).Tag = LopataEdition.CloseCaption;
         tray.ContextMenuStrip=menu;tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowSettings);
         overlay=new OverlayWindow(this);MainWindow=overlay;StartupTrace.Attach(overlay,e.Args,Store.Log);overlay.Show();Previews=new(this,overlay.OpenFeaturePage);
+        if (!diagnosticMode) LopataUpdates.Start();
         Assistant.Changed+=RefreshAssistantTray;if(diagnosticPath==null)Assistant.StartBackgroundFeatures();
         Notifications.Changed+=()=>overlay.RefreshNotice();
         Updates.UpdateAvailable+=release=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates","Update available",release.Version+" · Open Settings > Application to review.")));
@@ -215,6 +226,7 @@ public sealed partial class App : Application
         if (!diagnosticMode || lopataFixture) ObserveLopataSettings();
         if(musicFixture) _=LopataMusicDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(lopataFixture) _=LopataEditionDiagnostics.Run(this,overlay,diagnosticPath!);
+        else if(updateDiagnostics is not null) _=updateDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(diagnosticPath!=null) _=Diagnostics.Run(this,overlay,diagnosticPath);
         else
         {
@@ -280,6 +292,7 @@ public sealed partial class App : Application
         if(tray!=null) { tray.Visible=false;tray.Dispose(); }
         hostSettingsWatcher?.Stop();
         LopataLink.Dispose();lopataChat?.Close();
+        lopataUpdatesWindow?.Close();LopataUpdates?.Dispose();lopataUpdateHttp?.Dispose();
         openWait?.Unregister(null);exitWait?.Unregister(null);openEvent?.Dispose();exitEvent?.Dispose();mutex?.Dispose();base.OnExit(e);
     }
     public bool Quitting=>quitting;

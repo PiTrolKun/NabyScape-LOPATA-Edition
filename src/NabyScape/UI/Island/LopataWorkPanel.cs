@@ -66,18 +66,41 @@ internal sealed class LopataWorkPanel : StackPanel
         this.app = app;
         this.changed = changed;
         Margin = new(0, 0, 0, 8);
-        var actions = new System.Windows.Controls.Primitives.UniformGrid { Rows = 1 };
+        var row = new Grid();
+        var actions = new System.Windows.Controls.Primitives.UniformGrid { Rows = 1, MinWidth = 0 };
+        var links = new StackPanel { Orientation = Orientation.Horizontal };
+        row.ColumnDefinitions.Add(new());
+        row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         toggle = UI.CaptionButton("LOPATA tasks", () => ShowDetails(details!.Visibility != Visibility.Visible));
         var chat = UI.CaptionButton("LOPATA chat", app.ShowLopataChat);
-        foreach (var action in new[] { toggle, chat })
+        var updates = UI.CaptionButton("LOPATA updates", app.ShowLopataUpdates);
+        updates.ToolTip = Localization.Text("LOPATA updates");
+        void RefreshUpdates()
+        {
+            var count = app.LopataUpdates.Versions.Length;
+            var suffix = count switch { 0 => "", 1 => " ↑", _ => " ↑" + count };
+            updates.Content = Localization.Text("Updates") + suffix;
+        }
+        updates.Loaded += (_, _) => { app.LopataUpdates.Changed += RefreshUpdates; RefreshUpdates(); };
+        updates.Unloaded += (_, _) => app.LopataUpdates.Changed -= RefreshUpdates;
+        var vk = SocialButton("VK", LopataEdition.VkUrl);
+        var youtube = SocialButton("YouTube", LopataEdition.YouTubeUrl);
+        foreach (var action in new[] { toggle, chat, updates, vk, youtube })
         {
             action.FontSize = 11;
             action.MinHeight = 26;
             action.Margin = new(0, 0, 4, 0);
             action.Padding = new(4, 3, 4, 3);
-            actions.Children.Add(action);
         }
-        Children.Add(actions);
+        actions.Children.Add(toggle);
+        actions.Children.Add(chat);
+        actions.Children.Add(updates);
+        links.Children.Add(vk);
+        links.Children.Add(youtube);
+        Grid.SetColumn(links, 1);
+        row.Children.Add(actions);
+        row.Children.Add(links);
+        Children.Add(row);
         details = UI.Scroll(rows);
         details.MaxHeight = 150;
         details.Margin = new(0, 6, 0, 0);
@@ -85,6 +108,13 @@ internal sealed class LopataWorkPanel : StackPanel
         details.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
         Children.Add(details);
         Children.Add(warning);
+    }
+
+    private Button SocialButton(string label, string url)
+    {
+        var button = UI.CaptionButton(label, () => SupportLinks.Open(url, app.Store.Log));
+        button.ToolTip = url;
+        return button;
     }
 
     internal void ShowDetails(bool open)

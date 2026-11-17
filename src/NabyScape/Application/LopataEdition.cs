@@ -5,6 +5,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Lopata.Island;
+using Lopata.Updates;
 using Forms = System.Windows.Forms;
 
 namespace NabyScape;
@@ -17,6 +18,8 @@ internal static class LopataEdition
     internal const string OpenCaption = "Open LOPATA";
     internal const string CloseCaption = "Close island";
     internal const string LayerCaption = "Above windows";
+    internal const string VkUrl = "https://vk.ru/lopata_ai_localhub";
+    internal const string YouTubeUrl = "https://youtube.com/@lopata_ai_hub";
     internal static string ProfileDirectory => Path.Combine(IslandPreferences.Root, "Profile");
 
     internal static KeyValuePair<string, string>[] Captions { get; } =
@@ -27,12 +30,20 @@ internal static class LopataEdition
         new("Updates are managed by LOPATA", "Обновления управляются ЛОПАТОЙ")
     ];
 
-    internal static string? HostExecutable()
+    internal static string? HostExecutable() => HostExecutable(null);
+
+    internal static string? HostExecutable(InstalledUpdateState? registration)
     {
         var parent = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "AIHub.exe"));
         var installed = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Programs", "LOPATA", "AIHub.exe");
-        return File.Exists(parent) ? parent : File.Exists(installed) ? installed : null;
+        if (File.Exists(parent)) return parent;
+        if (registration is not null)
+        {
+            var registered = Path.Combine(registration.AppDirectory, "AIHub.exe");
+            if (File.Exists(registered)) return registered;
+        }
+        return File.Exists(installed) ? installed : null;
     }
 
     internal static void OpenHost()

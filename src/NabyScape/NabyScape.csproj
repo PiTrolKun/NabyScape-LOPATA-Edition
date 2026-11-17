@@ -27,6 +27,7 @@
   </Target>
   <ItemGroup>
     <ProjectReference Include="$(LopataRepositoryRoot)\Исходники\LOPATA.Collection\LOPATA.Collection.csproj" />
+    <ProjectReference Include="$(LopataRepositoryRoot)\Исходники\LOPATA.Updates\LOPATA.Updates.csproj" />
     <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandLink.cs" Link="Application\IslandLink.cs" />
     <PackageReference Include="System.Management" Version="10.0.0" />
     <PackageReference Include="System.Speech" Version="10.0.13" />

@@ -320,7 +320,8 @@ public sealed partial class SettingsWindow : Window
     {
         LanguageAndAccessibilitySettings();
         var s=app.Settings;
-        page.Children.Add(Section("Updates", UI.Caption("Updates are managed by LOPATA", 12)));
+        page.Children.Add(Section("Updates", UI.Caption("Updates are managed by LOPATA", 12),
+            UI.CaptionButton("LOPATA updates", app.ShowLopataUpdates)));
         DiagnosticsSection();NotificationSettings();
         var startup=new CheckBox{Content=Localization.Text("Start automatically when signing in to Windows"),IsChecked=s.AutoStart};
         UI.LocalizedName(startup,"Start automatically when signing in to Windows");        startup.Click+=(_,_)=>
