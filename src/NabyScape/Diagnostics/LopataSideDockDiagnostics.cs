@@ -97,10 +97,17 @@ internal static class LopataSideDockDiagnostics
 
                 island.Reveal(false);
                 island.SelectPage("media", false);
-                await Settle();
+                bool Visible(string id) => Diagnostics.Descendants(island).OfType<Button>()
+                    .Any(button => button.IsVisible && UI.Identity(button) == id);
+                for (int retry=0; retry<30; retry++)
+                {
+                    await Settle();
+                    if (Visible("Lopata.Chat.Mascot") && Visible("Open music list") && Visible("Playback order")) break;
+                    await Task.Delay(50);
+                }
                 AtEdge(edge, "expanded");
                 Require(island.IsExpanded && island.PaintedHeight > 1.2 * island.PaintedWidth &&
-                    Button("Lopata.Chat.Mascot").IsVisible && Button("Open music list").IsVisible,
+                    Visible("Lopata.Chat.Mascot") && Visible("Open music list") && Visible("Playback order"),
                     edge + " tall expanded panel retains the toolbar and music controls");
                 capture(island, Path.Combine(directory, $"side-{edge.ToLowerInvariant()}-expanded.png"));
             }

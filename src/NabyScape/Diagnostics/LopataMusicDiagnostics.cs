@@ -375,10 +375,20 @@ internal static class LopataMusicDiagnostics
             app.Settings.PlaybackOrder = LocalPlaybackOrder.RepeatTrack;
             app.ChangeSettings();
             check(await player.PlayLocalAsync(tracks[0], tracks, token), "Repeat mode opens a track");
-            await player.Seek(.97);
-            await Task.Delay(350, token);
-            check(player.CurrentMusic.Track == tracks[0] && player.CurrentMusic.Playing &&
-                player.CurrentMusic.Position < player.CurrentMusic.Duration * .8, "The local audio transport really repeats the current track");
+            await Task.Delay(100, token);
+            await player.Seek(.90);
+            bool reachedEnd = false;
+            bool returnedToStart = false;
+            var timeout = Stopwatch.StartNew();
+            do
+            {
+                var current = player.CurrentMusic;
+                reachedEnd |= current.Position > current.Duration * .85;
+                returnedToStart = reachedEnd && current.Playing && current.Track == tracks[0]
+                    && current.Position > .015 && current.Position < current.Duration * .5;
+                if (!returnedToStart) await Task.Delay(35, token);
+            } while (!returnedToStart && timeout.Elapsed < TimeSpan.FromSeconds(4));
+            check(returnedToStart, $"The local audio transport really repeats the current track (reached end: {reachedEnd})");
             await player.Command("next");
             check(player.CurrentMusic.Track == tracks[1] && app.Store.Load<Settings>("settings").PlaybackOrder == LocalPlaybackOrder.RepeatTrack,
                 "Repeat preserves manual Next and saves the mode");

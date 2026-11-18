@@ -133,8 +133,7 @@ public sealed partial class MediaService
         if (localPlayback != completed || openingLocal is not null) return;
         if (playbackOrder == LocalPlaybackOrder.RepeatTrack)
         {
-            completed.Seek(0);
-            completed.Play();
+            completed.Restart();
             PublishLocal();
             return;
         }

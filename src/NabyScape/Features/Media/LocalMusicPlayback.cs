@@ -223,6 +223,12 @@ internal sealed class LocalMusicPlayback : IDisposable
 
     internal void Play() { player.Play(); Playing = true; }
     internal void Pause() { player.Pause(); Playing = false; }
+    internal void Restart()
+    {
+        player.Stop();
+        player.Position = TimeSpan.Zero;
+        Play();
+    }
     internal void Seek(double fraction)
     {
         var duration = Timeline().duration;
