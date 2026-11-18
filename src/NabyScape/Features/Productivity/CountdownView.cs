@@ -132,7 +132,8 @@ internal sealed class CountdownView : StackPanel
         minutes.IsEnabled=breaks.IsEnabled=!active;
         progress.Value=active || completed?state.Progress(now):0;
         progress.Accent(focus && state.Phase!="break");
-        durationLabel.Text=active || completed?"of "+(state.DurationSeconds/60).ToString("0.#",CultureInfo.CurrentCulture)+" min":focus?"Focus · "+minutes.Text+" min":"of "+minutes.Text+" min";
+        string duration = active || completed ? (state.DurationSeconds / 60).ToString("0.#", Localization.Culture) : minutes.Text;
+        durationLabel.Text = Localization.Format(focus && !active && !completed ? "Focus · {0} min" : "of {0} min", duration);
         hint.Text=!active && !valid?Localization.Text(focus?"Use 1–240 focus and 1–120 break minutes.":"Enter 0.1–1440 minutes."):completed?Localization.Text("Time is up."):focus?Localization.Format("{0} min break after focus.",breaks.Text):"";
         hint.Foreground=!active && !valid?UI.Brush("#F0B8A8"):UI.Muted;
     }

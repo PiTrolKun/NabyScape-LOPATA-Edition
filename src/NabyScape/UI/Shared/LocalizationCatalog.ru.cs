@@ -9,6 +9,9 @@ internal static partial class LocalizationCatalog
 {
     private static readonly Dictionary<string, string> Russian = new(StringComparer.Ordinal)
     {
+        ["Welcome to {0}"] = "Добро пожаловать в {0}",
+        ["of {0} min"] = "из {0} мин",
+        ["Focus · {0} min"] = "Фокус · {0} мин",
         ["Main widget"] = "Главный виджет",
         ["Make this the main widget"] = "Сделать главным виджетом",
         ["Opens first when you expand the island. You can also choose it with the star on a widget."] = "Этот виджет открывается первым при раскрытии острова. Выбрать его можно и звёздочкой на самом виджете.",

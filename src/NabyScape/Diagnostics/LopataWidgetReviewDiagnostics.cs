@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 
 namespace NabyScape;
 
@@ -44,8 +45,22 @@ internal static class LopataWidgetReviewDiagnostics
             island.SelectPage("focus",false);
             await WaitFor(()=>TextIs(island,"Timer") && !TextIs(island,"Focus"),
                 "The countdown page shows the normal Timer and omits Focus");
+            string durationLabel = Localization.Language == "ru" ? "из 5 мин" : "of 5 min";
+            Require(TextIs(island,durationLabel), "The idle timer displays the duration in the interface language");
             await Settle();
             capture(island, Path.Combine(directory,"review-timer.png"));
+            app.Session.Timer.Start(300,DateTimeOffset.UtcNow,"");
+            try
+            {
+                app.SaveSession();
+                await WaitFor(()=>TextIs(island,"Running") && TextIs(island,durationLabel),
+                    "The running timer keeps the translated duration");
+            }
+            finally
+            {
+                app.Session.Timer.Reset();
+                app.SaveSession();
+            }
 
             island.SelectPage("status",false);
             await WaitFor(()=>TextIs(island,"System uptime"),"The overview renders the last system row");
@@ -105,6 +120,27 @@ internal static class LopataWidgetReviewDiagnostics
             window.UpdateLayout();
             Require(!Diagnostics.Descendants(window).OfType<CheckBox>().Any(check=>Equals(check.Content,Localization.Text("Focus finished"))),
                 "Notifications settings omit Focus completion");
+            window.Width=1100;
+            window.Height=780;
+            window.OpenCategory("Home");
+            await Task.Delay(180);
+            window.UpdateLayout();
+            var brand = Diagnostics.Descendants(window).OfType<Grid>().Single(grid => UI.Identity(grid) == "Settings.SidebarBrand");
+            Require(AutomationProperties.GetName(brand) == LopataEdition.Name &&
+                Diagnostics.Descendants(brand).OfType<TextBlock>().Any(text => text.IsVisible && text.Text == "— LOPATA Edition") &&
+                Diagnostics.Descendants(brand).OfType<Image>().Any(image => image.IsVisible && image.Source is BitmapImage) &&
+                Diagnostics.Descendants(brand).OfType<LopataMascotView>().Any(mascot => mascot.IsVisible && !mascot.Compact),
+                "Settings sidebar shows the fork name with the original and LOPATA mascots side by side");
+            var hero = Diagnostics.Descendants(window).OfType<LopataMascotView>().Single(mascot => UI.Identity(mascot) == "Settings.WelcomeMascot");
+            Require(hero.IsVisible && hero.ActualWidth >= 100 && !hero.Compact &&
+                hero.Parent is Grid heroArt && !heroArt.Children.OfType<Image>().Any(),
+                "The welcome card displays only the full LOPATA mascot");
+            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth),(int)Math.Ceiling(window.ActualHeight),
+                96,96,System.Windows.Media.PixelFormats.Pbgra32);
+            bitmap.Render(window);
+            var png = new PngBitmapEncoder();
+            png.Frames.Add(BitmapFrame.Create(bitmap));
+            using (var output = File.Create(Path.Combine(directory,"settings-lopata-brand.png"))) png.Save(output);
             window.Close();
             File.WriteAllLines(Path.Combine(directory,"widget-review-check.txt"),log);
         }

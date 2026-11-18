@@ -12,19 +12,47 @@ public sealed partial class SettingsWindow
     private static readonly object StageControlsTag=new(),NavIndicatorTag=new();
     private const double SidebarWidth=252,MaxContentWidth=860,StageHeight=184;
 
-    // Chrome Naby beside the stacked NABY / SCAPE wordmark used on the website.
     private FrameworkElement SidebarBrand()
     {
         var row=new Grid{Margin=new(22,48,16,20)};row.ColumnDefinitions.Add(new(){Width=GridLength.Auto});row.ColumnDefinitions.Add(new());
         var naby=new Image{Width=42,Height=42,Margin=new(0,0,12,0),VerticalAlignment=VerticalAlignment.Center};
         try{naby.Source=new BitmapImage(new Uri("pack://application:,,,/Assets/naby-chrome.png"));}catch(Exception ex){app.Store.Log(ex);}
-        RenderOptions.SetBitmapScalingMode(naby,BitmapScalingMode.HighQuality);row.Children.Add(naby);
+        RenderOptions.SetBitmapScalingMode(naby,BitmapScalingMode.HighQuality);
         var words=new StackPanel{VerticalAlignment=VerticalAlignment.Center};Grid.SetColumn(words,1);
-        TextBlock Word(string text,Brush color){var t=new TextBlock{Text=text,FontFamily=SettingsTheme.Display,FontWeight=FontWeights.Bold,FontSize=17,Foreground=color,LineHeight=17,LineStackingStrategy=LineStackingStrategy.BlockLineHeight};return t;}
-        words.Children.Add(Word("NABY",SettingsTheme.Bone));words.Children.Add(Word("SCAPE",SettingsTheme.Quiet));
+        TextBlock Word(string text,Brush color,double size=17) => new()
+        {
+            Text=text,FontFamily=SettingsTheme.Display,FontWeight=FontWeights.Bold,FontSize=size,
+            Foreground=color,LineHeight=17,LineStackingStrategy=LineStackingStrategy.BlockLineHeight
+        };
+        if (app.UsesLopataEdition)
+        {
+            naby.Width = naby.Height = 29;
+            naby.Margin = new(0, 0, 4, 0);
+            var mascots = UI.Row(naby, SettingsMascot(39, 36));
+            mascots.Margin = new(0, 0, 9, 0);
+            row.Children.Add(mascots);
+            var name = LopataEdition.Name.Split(" — ", 2);
+            words.Children.Add(Word(name[0], SettingsTheme.Bone));
+            words.Children.Add(Word("— " + name[1], SettingsTheme.Quiet, 12));
+        }
+        else
+        {
+            row.Children.Add(naby);
+            words.Children.Add(Word("NABY",SettingsTheme.Bone));
+            words.Children.Add(Word("SCAPE",SettingsTheme.Quiet));
+        }
         row.Children.Add(words);
-        System.Windows.Automation.AutomationProperties.SetName(row,"NabyScape");
+        System.Windows.Automation.AutomationProperties.SetAutomationId(row,"Settings.SidebarBrand");
+        UI.Named(row, app.UsesLopataEdition ? LopataEdition.Name : "NabyScape");
         return row;
+    }
+
+    private static LopataMascotView SettingsMascot(double width, double height)
+    {
+        var mascot = new LopataMascotView(false) { Width = width, Height = height,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        mascot.Present(new MascotFrame(MascotState.Idle, true));
+        return mascot;
     }
     private FrameworkElement SidebarFooter()
     {

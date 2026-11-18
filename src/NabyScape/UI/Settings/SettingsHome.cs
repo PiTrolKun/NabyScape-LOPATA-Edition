@@ -34,12 +34,13 @@ public sealed partial class SettingsWindow
         page.Children.Add(HomeSupportCard());
         tiles.SizeChanged+=(_,_)=>tiles.Columns=tiles.ActualWidth<480?1:2;
     }
-    // The welcome card is the page header for Start here: one sentence, one primary action, Naby.
+    // The welcome card is the page header for Start here.
     private Border HomeHero()
     {
         var grid=new Grid();grid.ColumnDefinitions.Add(new());grid.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         var text=new StackPanel{VerticalAlignment=VerticalAlignment.Center};
-        var eyebrow=UI.Caption("Welcome to NabyScape",11);eyebrow.Text=eyebrow.Text.ToUpperInvariant();eyebrow.FontFamily=SettingsTheme.Display;eyebrow.FontWeight=FontWeights.Bold;eyebrow.Foreground=SettingsTheme.Lime;text.Children.Add(eyebrow);
+        var welcome = app.UsesLopataEdition ? Localization.Format("Welcome to {0}", LopataEdition.Name) : Localization.Text("Welcome to NabyScape");
+        var eyebrow=UI.Text(welcome.ToUpper(Localization.Culture),11);eyebrow.FontFamily=SettingsTheme.Display;eyebrow.FontWeight=FontWeights.Bold;eyebrow.Foreground=SettingsTheme.Lime;text.Children.Add(eyebrow);
         var title=UI.Caption("Make the dock yours.",30);title.FontFamily=SettingsTheme.Display;title.FontWeight=FontWeights.Bold;title.Foreground=SettingsTheme.Bone;title.Margin=new(0,8,0,8);text.Children.Add(title);
         var body=UI.Caption("Pick something to change below, or let quick setup choose good defaults for you. Every change saves by itself.",13);body.Foreground=SettingsTheme.Quiet;body.MaxWidth=420;body.HorizontalAlignment=HorizontalAlignment.Left;text.Children.Add(body);
         var setup=UI.CaptionButton("Run quick setup",app.ShowWelcome,true);setup.Padding=new(18,9,18,9);setup.Tag=new CornerRadius(18);
@@ -49,8 +50,18 @@ public sealed partial class SettingsWindow
         var art=new Grid{Width=150,Height=150,Margin=new(12,0,0,0),VerticalAlignment=VerticalAlignment.Center};
         var halo=new RadialGradientBrush();halo.GradientStops.Add(new(Color.FromArgb(0x55,0xC7,0xFF,0x91),0));halo.GradientStops.Add(new(Color.FromArgb(0x10,0xC7,0xFF,0x91),.55));halo.GradientStops.Add(new(Colors.Transparent,1));halo.Freeze();
         art.Children.Add(new System.Windows.Shapes.Ellipse{Fill=halo,Margin=new(-24)});
-        var naby=new Image{Width=128,Height=128};try{naby.Source=new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/naby-chrome.png"));}catch(Exception ex){app.Store.Log(ex);}
-        RenderOptions.SetBitmapScalingMode(naby,BitmapScalingMode.HighQuality);art.Children.Add(naby);Grid.SetColumn(art,1);grid.Children.Add(art);
+        if (app.UsesLopataEdition)
+        {
+            var mascot = SettingsMascot(144, 135);
+            System.Windows.Automation.AutomationProperties.SetAutomationId(mascot, "Settings.WelcomeMascot");
+            art.Children.Add(mascot);
+        }
+        else
+        {
+            var naby=new Image{Width=128,Height=128};try{naby.Source=new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/naby-chrome.png"));}catch(Exception ex){app.Store.Log(ex);}
+            RenderOptions.SetBitmapScalingMode(naby,BitmapScalingMode.HighQuality);art.Children.Add(naby);
+        }
+        Grid.SetColumn(art,1);grid.Children.Add(art);
         var card=new Border{Background=SettingsTheme.Card,BorderBrush=SettingsTheme.Line,BorderThickness=new(1),CornerRadius=new(18),Padding=new(30,26,26,26),Margin=new(0,0,0,26),Child=grid,ClipToBounds=true};
         grid.SizeChanged+=(_,_)=>art.Visibility=grid.ActualWidth<520?Visibility.Collapsed:Visibility.Visible;
         UI.LocalizedName(card,"Welcome");return card;
