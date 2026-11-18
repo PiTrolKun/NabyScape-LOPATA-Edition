@@ -75,13 +75,24 @@ internal static class LopataEditionDiagnostics
         double scale = app.Settings.PanelScale;
         var order = new[]
         {
-            LopataEdition.OpenCaption, LopataEdition.LayerCaption, LopataEdition.CloseCaption,
+            LopataEdition.OpenCaption, LopataEdition.LayerCaption,
             "LOPATA tasks", "LOPATA chat", "LOPATA updates", "VK", "YouTube"
         };
         void CheckRow()
         {
             island.UpdateLayout();
             var panel = Diagnostics.Descendants(island).OfType<LopataWorkPanel>().Single();
+            var navigation = Diagnostics.Descendants(island).OfType<Grid>().Single(grid => Equals(grid.Tag, "panel-navigation"));
+            var close = Find(island, LopataEdition.CloseCaption);
+            var tabs = navigation.Children.OfType<ScrollViewer>().Single();
+            var closeBounds = close.TransformToAncestor(navigation).TransformBounds(new Rect(close.RenderSize));
+            var tabBounds = tabs.TransformToAncestor(navigation).TransformBounds(new Rect(tabs.RenderSize));
+            var closeCenter = new Point(closeBounds.Left + closeBounds.Width / 2, closeBounds.Top + closeBounds.Height / 2);
+            var closeHit = navigation.InputHitTest(closeCenter) as DependencyObject;
+            if (!close.IsVisible || !close.IsTabStop || !Equals(close.ToolTip, Localization.Text(LopataEdition.CloseCaption)) ||
+                close.Parent != navigation || closeBounds.Left < 0 || tabBounds.Left - closeBounds.Right < 12 ||
+                (closeHit != close && (closeHit is null || !close.IsAncestorOf(closeHit))))
+                throw new InvalidOperationException("The close button is not isolated in the leading navigation slot.");
             var buttons = order.Select(id => Find(panel, id)).ToArray();
             var mascot = Find(panel, "Lopata.Chat.Mascot");
             Rect Bounds(Button button) => button.TransformToAncestor(panel)
@@ -124,7 +135,7 @@ internal static class LopataEditionDiagnostics
         }
         finally { await Apply(saved, scale); }
         File.WriteAllText(Path.Combine(directory, "action-toolbar-check.txt"),
-            "PASS eight accessible icons and the mascot share a row; all icon centers hit their buttons at default width and 320 DIP with 125% content scale.");
+            "PASS Close has its own hit target to the left of the tabs, separate from the seven action icons and mascot, at default width and 320 DIP with 125% content scale.");
     }
 
     private static async Task CheckMascot(App app, OverlayWindow island, string directory)

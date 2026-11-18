@@ -160,6 +160,11 @@ public sealed partial class OverlayWindow
         {
             var launcher=AssistantLauncher();launcher.HorizontalAlignment=HorizontalAlignment.Left;navigation.Children.Add(launcher);
         }
+        var close = LopataActions.Button(LopataEdition.CloseCaption, "x", app.Quit, size: 28);
+        close.Margin = new(0);
+        close.Background = Brushes.Transparent;
+        close.HorizontalAlignment = app.UsesLopataEdition ? HorizontalAlignment.Center : HorizontalAlignment.Right;
+        navigation.Children.Add(close);
         var settings=Icons.Button("settings","Settings",app.ShowSettings,false,28);settings.Margin=new(4,0,0,0);settings.Background=Brushes.Transparent;
         var trailing=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};trailing.Children.Add(NotificationBell(28));trailing.Children.Add(settings);Grid.SetColumn(trailing,2);navigation.Children.Add(trailing);
         int categoryCount=Math.Max(1,PanelWidgets.Select(w=>PageFor(w.Id)).Distinct().Count());

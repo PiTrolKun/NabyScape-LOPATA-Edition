@@ -7,10 +7,10 @@ namespace NabyScape;
 
 internal static class LopataActions
 {
-    internal static Button Button(string caption, string icon, Action action)
+    internal static Button Button(string caption, string icon, Action action, double size = 36)
     {
         var button = UI.CaptionButton(caption, action);
-        button.Width = button.Height = 36;
+        button.Width = button.Height = size;
         button.MinHeight = 0;
         button.Margin = new(0, 0, 4, 0);
         button.Padding = new(0);
@@ -20,7 +20,7 @@ internal static class LopataActions
         var glyph = Icons.Create(icon, 19, foregroundResource: "ControlText");
         glyph.HorizontalAlignment = HorizontalAlignment.Center;
         glyph.VerticalAlignment = VerticalAlignment.Center;
-        button.Content = new Grid { Height = 34, IsHitTestVisible = false, Children = { glyph } };
+        button.Content = new Grid { Height = size - 2, IsHitTestVisible = false, Children = { glyph } };
         return button;
     }
 

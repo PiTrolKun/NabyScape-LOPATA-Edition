@@ -73,7 +73,6 @@ internal sealed class LopataWorkPanel : StackPanel
         Margin = new(0, 0, 0, 8);
         var launch = LopataActions.Button(LopataEdition.OpenCaption, "open-lopata", LopataEdition.OpenHost);
         var layer = LopataActions.Button(LopataEdition.LayerCaption, "pin", app.ToggleLopataLayer);
-        var close = LopataActions.Button(LopataEdition.CloseCaption, "x", app.Quit);
         toggle = LopataActions.Button("LOPATA tasks", "tasks", () => ShowDetails(details!.Visibility != Visibility.Visible));
         taskCount = LopataActions.AddBadge(toggle);
         var chat = LopataActions.Button("LOPATA chat", "chat", app.ShowLopataChat);
@@ -97,7 +96,7 @@ internal sealed class LopataWorkPanel : StackPanel
             app.SettingsChanged -= RefreshLayer;
             app.LopataUpdates.Changed -= RefreshUpdates;
         };
-        var actions = UI.Row(launch, layer, close, toggle, chat, updates, vk, youtube);
+        var actions = UI.Row(launch, layer, toggle, chat, updates, vk, youtube);
         actions.VerticalAlignment = VerticalAlignment.Center;
         toolbar.Children.Add(actions);
         Children.Add(new Viewbox
