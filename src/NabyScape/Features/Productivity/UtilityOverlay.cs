@@ -28,7 +28,7 @@ public sealed partial class OverlayWindow
     }
     private FrameworkElement BuildWeatherPage()
     {
-        var weather=new WeatherView(app);
+        var weather=new WeatherView(app, decorateHeading: heading => WithToolHomeWidgetStar(heading, "weather"));
         weather.FitTo(bodyWidth,WeatherContentBudget);
         weather.ContentSizeChanged+=()=>QueueWeatherPanelResize(weather);
         weather.Loaded+=(_,_)=>QueueWeatherPanelResize(weather);
@@ -107,7 +107,7 @@ public sealed partial class OverlayWindow
     }
     private void BuildNotes()
     {
-        if(toolsMode=="tasks"){BuildVisualTasks();return;}var p=app.Productivity;var heading=UI.Heading(toolsMode=="tasks"?Localization.Text("Tasks"):Localization.Text("Notes"),19);heading.FontWeight=FontWeights.SemiBold;heading.Margin=new(0,0,0,12);toolsContent.Children.Add(heading);
+        if(toolsMode=="tasks"){BuildVisualTasks();return;}var p=app.Productivity;var heading=UI.Heading(Localization.Text("Notes"),19);heading.FontWeight=FontWeights.SemiBold;heading.Margin=new(0,0,0,12);toolsContent.Children.Add(WithToolHomeWidgetStar(heading, "notes"));
         var write=new StackPanel();var tasks=new StackPanel();toolsContent.Children.Add(toolsMode=="notes"?write:tasks);
         mainNoteEditor=null;
         if(toolsMode=="notes")
@@ -156,7 +156,7 @@ public sealed partial class OverlayWindow
         {
             BuildNotes();
         }
-        else if(toolsMode=="power")toolsContent.Children.Add(new PowerPlanView());
+        else if(toolsMode=="power")toolsContent.Children.Add(new PowerPlanView(heading => WithToolHomeWidgetStar(heading, "power")));
         else if(toolsMode=="weather")toolsContent.Children.Add(BuildWeatherPage());
         else if(toolsMode=="calendar")BuildCalendar(toolsContent);
         else if(toolsMode=="awake")BuildAwake(toolsContent);

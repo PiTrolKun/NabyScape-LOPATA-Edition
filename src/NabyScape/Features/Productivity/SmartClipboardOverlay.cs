@@ -34,7 +34,7 @@ public sealed partial class OverlayWindow
         var heading=new DockPanel();
         var count=UI.Text(Localization.Format("{0} items",p.Clips.Count),10,UI.Muted);
         count.Margin=new(8,0,0,0);DockPanel.SetDock(count,Dock.Right);heading.Children.Add(count);
-        heading.Children.Add(UI.Heading(Localization.Text("Smart clipboard"),18));
+        heading.Children.Add(WithToolHomeWidgetStar(UI.Heading(Localization.Text("Smart clipboard"),18), "clips"));
         panel.Children.Add(heading);
         if(!p.ClipboardEnabled)
         {

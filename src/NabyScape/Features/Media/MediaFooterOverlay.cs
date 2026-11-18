@@ -12,7 +12,7 @@ public sealed partial class OverlayWindow
     private MediaControls? mediaControls;
     private LocalMusicWindow? localMusicWindow;
     private long mediaExternalDismissedAt;
-    private FrameworkElement BuildMediaControls(StackPanel panel, bool includeVolume = true)
+    private FrameworkElement BuildMediaControls(StackPanel panel, Func<FrameworkElement, FrameworkElement>? decorateHeading = null, bool includeVolume = true)
     {
         mediaControls=new MediaControls(panel,WidgetOn("media"),includeVolume && WidgetOn("volume"),
             ()=>new[]{new MediaSourceChoice(MediaSourceSelection.NoneId,Localization.Text("None"),app.Media.SelectNone),new MediaSourceChoice(MediaSourceSelection.AutoId,Localization.Text("Auto"),app.Media.SelectAutomatic),
@@ -21,7 +21,7 @@ public sealed partial class OverlayWindow
                 // A session may disappear after its menu was rendered.
                 if(app.Media.Sessions.Contains(session))app.Media.Select(session);
             }))).ToArray(),()=>app.Media.SourceSelectionId,BuildVolumePopover,()=>OpenLocalMusic(app.MusicLists.Selected),
-            musicActionsFirst: app.UsesLopataEdition);
+            musicActionsFirst: app.UsesLopataEdition, decorateHeading: decorateHeading);
         mediaControls.LayoutRequested+=QueueMediaLayout;mediaControls.SizeChanged+=(_,_)=>QueueMediaLayout();RefreshMediaControls(true);return mediaControls;
     }
     private MediaSourceChoice LocalChoice(LocalMusicList source) => new(source switch

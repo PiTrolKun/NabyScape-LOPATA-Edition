@@ -16,7 +16,7 @@ public sealed partial class OverlayWindow
         }
         var today=UI.Button(Localization.Text("Today"),()=>{calendarDay=DateTime.Today;calendarMonth=new(calendarDay.Year,calendarDay.Month,1);calendarMonthExpanded=false;RefreshTools();});today.Padding=new(8,4,8,4);today.Margin=new(2,0,6,0);today.Background=Brushes.Transparent;today.MinHeight=30;today.FontSize=11;
         var add=UI.Button(Localization.Text("Add local event"),()=>{calendarEditing=true;RefreshTools();});add.Content=Localization.Text("Add event");add.MinHeight=30;add.Padding=new(10,4,10,4);add.Margin=new(0);add.FontSize=11;
-        return MinimalWidgets.Header(month,UI.Row(Arrow(false),Arrow(true),today,add));
+        return MinimalWidgets.Header(WithToolHomeWidgetStar(month, "calendar"),UI.Row(Arrow(false),Arrow(true),today,add));
     }
     private FrameworkElement CalendarWeek()
     {

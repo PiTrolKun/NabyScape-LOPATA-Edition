@@ -37,9 +37,9 @@ internal sealed class StopwatchView : StackPanel
     internal int Refreshes {get;private set;}
     private readonly TextBlock digits=UI.Text("00:00",29);
     private readonly Button toggle;
-    internal StopwatchView(App app)
+    internal StopwatchView(App app, Func<FrameworkElement, FrameworkElement>? decorateHeading = null)
     {
-        this.app=app;Children.Add(UI.Heading(Localization.Text("Stopwatch"),13));digits.Margin=new(0,10,0,8);Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);Children.Add(digits);
+        this.app=app;var title=UI.Heading(Localization.Text("Stopwatch"),13);Children.Add(decorateHeading?.Invoke(title)??title);digits.Margin=new(0,10,0,8);Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);Children.Add(digits);
         toggle=UI.Button(Localization.Text("Start"),()=>{app.Session.Stopwatch.Toggle();app.SaveSession();});UI.Named(toggle,Localization.Text("Start, pause or resume stopwatch"));
         var reset=UI.Button(Localization.Text("Reset"),()=>{app.Session.Stopwatch.Reset();app.SaveSession();});UI.Named(reset,Localization.Text("Reset stopwatch"));
         foreach(var button in new[]{toggle,reset}){button.FontSize=11;button.Padding=new(9,4,9,4);button.MinHeight=30;button.ToolTip=Localization.Text("Tab to select; Space or Enter to activate");}

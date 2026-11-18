@@ -33,18 +33,37 @@ internal static class LopataHomeWidgetDiagnostics
             for (int i=0; i<40 && island.IsAnimating; i++) await Task.Delay(35);
             island.UpdateLayout();
         }
+        void CheckPlacement(string page, Func<FrameworkElement, bool>? isExpectedHeading = null)
+        {
+            var star = Star();
+            var row = (Grid)star.Parent;
+            var heading = (FrameworkElement)row.Children[0];
+            var mascot = Diagnostics.Descendants(island).OfType<Button>().Single(button =>
+                button.IsVisible && AutomationProperties.GetAutomationId(button) == "Lopata.Chat.Mascot");
+            Rect Bounds(FrameworkElement item) => item.TransformToAncestor(island).TransformBounds(new Rect(item.RenderSize));
+            var starBounds = Bounds(star);
+            var headingBounds = Bounds(heading);
+            var mascotBounds = Bounds(mascot);
+            var center = new Point(starBounds.Left + starBounds.Width / 2, starBounds.Top + starBounds.Height / 2);
+            var hit = island.InputHitTest(center) as DependencyObject;
+            Require((isExpectedHeading is null || isExpectedHeading(heading)) &&
+                starBounds.Left >= headingBounds.Right && starBounds.Left - headingBounds.Right < 8 &&
+                Math.Abs(center.Y - headingBounds.Top - headingBounds.Height / 2) < 1 &&
+                starBounds.Top > mascotBounds.Bottom + 8 &&
+                (hit == star || hit is not null && star.IsAncestorOf(hit)),
+                $"The {page} star is clickable beside its own heading and separate from the mascot");
+        }
 
         var settings = app.Settings;
         bool compact = settings.CompactLayout;
         string prior = settings.HomeWidget;
-        var enabled = settings.Widgets.Where(widget => widget.Id is "media" or "timer" or "notes")
-            .ToDictionary(widget => widget.Id, widget => widget.Enabled);
+        var enabled = settings.Widgets.ToDictionary(widget => widget.Id, widget => widget.Enabled);
         SettingsWindow? window = null;
         try
         {
             settings.CompactLayout = true;
             settings.HomeWidget = "media";
-            foreach (var widget in settings.Widgets.Where(widget => enabled.ContainsKey(widget.Id))) widget.Enabled = true;
+            foreach (var widget in settings.Widgets.Where(widget => app.SupportsWidget(widget.Id))) widget.Enabled = true;
             app.ChangeSettings();
             app.ShowSettings("Appearance");
             window = app.Windows.OfType<SettingsWindow>().Single();
@@ -59,26 +78,19 @@ internal static class LopataHomeWidgetDiagnostics
             island.Reveal(false);
             await Settle();
             Require(island.ActivePage == "media" && Selected(Star()), "The main widget opens with a filled star");
+            CheckPlacement("media", heading => UI.Identity(heading) == "Media source");
+            capture(island, Path.Combine(directory,"home-star-media.png"));
             island.SelectPage("focus",false);
             await Settle();
             Require(!Selected(Star()), "The Timer star is an outline before selection");
-            var mascot = Diagnostics.Descendants(island).OfType<Button>().Single(button =>
-                button.IsVisible && AutomationProperties.GetAutomationId(button) == "Lopata.Chat.Mascot");
-            var starBounds = Star().TransformToAncestor(island).TransformBounds(new Rect(Star().RenderSize));
-            var mascotBounds = mascot.TransformToAncestor(island).TransformBounds(new Rect(mascot.RenderSize));
-            var hitPoint = new Point(starBounds.Left + starBounds.Width / 2, starBounds.Top + starBounds.Height / 2);
-            var hit = island.InputHitTest(hitPoint) as DependencyObject;
-            Require(starBounds.Top >= mascotBounds.Bottom - .1 &&
-                Math.Abs(hitPoint.X - mascotBounds.Left - mascotBounds.Width / 2) < 1 &&
-                (hit == Star() || hit is not null && Star().IsAncestorOf(hit)),
-                "The star is centered under the mascot and has a separate hit target");
+            CheckPlacement("timer", heading => heading is TextBlock text && text.Text == Localization.Text("Timer"));
 
             Click(Star());
             Require(Selected(Star()) && Equals(chooser.SelectedValue, "focus") &&
                 app.Store.Load<Settings>("settings").HomeWidget == "focus", "The star updates settings and persists the Timer");
             Click(Star());
             Require(settings.HomeWidget == "focus", "Clicking the selected star leaves exactly one main widget");
-            capture(island, Path.Combine(directory,"home-widget-timer.png"));
+            capture(island, Path.Combine(directory,"home-star-timer.png"));
             island.SelectPage("notes",false);
             Require(!Selected(Star()), "The Notes star remains an outline");
             island.Collapse();
@@ -93,6 +105,14 @@ internal static class LopataHomeWidgetDiagnostics
             island.Collapse();
             island.ShowTools("links",false);
             Require(island.ActivePage == "links", "A direct shortcut still opens its requested tool");
+            foreach (string page in LopataHomeWidget.Choices(app).Where(page => page is not ("media" or "focus")))
+            {
+                island.SelectPage(page, false);
+                await Settle();
+                CheckPlacement(page, page == "status" ? heading => heading is TextBlock text && text.Text.Contains(':') : null);
+                if (page is "status" or "notes")
+                    capture(island, Path.Combine(directory,$"home-star-{page}.png"));
+            }
 
             settings.CompactLayout = false;
             app.ChangeSettings();

@@ -18,9 +18,9 @@ internal sealed class PowerPlanView : StackPanel
     private readonly TextBlock status=UI.Text("",12,UI.Muted);
     private readonly Button apply,refresh;
     private CancellationTokenSource? lifetime;
-    internal PowerPlanView()
+    internal PowerPlanView(Func<FrameworkElement, FrameworkElement>? decorateHeading = null)
     {
-        Children.Add(UI.Heading(Localization.Text("Power plan"),19));Children.Add(UI.Text(Localization.Text("Choose from the power plans available on this PC."),12,UI.Muted));
+        var heading=UI.Heading(Localization.Text("Power plan"),19);Children.Add(decorateHeading?.Invoke(heading)??heading);Children.Add(UI.Text(Localization.Text("Choose from the power plans available on this PC."),12,UI.Muted));
         UI.Named(choices,Localization.Text("Available Windows power plans"));Children.Add(choices);
         apply=UI.Button(Localization.Text("Apply power plan"),async()=>await Apply());refresh=UI.Button(Localization.Text("Refresh plans"),async()=>await Refresh());Children.Add(apply);Children.Add(refresh);Children.Add(status);
         Loaded+=async(_,_)=>{lifetime=new();await Refresh();};Unloaded+=(_,_)=>{lifetime?.Cancel();};

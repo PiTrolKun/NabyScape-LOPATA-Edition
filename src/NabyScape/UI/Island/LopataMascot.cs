@@ -186,23 +186,14 @@ public sealed partial class OverlayWindow
         mascotPacer.Reset();
     }
 
-    private void AddFullMascot(DockPanel header, string? widgetPage = null, bool followActivePage = false)
+    private void AddFullMascot(DockPanel header)
     {
         var mascot = CreateMascotButton(false);
         mascot.Width = 70;
-        mascot.Height = FullMascotHeight;
-        FrameworkElement leading = mascot;
-        if (followActivePage || widgetPage is not null)
-        {
-            mascot.Height = WidgetMascotHeight;
-            var star = CreateHomeWidgetStar(() => followActivePage ? activePage : widgetPage!);
-            if (followActivePage) homeWidgetStar = star;
-            else StyleHomeWidgetStar(star, widgetPage!);
-            leading = new StackPanel { Children = { mascot, star } };
-        }
-        leading.Margin = new Thickness(0, 0, 8, 0);
-        DockPanel.SetDock(leading, Dock.Left);
-        header.Children.Insert(0, leading);
+        mascot.Height = 62;
+        mascot.Margin = new Thickness(0, 0, 8, 0);
+        DockPanel.SetDock(mascot, Dock.Left);
+        header.Children.Insert(0, mascot);
     }
 
     private void CleanupLopataMascot()

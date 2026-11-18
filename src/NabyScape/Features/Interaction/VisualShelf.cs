@@ -32,7 +32,7 @@ public sealed partial class OverlayWindow
     private void BuildFileShelf()
     {
         var p=app.Productivity;shelfSelection.RemoveWhere(path=>!p.Shelf.Any(x=>x.Path.Equals(path,StringComparison.OrdinalIgnoreCase)));
-        var heading=UI.Row(UI.Heading(Localization.Text("File shelf"),18),UI.Text($"{p.Shelf.Count} / 40",11,UI.Muted));((FrameworkElement)heading.Children[1]).Margin=new(12,0,0,0);
+        var heading=UI.Row(WithToolHomeWidgetStar(UI.Heading(Localization.Text("File shelf"),18), "files"),UI.Text($"{p.Shelf.Count} / 40",11,UI.Muted));((FrameworkElement)heading.Children[1]).Margin=new(8,0,0,0);
         var add=UI.Button(Localization.Text("Add files…"),()=>{var dialog=new Microsoft.Win32.OpenFileDialog{Multiselect=true,Title="Add to file shelf"};if(dialog.ShowDialog(this)==true)MutateUtility(()=>p.AddFiles(dialog.FileNames));});
         add.MinHeight=30;add.Padding=new(10,5,10,5);add.Margin=new(0);add.IsEnabled=p.Shelf.Count<40;
         var more=MinimalWidgets.More("File shelf actions",("Select all",()=>{foreach(var file in p.Shelf.Where(x=>x.Exists))shelfSelection.Add(file.Path);RefreshTools();}),("Clear selection",()=>{shelfSelection.Clear();RefreshTools();}));

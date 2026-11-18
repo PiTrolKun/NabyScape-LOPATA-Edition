@@ -79,7 +79,6 @@ public sealed partial class OverlayWindow
         hoverDelay.Interval=TimeSpan.FromMilliseconds(s.HoverDelayMs);detailDelay.Interval=TimeSpan.FromMilliseconds(s.HoverDetailDelayMs);
         ApplyHeadingTypography(body);ApplyMediaTypography(title,s.BoldMediaTitle);
         foreach(var tab in compactTabs)StyleCategory(tab.Value,tab.Key,tab.Key==(activePage=="mixer"?"media":activePage));
-        RefreshHomeWidgetStar();
         if(previous.Geometry!=next.Geometry || previous.Reflow!=next.Reflow)
         {
             refreshHz=Native.RefreshRate(Native.ChooseScreen(s));

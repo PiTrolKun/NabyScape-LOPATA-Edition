@@ -159,9 +159,7 @@ public sealed partial class OverlayWindow
     {
         if(timelinePanel.Parent is Panel old)old.Children.Remove(timelinePanel);
         title.FontSize=18;artist.FontSize=12;artwork.Width=artwork.Height=88;clock.FontSize=26;
-        double NavigationGap() => app.UsesLopataEdition
-            ? Math.Max(4, app.Settings.SectionGap - HomeWidgetHeaderGrowth) : app.Settings.SectionGap;
-        var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,NavigationGap())};
+        var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,app.Settings.SectionGap)};
         // Equal side columns keep the page dots centered between the two ends.
         navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});navigation.ColumnDefinitions.Add(new());navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});
         if (!app.UsesLopataEdition)
@@ -182,7 +180,7 @@ public sealed partial class OverlayWindow
         body.Children.Add(compactPageHost);
         bodyReflow.Add(()=>
         {
-            navigation.Margin=new(0,0,0,NavigationGap());tabRow.Width=categoryCount*18;
+            navigation.Margin=new(0,0,0,app.Settings.SectionGap);tabRow.Width=categoryCount*18;
         });
         foreach(string page in PanelWidgets.Select(w=>PageFor(w.Id)).Distinct())
         {
@@ -204,7 +202,6 @@ public sealed partial class OverlayWindow
         if(animate && activePage==page && compactPages[page].Visibility==Visibility.Visible)return;
         if (app.UsesLopataEdition && page == "media" && page != activePage) scroll.ScrollToTop();
         FlushNotes();EnsureCompactPage(page);InvalidateSystemMonitor();activePage=page;
-        RefreshHomeWidgetStar();
         if(Settings.ToolNames.ContainsKey(page))
         {
             toolsMode=page;calendarEditing=false;
@@ -319,17 +316,17 @@ public sealed partial class OverlayWindow
                 mediaLyrics = new LyricsView(app);
                 SyncLyrics();
             }
-            var controls=BuildMediaControls(panel);
+            var controls=BuildMediaControls(panel, heading => WithHomeWidgetStar(heading, "media"));
             return WidgetOn("media")?WrapMediaLyrics(controls):controls;
         }
         if(page=="voice")return new AssistantVoiceView(app);
-        if(page=="stopwatch")return new StopwatchView(app);
+        if(page=="stopwatch")return new StopwatchView(app, heading => WithHomeWidgetStar(heading, page));
         if(page=="focus")
         {
             var row=new Grid();bool stacked=bodyWidth<310;int count=PanelWidgets.Count(w=>PageFor(w.Id)=="focus");for(int i=0;i<count;i++){if(stacked)row.RowDefinitions.Add(new(){Height=GridLength.Auto});else row.ColumnDefinitions.Add(new());}int column=0;
             foreach(var widget in PanelWidgets.Where(w=>PageFor(w.Id)=="focus"))
             {
-                var contents=new CountdownView(app,widget.Id=="focus");
+                var contents=new CountdownView(app,widget.Id=="focus", decorateHeading: heading => WithHomeWidgetStar(heading, page));
                 var module=new Border{BorderBrush=UI.Brush(IslandPalette.ControlBorder(app.Settings)),BorderThickness=new Thickness(0),Padding=stacked?new Thickness(0,4,0,4):new Thickness(column==0?0:14,4,column==0?14:0,4),Margin=stacked?new Thickness(0,column==0?0:16,0,0):new Thickness(column==0?0:8,0,0,0),Child=contents};if(stacked)Grid.SetRow(module,column++);else Grid.SetColumn(module,column++);row.Children.Add(module);module.SetResourceReference(Border.BorderBrushProperty,"ControlBorder");
             }
             bodyReflow.Add(()=>
@@ -341,18 +338,28 @@ public sealed partial class OverlayWindow
         }
         if(page=="status")
         {
-            var panel=new StackPanel();foreach(var widget in PanelWidgets.Where(w=>PageFor(w.Id)=="status"))
+            var panel=new StackPanel();
+            if (app.UsesLopataEdition && !WidgetOn("clock"))
+                panel.Children.Add(WithHomeWidgetStar(UI.Caption("Status", 13), page));
+            foreach(var widget in PanelWidgets.Where(w=>PageFor(w.Id)=="status"))
             {
                 switch(widget.Id)
                 {
-                    case "clock":date.Margin=new(0,3,0,12);panel.Children.Add(clock);panel.Children.Add(date);break;
+                    case "clock":date.Margin=new(0,3,0,12);panel.Children.Add(WithHomeWidgetStar(clock, page));panel.Children.Add(date);break;
                     case "system":panel.Children.Add(BuildSystemMonitor());break;
                     case "battery":batteryCard=new Border{Child=battery,Margin=new(0,10,0,0)};panel.Children.Add(batteryCard);break;
                 }
             }
             return panel;
         }
-        var launch=new StackPanel{Margin=new(0,2,0,8)};var search=UI.CaptionButton("Search commands  ·  Ctrl+K",()=>ShowCommands());search.Background=UI.Brush("#14161A");search.BorderThickness=new(1);search.BorderBrush=UI.Brush("#30343C");search.Padding=new(12,8,12,8);search.Margin=new(0,0,0,16);search.HorizontalContentAlignment=HorizontalAlignment.Stretch;var searchRow=new DockPanel();var keys=UI.Caption("Ctrl+K",10,UI.Muted);DockPanel.SetDock(keys,Dock.Right);searchRow.Children.Add(keys);var searchIcon=Icons.Create("search",16,UI.Muted);searchIcon.Margin=new(0,0,12,0);DockPanel.SetDock(searchIcon,Dock.Left);searchRow.Children.Add(searchIcon);searchRow.Children.Add(UI.Caption("Search commands",12,UI.Muted));search.Content=searchRow;launch.Children.Add(search);
+        var launch=new StackPanel{Margin=new(0,2,0,8)};var search=UI.CaptionButton("Search commands  ·  Ctrl+K",()=>ShowCommands());search.Background=UI.Brush("#14161A");search.BorderThickness=new(1);search.BorderBrush=UI.Brush("#30343C");search.Padding=new(12,8,12,8);search.Margin=new(0,0,0,16);search.HorizontalContentAlignment=HorizontalAlignment.Stretch;var searchRow=new DockPanel();var keys=UI.Caption("Ctrl+K",10,UI.Muted);DockPanel.SetDock(keys,Dock.Right);searchRow.Children.Add(keys);var searchIcon=Icons.Create("search",16,UI.Muted);searchIcon.Margin=new(0,0,12,0);DockPanel.SetDock(searchIcon,Dock.Left);searchRow.Children.Add(searchIcon);searchRow.Children.Add(UI.Caption("Search commands",12,UI.Muted));search.Content=searchRow;
+        if (app.UsesLopataEdition)
+        {
+            var heading = UI.Caption("Launch", 16);
+            heading.Margin = new(0, 0, 0, 8);
+            launch.Children.Add(WithHomeWidgetStar(heading, page));
+        }
+        launch.Children.Add(search);
         var shortcuts=new WrapPanel();KeyboardNavigation.SetDirectionalNavigation(shortcuts,KeyboardNavigationMode.Cycle);launch.Children.Add(shortcuts);foreach(var shortcut in app.Settings.Shortcuts)
         {
             shortcuts.Children.Add(LaunchButton(shortcut));

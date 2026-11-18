@@ -36,17 +36,15 @@ internal static class LopataHomeWidget
 
 public sealed partial class OverlayWindow
 {
-    internal const double HomeWidgetStarHeight = 18;
-    private const double FullMascotHeight = 62;
-    private const double WidgetMascotHeight = 56;
-    private const double HomeWidgetHeaderGrowth = WidgetMascotHeight + HomeWidgetStarHeight - FullMascotHeight;
-    private Button? homeWidgetStar;
+    private const double HomeWidgetStarHeight = 20;
     private static readonly Geometry HomeStarShape =
         Geometry.Parse("M12,2 L15,8.5 22,9.5 17,14.5 18.2,21.5 12,18 5.8,21.5 7,14.5 2,9.5 9,8.5 Z");
 
-    private Button CreateHomeWidgetStar(Func<string> page)
+    private FrameworkElement WithHomeWidgetStar(FrameworkElement heading, string page)
     {
-        var button = UI.Button("", () => LopataHomeWidget.Select(app, page()));
+        if (!app.UsesLopataEdition || !LopataHomeWidget.Choices(app).Contains(page)) return heading;
+
+        var button = UI.Button("", () => LopataHomeWidget.Select(app, page));
         button.Content = new Path { Data = HomeStarShape, Stretch = Stretch.Uniform, Width = 13, Height = 13,
             StrokeThickness = 1.25, StrokeLineJoin = PenLineJoin.Round, IsHitTestVisible = false };
         button.Background = Brushes.Transparent;
@@ -55,12 +53,29 @@ public sealed partial class OverlayWindow
         button.Width = 26;
         button.MinHeight = button.MinWidth = 0;
         button.Padding = button.Margin = new(0);
+        button.Margin = new(4, 0, 0, 0);
         button.HorizontalAlignment = HorizontalAlignment.Center;
         button.HorizontalContentAlignment = HorizontalAlignment.Center;
         button.VerticalContentAlignment = VerticalAlignment.Center;
         AutomationProperties.SetAutomationId(button, "Lopata.HomeWidget");
-        return button;
+        void Refresh() => StyleHomeWidgetStar(button, page);
+        button.Loaded += (_, _) => { app.SettingsChanged -= Refresh; app.SettingsChanged += Refresh; Refresh(); };
+        button.Unloaded += (_, _) => app.SettingsChanged -= Refresh;
+        Refresh();
+
+        var row = new Grid { HorizontalAlignment = HorizontalAlignment.Left, Margin = heading.Margin };
+        heading.Margin = new(0);
+        heading.VerticalAlignment = VerticalAlignment.Center;
+        row.ColumnDefinitions.Add(new());
+        row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        Grid.SetColumn(button, 1);
+        row.Children.Add(heading);
+        row.Children.Add(button);
+        return row;
     }
+
+    private FrameworkElement WithToolHomeWidgetStar(FrameworkElement heading, string tool) =>
+        app.Settings.CompactLayout || hoverPanelWidget is not null ? WithHomeWidgetStar(heading, tool) : heading;
 
     private void StyleHomeWidgetStar(Button button, string page)
     {
@@ -80,22 +95,11 @@ public sealed partial class OverlayWindow
         AutomationProperties.SetItemStatus(button, selected ? Localization.Text("Selected") : "");
     }
 
-    private void RefreshHomeWidgetStar()
-    {
-        if (homeWidgetStar is not { } button) return;
-        StyleHomeWidgetStar(button, activePage);
-        if (showLopataJobs) button.Visibility = Visibility.Hidden;
-    }
-
     private void AddClassicHomeWidgetStar(Border card, string page)
     {
         var stack = (StackPanel)card.Child;
-        var title = stack.Children[0];
+        var title = (FrameworkElement)stack.Children[0];
         stack.Children.RemoveAt(0);
-        var star = CreateHomeWidgetStar(() => page);
-        StyleHomeWidgetStar(star, page);
-        DockPanel.SetDock(star, Dock.Right);
-        var heading = new DockPanel { Children = { star, title } };
-        stack.Children.Insert(0, heading);
+        stack.Children.Insert(0, WithHomeWidgetStar(title, page));
     }
 }

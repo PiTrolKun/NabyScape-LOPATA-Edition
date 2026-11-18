@@ -86,7 +86,7 @@ public sealed partial class OverlayWindow
     }
     private void BuildAwake(StackPanel panel)
     {
-        panel.Children.Add(UI.Heading(Localization.Text("Keep awake"),18));var hint=UI.Text(Localization.Text("Temporarily prevent automatic sleep. Your normal power settings return when this stops or NabyScape quits."),12,UI.Muted);hint.Margin=new(0,8,0,14);panel.Children.Add(hint);
+        panel.Children.Add(WithToolHomeWidgetStar(UI.Heading(Localization.Text("Keep awake"),18), "awake"));var hint=UI.Text(Localization.Text("Temporarily prevent automatic sleep. Your normal power settings return when this stops or NabyScape quits."),12,UI.Muted);hint.Margin=new(0,8,0,14);panel.Children.Add(hint);
         awakeStatus=UI.Text("",14);awakeStatus.Margin=new(0,0,0,16);panel.Children.Add(awakeStatus);UpdateRoadmapStatus(DateTimeOffset.UtcNow);
         if(app.Awake.Active){panel.Children.Add(UI.Button(Localization.Text("Stop keep awake"),()=>MutateUtility(app.Awake.Stop),true));return;}
         var durations=new ComboBox();foreach(string item in new[]{"30 minutes","1 hour","2 hours","Until NabyScape quits"})durations.Items.Add(item);durations.SelectedIndex=0;UI.Named(durations,Localization.Text("Keep awake duration"));panel.Children.Add(durations);
@@ -96,7 +96,7 @@ public sealed partial class OverlayWindow
     }
     private void BuildCleanLinks(StackPanel panel)
     {
-        panel.Children.Add(UI.Heading(Localization.Text("Clean links"),18));
+        panel.Children.Add(WithToolHomeWidgetStar(UI.Heading(Localization.Text("Clean links"),18), "links"));
         var hint=UI.Caption("Paste a web link to remove tracking tags such as utm_source. The page and its other parameters stay the same.",11,UI.Muted);
         hint.Margin=new(0,4,0,6);panel.Children.Add(hint);
         var input=UI.Input(Localization.Text("Link to clean"),"",Localization.Text("Paste an http or https URL"));
@@ -171,7 +171,7 @@ public sealed partial class OverlayWindow
     }
     private void BuildEventEditor(StackPanel panel)
     {
-        panel.Children.Add(UI.Heading(Localization.Text("New local event"),18));var hint=UI.Text(Localization.Text("Saved on this device. Times use your Windows time zone."),11,UI.Muted);hint.Margin=new(0,8,0,12);panel.Children.Add(hint);
+        panel.Children.Add(WithToolHomeWidgetStar(UI.Heading(Localization.Text("New local event"),18), "calendar"));var hint=UI.Text(Localization.Text("Saved on this device. Times use your Windows time zone."),11,UI.Muted);hint.Margin=new(0,8,0,12);panel.Children.Add(hint);
         var title=UI.Input(Localization.Text("Event title"),"");title.MaxLength=120;panel.Children.Add(UI.Text(Localization.Text("Title"),11,UI.Muted));panel.Children.Add(title);
         TextBox startDate=UI.Input(Localization.Text("Event start date"),calendarDay.ToString("yyyy-MM-dd")),startTime=UI.Input(Localization.Text("Event start time"),"09:00"),endDate=UI.Input(Localization.Text("Event end date"),calendarDay.ToString("yyyy-MM-dd")),endTime=UI.Input(Localization.Text("Event end time"),"10:00");
         void DateRow(string label,TextBox date,TextBox time){panel.Children.Add(UI.Text(label+" · YYYY-MM-DD / HH:mm",11,UI.Muted));var row=new Grid();row.ColumnDefinitions.Add(new());row.ColumnDefinitions.Add(new(){Width=new GridLength(83)});date.Margin=new(0,4,10,8);time.Margin=new(0,4,0,8);Grid.SetColumn(time,1);row.Children.Add(date);row.Children.Add(time);panel.Children.Add(row);}

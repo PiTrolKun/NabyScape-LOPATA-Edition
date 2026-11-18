@@ -27,13 +27,13 @@ internal sealed class CountdownView : StackPanel
     internal int Refreshes {get;private set;}
     internal bool Subscribed=>subscribed;
 
-    internal CountdownView(App app,bool focus,bool heading=true)
+    internal CountdownView(App app,bool focus,bool heading=true,Func<FrameworkElement,FrameworkElement>? decorateHeading=null)
     {
         this.app=app;this.focus=focus;knownWork=app.Settings.FocusMinutes;knownRest=app.Settings.BreakMinutes;
         string id=focus?"focus":"timer";
         var header=new DockPanel{LastChildFill=true,Margin=new(0,0,0,9)};
         status.HorizontalAlignment=HorizontalAlignment.Right;DockPanel.SetDock(status,Dock.Right);header.Children.Add(status);
-        if(heading){var title=UI.Heading(Localization.Text(focus?"Focus":"Timer"),13);title.FontWeight=FontWeights.SemiBold;header.Children.Add(title);}Children.Add(header);
+        if(heading){var title=UI.Heading(Localization.Text(focus?"Focus":"Timer"),13);title.FontWeight=FontWeights.SemiBold;header.Children.Add(decorateHeading?.Invoke(title)??title);}Children.Add(header);
         Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);digits.FontWeight=FontWeights.Medium;digits.TextWrapping=TextWrapping.NoWrap;digits.HorizontalAlignment=HorizontalAlignment.Center;
         progress.Accent(focus);UI.Named(progress,focus?Localization.Text("Focus session progress"):Localization.Text("Timer progress"));
         var instrument=new Grid{Margin=new(0,4,0,14)};instrument.Children.Add(progress);

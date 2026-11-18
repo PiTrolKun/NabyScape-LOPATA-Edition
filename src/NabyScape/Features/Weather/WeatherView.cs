@@ -30,12 +30,12 @@ internal sealed class WeatherView : UserControl
     private DateTimeOffset checkedAt;
     private WeatherSnapshot? shown;
     private void Watch(bool on){app.Weather.SetVisible(this,on);app.Weather.Changed-=ServiceChanged;if(on)app.Weather.Changed+=ServiceChanged;}
-    internal WeatherView(App app,bool configure=false)
+    internal WeatherView(App app,bool configure=false,Func<FrameworkElement,FrameworkElement>? decorateHeading=null)
     {
         this.app=app;
         var header=new DockPanel{Margin=new(0,0,0,6)};
         var choose=Icons.Button("settings","Choose weather city and units",()=>location.Visibility=location.Visibility==Visibility.Visible?Visibility.Collapsed:Visibility.Visible,false,28);choose.Background=Brushes.Transparent;choose.Margin=new(0);DockPanel.SetDock(choose,Dock.Right);header.Children.Add(choose);
-        var title=new StackPanel();title.Children.Add(UI.Heading(configure?Localization.Text("Location & forecast"):Localization.Text("Weather"),16));city.Margin=new(0,1,0,0);city.TextTrimming=TextTrimming.CharacterEllipsis;city.TextWrapping=TextWrapping.NoWrap;title.Children.Add(city);header.Children.Add(title);page.Children.Add(header);
+        var title=new StackPanel();var heading=UI.Heading(configure?Localization.Text("Location & forecast"):Localization.Text("Weather"),16);title.Children.Add(decorateHeading?.Invoke(heading)??heading);city.Margin=new(0,1,0,0);city.TextTrimming=TextTrimming.CharacterEllipsis;city.TextWrapping=TextWrapping.NoWrap;title.Children.Add(city);header.Children.Add(title);page.Children.Add(header);
         var searchRow=new DockPanel();find=UI.Button(Localization.Text("Search"),()=>_=Search());find.Padding=new(12,6,12,6);find.Margin=new(8,0,0,0);DockPanel.SetDock(find,Dock.Right);searchRow.Children.Add(find);search.Margin=new(0);search.MaxLength=120;var searchHost=new Grid();searchHost.Children.Add(search);var searchHint=UI.Text(Localization.Text("Search city or town…"),12,UI.Muted);searchHint.Margin=new(11,0,0,0);searchHint.IsHitTestVisible=false;searchHost.Children.Add(searchHint);search.TextChanged+=(_,_)=>searchHint.Visibility=search.Text.Length==0?Visibility.Visible:Visibility.Collapsed;searchRow.Children.Add(searchHost);location.Children.Add(searchRow);
         search.KeyDown+=(_,e)=>{if(e.Key==Key.Enter){_=Search();e.Handled=true;}};
         var options=UI.CaptionChoice(new[]{"Celsius","Fahrenheit"},app.Settings.WeatherUnits);options.MinHeight=30;options.Margin=new(0,8,0,8);UI.Named(options,Localization.Text("Weather temperature units"));options.SelectionChanged+=(_,_)=>{if(options.SelectedValue is string unit && app.Settings.WeatherUnits!=unit){app.Settings.WeatherUnits=unit;app.ChangeSettings();}};location.Children.Add(options);

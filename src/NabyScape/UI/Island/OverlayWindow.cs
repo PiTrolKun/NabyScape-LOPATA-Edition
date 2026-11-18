@@ -155,7 +155,7 @@ public sealed partial class OverlayWindow : Window
         surface.Refresh();ApplyEnvironmentTuck();Position();Update();ConfigureLiveActivity();RestoreEditorState(editorState);
     }
     private void BuildBody()
-    {mediaControls?.Close(false);mediaControls=null;fullMascot=null;homeWidgetStar=null;bodyInitialized=true;bodyDirty=false;bodyReflow.Clear();pendingCompactPages.Clear();BodyBuilds++;BuildBodyContent();ApplyHeadingTypography(body);}
+    {mediaControls?.Close(false);mediaControls=null;fullMascot=null;bodyInitialized=true;bodyDirty=false;bodyReflow.Clear();pendingCompactPages.Clear();BodyBuilds++;BuildBodyContent();ApplyHeadingTypography(body);}
     private void BuildBodyContent()
     {
         if(assistantOpen){MountAssistantView();return;}
@@ -172,7 +172,7 @@ public sealed partial class OverlayWindow : Window
             if (app.UsesLopataEdition)
             {
                 var widgetHeader = new DockPanel();
-                AddFullMascot(widgetHeader, PageFor(hoverPanelWidget));
+                AddFullMascot(widgetHeader);
                 body.Children.Add(widgetHeader);
             }
             if(Settings.ToolNames.ContainsKey(hoverPanelWidget)){toolsMode=hoverPanelWidget;body.Children.Add(UI.Button(Localization.Text("Back to widgets"),()=>{hoverPanelWidget=null;BuildBody();ResizeToolPanel();}));body.Children.Add(BuildToolsPage());}else body.Children.Add(BuildCompactPage(PageFor(hoverPanelWidget)));
