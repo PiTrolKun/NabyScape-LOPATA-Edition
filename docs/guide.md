@@ -1,5 +1,7 @@
 # NabyScape user and developer guide
 
+> This guide describes the original NabyScape. For the LOPATA Edition and its build instructions, see the [edition README](../README.md).
+
 [Website](https://nabyscape.sigma-bw-0740.chatgpt.site/) · [Searchable user guide](https://nabyscape.sigma-bw-0740.chatgpt.site/docs/) · [Interactive island preview](https://nabyscape.sigma-bw-0740.chatgpt.site/#experience)
 
 **Current release: v2.10.1.** [Download and release notes](releases/v2.10.1.md). The new demo shows actual v2.10 controls with sample content.

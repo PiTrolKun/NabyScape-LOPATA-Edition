@@ -1,114 +1,46 @@
-<p align="center"><a href="https://nabyscape.vercel.app/"><img src="Assets/showcase/readme-web3-cover.jpg" width="100%" alt="NabyScape: a black and chrome Naby companion, lime accents and a compact Windows dock."></a></p>
+# NabyScape — LOPATA Edition
 
-<p align="center"><a href="https://github.com/BillyNabil/nabyscape/releases/latest"><strong>Download for Windows ↗</strong></a> &nbsp; · &nbsp; <a href="https://nabyscape.vercel.app/">Website</a> &nbsp; · &nbsp; <a href="docs/guide.md">User guide</a> &nbsp; · &nbsp; <a href="#support-nabyscape">Support ♥</a> &nbsp; · &nbsp; <a href="LICENSE">MIT licensed</a></p>
+Настольный остров для [ЛОПАТЫ](https://github.com/PiTrolKun/LOPATA), локальной AI-мастерской для Windows. Держит под рукой музыку, задачи моделей, чат и виджеты. Остров работает отдельным процессом и может оставаться открытым после закрытия ЛОПАТЫ.
 
-NabyScape brings music controls, everyday tools and an optional AI companion into one configurable island for Windows.
+**[Скачать ЛОПАТУ для Windows x64](https://github.com/PiTrolKun/LOPATA/releases/download/installer/LOPATA_Setup.exe)** · [Выпуски ЛОПАТЫ](https://github.com/PiTrolKun/LOPATA/releases)
 
-**Current release: [2.27.0](https://github.com/BillyNabil/nabyscape/releases/tag/v2.27.0).** Windows 10/11 packages are available for x64 and ARM64. Explore the [live website](https://nabyscape.vercel.app/), [release notes](docs/releases/v2.27.0.md) or [website source](website/).
+Код редакции опубликован. Пользовательская поставка острова начнётся с выпуска ЛОПАТЫ, который включает этот компонент. В таком выпуске утилита открывается через **Обработка / утилиты → Экран → NabyScape — LOPATA Edition (Остров)**.
 
-## Your music, within reach
+## Возможности редакции
 
-<p align="center"><a href="https://nabyscape.vercel.app/#experience"><img src="Assets/showcase/readme-web3-states.jpg" width="100%" alt="NabyScape in its closed, hover and open states, illustrated with the current web player."></a><br><sub>Illustrative dock states. Original artwork. <a href="https://nabyscape.vercel.app/#experience">Try the interactive demo ↗</a></sub></p>
+- **Музыка.** Остров играет треки из Коллекции ЛОПАТЫ и выбранных папок. Собирает избранное из разных источников и показывает текст песни с таймингами. Для музыки, созданной вне ЛОПАТЫ, доступен поиск текста. Поддержку внешних медиасессий Windows, включая YouTube в браузере, можно настроить.
+- **Локальный чат.** Маскот и кнопка чата ведут в «Если накипело» с переносом черновика, когда ЛОПАТА открыта. При закрытой ЛОПАТЕ остров обращается к установленному локальному ядру.
+- **Задачи и обновления.** Остров показывает состояние задач моделей и может проверять доступность обновлений ЛОПАТЫ, когда её окно закрыто.
+- **Виджеты и оформление.** Таймер, системный монитор, погода, заметки, история буфера обмена и очистка ссылок. Звёздочка выбирает виджет, который открывается первым. Остров можно закрепить у любого края экрана. Боковая панель имеет вертикальную компоновку. Интерфейс использует локализацию ЛОПАТЫ, включая пользовательские переводы.
 
-Choose **Waveform**, **Live lyrics**, **Song title** or **None** for the closed dock. Long lyric lines become readable phrases with gentle crossfades. Live lyrics automatically uses the waveform when lyrics are unavailable, before the first line, or during timestamped instrumental/blank sections, then returns to the next vocal line. Hover keeps the familiar artwork, playback and volume controls. None leaves your music playing while the dock shows idle or your timer.
+## Как выглядит
 
-Playback, seeking, media-source selection, output switching and an app mixer use Windows media/audio support. Automatic lyrics match track title, artist and duration across LRCLIB, BiniLyrics, BetterLyrics and LyricsPlus, skipping detected languages outside English, Japanese and Korean. The compact Lyrics menu also offers 14 manual sources, local LRC import and Original/Japanese Romaji display. Romaji conversion works offline in a short-lived process; generated kanji readings can differ from sung readings. Spotify, YouTube Music and Apple Music sessions can use the same lookup when their player supplies usable metadata and timing. Coverage and sync vary; a compatible session is not a guarantee that a song has lyrics. Import a timed `.lrc` file when needed. No private music-service lyrics API is scraped.
+**Остров с таймером**
 
-Cover-inspired ambience supports a single color, a blend or your own palette. Tune direction, softness, spread and measured audio response. Idle, None and tucked states stay quiet and black. Reduce Motion is respected.
+![Развёрнутый остров с маскотом ЛОПАТЫ, быстрыми действиями и таймером](docs/images/lopata-island.png)
 
-## Keep the useful things close
+**Настройки**
 
-<p align="center"><img src="Assets/showcase/readme-web3-tools.jpg" width="100%" alt="Actual NabyScape focus and local notes panels, composed on a dark background."><br><sub>Actual v2.10 app captures · isolated sample content</sub></p>
+![Стартовая страница настроек с обоими маскотами в боковой панели и маскотом ЛОПАТЫ справа](docs/images/lopata-settings.png)
 
-Timer, work and break sessions, and a separate stopwatch retain their timing through restart and sleep. Weather shows a compact forecast for a city you choose; no location permission is requested.
+## Сборка для разработчиков
 
-Notes, Tasks, File shelf, Clipboard, Calendar, Keep awake and Clean links have their own places. Drag widgets into your order. Shelf keeps references to originals. Notes and tasks stay local; clipboard history has its own on/off control and follows your chosen setup.
+Нужны Windows x64, PowerShell 7, .NET 10 SDK и две рабочие копии Git. Выберите ревизию [ЛОПАТЫ](https://github.com/PiTrolKun/LOPATA) с инструментом сборки острова, общим кодом Коллекции и обновлений. В чистой рабочей копии форка запустите:
 
-Clock, battery and system panels are available where Windows and hardware support them. Drag the dock, type a pixel or percentage position, center it, or follow your cursor smoothly between monitors. Closed, hover and open dimensions remain independent.
+~~~powershell
+./build.ps1 -LopataRepositoryRoot ../LOPATA -OutputDirectory ./artifacts-edition
+~~~
 
-## Meet Naby
+Сценарий ЛОПАТЫ соберёт и проверит компонент в `artifacts-edition/NabyScape`. В этот каталог входят `LopataIsland.exe`, лицензии и манифест с контрольной суммой. Для повторной сборки укажите новый каталог. Параметр `-RunSelfTests` запускает расширенный набор проверок и сохраняет `unit-report.txt`.
 
-Connect an API provider, a local compatible server or your own **Hermes Agent**. Naby handles chat, attachments and optional voice; Hermes manages its agent tools and permissions. API access is not bundled.
+Проверка пакета в GitHub Actions запускается вручную с указанием совместимого коммита или тега ЛОПАТЫ. Пользовательские обновления идут через выпуски ЛОПАТЫ. Теги редакции используют префикс `lopata-v` и соответствуют выпускам ЛОПАТЫ.
 
-- **Chat:** formatted replies, image paste, image/video/PDF attachments and compatible image replies. Capabilities depend on the provider/model.
-- **Voice:** realtime providers, automatic local speech packs, external ASR/TTS services or imported model files. Hardware suggestions help choose a pack; install it explicitly, then use it.
-- **Hands-free:** optional local wake-word detection. End conversation resumes wake listening when enabled; explicit Stop pauses it.
-- **Context:** choose a window or display to share. Screen and microphone access are explicit choices.
-- **Connections:** save a provider, load or paste a model ID, and check the connection. API keys stay in Windows Credential Manager.
+## Авторы и лицензии
 
-[AI setup](docs/assistant.md) · [Hermes connection guide](docs/hermes.md) · [Local speech models](docs/local-voice.md)
+Эта редакция основана на [NabyScape 2.27.0](https://github.com/BillyNabil/nabyscape/tree/v2.27.0). Спасибо BillyNabil и участникам проекта за исходный остров и его виджеты. [Оригинальный репозиторий](https://github.com/BillyNabil/nabyscape)
 
-## Make yourself at home
+[Лицензия MIT оригинала](LICENSE) · [Лицензии зависимостей](licenses/) · [Лицензия GNU GPL 3.0 ЛОПАТЫ](https://github.com/PiTrolKun/LOPATA/blob/main/LICENSE)
 
-New-user setup offers **Music / Productivity / AI / Custom**, followed by dock position and widget choices. Skip it or reopen it from **Start here**. Choosing a preset never enables microphone listening, clipboard capture or model downloads.
+## English summary
 
-Settings opens with the essentials of each page; **Show all settings** reveals every option and its help text, and search reaches any setting directly. **Start here** begins with plain tasks such as *Change the look* or *Auto-hide the dock*, then shows which features are Ready or Need setup. **Undo** restores the last saved appearance, layout or widget batch within the Settings window; it does not roll back content, credentials or background permissions.
-
-<p align="center"><img src="Assets/showcase/settings-home-current.png" width="100%" alt="2.26 Settings: Start here with the welcome card, common tasks and icon navigation, captured from an isolated profile"></p>
-
-**Widgets & tools → Feature usage** offers Essentials or Custom and explicit music-integration/download-watcher switches. Hidden pages reduce work, shared audio resources are released when unused, and weather refreshes only while its widget or hover page is enabled (about every 30 minutes, with backoff when offline). Animation quality follows your existing motion settings. Resource use still depends on active features, hardware and local AI models; there is no fixed RAM guarantee.
-
-The dock runs in one WPF application process, with lazy preview construction and a shallower retained character transform tree. Activity Satellite and the Activities routine builder have been removed; regular shortcuts, Timer/Focus and Keep awake remain. [Runtime changes and measured limits](docs/wpf-performance.md).
-
-## Install & update
-
-[**Open the latest published release →**](https://github.com/BillyNabil/nabyscape/releases/latest)
-
-| Your PC | Installer for Windows 10 / 11 | Portable |
-| --- | --- | --- |
-| Intel or AMD 64-bit | [Download x64 Setup](https://github.com/BillyNabil/nabyscape/releases/download/v2.27.0/NabyScape-win-x64-Setup.exe) | [x64 ZIP](https://github.com/BillyNabil/nabyscape/releases/download/v2.27.0/NabyScape-win-x64-Portable.zip) |
-| Windows on ARM | [Download ARM64 Setup](https://github.com/BillyNabil/nabyscape/releases/download/v2.27.0/NabyScape-win-arm64-Setup.exe) | [ARM64 ZIP](https://github.com/BillyNabil/nabyscape/releases/download/v2.27.0/NabyScape-win-arm64-Portable.zip) |
-
-The same architecture-specific package targets Windows 10 build 19041 or later and Windows 11; no separate Windows 10 installer is needed. Windows 10 22H2 is recommended over older Windows 10 builds. OS/.NET support follows Microsoft's lifecycle. Windows 11 x64 is locally exercised; physical Windows 10 and native ARM64 execution have not been validated. Native local speech compatibility is separate: managed speech packs require an x64 process with AVX2/FMA; ARM64 can use compatible external speech servers or providers.
-
-New in 2.27.0: a **Light** theme (or **Follow Windows**), a separate color and opacity for the closed island, Russian, Ukrainian and Korean, Naby voice that no longer interrupts itself on speakers, a centered clock option for the closed dock, weather that keeps itself current, and clearer media controls for players such as Telegram that share no position. 2.26 brought a redesigned Settings window, a notification center and alerts on the dock. [Release notes](docs/releases/v2.27.0.md).
-
-The .NET runtime is bundled. Installers are unsigned and install for the current Windows user. [SHA-256 checksums](https://github.com/BillyNabil/nabyscape/releases/download/v2.27.0/SHA256SUMS) · [Dependency notices](https://github.com/BillyNabil/nabyscape/releases/download/v2.27.0/NabyScape-Notices.zip).
-
-New installs use the Daily Notch appearance. Upgrades preserve preferences and content. The recommended setup follows the selected daily preferences, including live lyrics, clipboard history, download alerts, startup and Naby. Automatic update checks are on; update downloads follow the snapshot and are off by default. Installation/restart remains explicit. Each feature has its own control. Quit from the tray to exit.
-
-## Your desktop, your data
-
-Notes, tasks, settings and shelf references stay in your Windows profile. Turning clipboard history off clears its stored history. Optional AI, lyrics, weather and update checks contact their configured services. Alerts from other apps are read from Windows only after you turn on **Settings → Notifications → Other apps**, and are kept in memory for the current session. Local speech uses additional RAM/VRAM beyond the dock itself.
-
-[Privacy & compatibility](docs/guide.md#compatibility-and-privacy) · [Security, antivirus reports & network use](docs/security.md) · [Production foundations and limits](docs/production-foundations.md)
-
-## See it in motion
-
-[Watch the 29-second app tour →](https://github.com/BillyNabil/nabyscape/releases/download/v2.10.0/NabyScape-demo.mp4) · Silent · v2.10 recording
-
-The film and Focus/Notes captures document the actual **v2.10** app. The dock-state scene is a web illustration; the Settings image is a fresh **2.26** capture. The chrome Naby is original brand artwork. [Capture provenance](docs/showcase.md) · [Current verification](docs/releases/v2.26.1-verification.md) · [Visual sources](docs/readme-web3-refresh.md).
-
-## Support NabyScape
-
-NabyScape is free, open source and made by one developer. If it earns a spot on your desktop, a small donation helps fund the next update. Donations are voluntary and unlock nothing; every feature stays free.
-
-<p><a href="https://saweria.co/billynabil"><img src="https://img.shields.io/badge/Saweria-Donate-FAAE2B?style=for-the-badge" alt="Donate with Saweria"></a> &nbsp; <a href="https://ko-fi.com/billynabil"><img src="https://img.shields.io/badge/Ko--fi-Donate-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Donate with Ko-fi"></a></p>
-
-**Saweria** accepts QRIS, e-wallets and Indonesian banks. **Ko-fi** accepts cards and PayPal. You can also find both under **Settings → General → About NabyScape** or **Support NabyScape** in the tray menu.
-
-## Build & verify
-
-Use the .NET 10 SDK with Windows desktop support:
-
-```powershell
-# Compile, run logic tests, and validate Settings scene coverage
-./build.ps1 -OutputDirectory artifacts
-
-# Isolated UI diagnostics; keep personal profiles untouched
-./artifacts/NabyScape.exe --diagnostics ./outputs/ui --isolated-diagnostics
-
-# Static website integrity
-node tools/check-website.mjs
-```
-
-[Build workflow](.github/workflows/windows.yml) · [Source](https://github.com/BillyNabil/nabyscape) · [Report an issue](https://github.com/BillyNabil/nabyscape/issues) · [Help translate](docs/translating.md) · [Third-party notices](licenses/)
-
-
-Uninstall from **Settings → General → Uninstall NabyScape**, the **Uninstall NabyScape** Start menu shortcut, or Windows Installed apps. Full cleanup is selected by default and removes application-managed models, caches, settings, history and saved API keys. Uncheck it to keep data for reinstalling. Imported files outside NabyScape and shared Windows components stay untouched.
-
-## Building LOPATA Edition
-
-This branch uses the shared collection and origin reader from [LOPATA](https://github.com/PiTrolKun/LOPATA).
-With both repositories checked out, set LopataRepositoryRoot to the LOPATA checkout. LOPATA's
-Инструменты/build-nabyscape-edition.ps1 builds the Windows x64 bundle and includes both license notices.
+NabyScape — LOPATA Edition is the Windows desktop island packaged with [LOPATA](https://github.com/PiTrolKun/LOPATA), a local AI workbench. This official GitHub fork adds LOPATA's music collection, local chat, task and update status, mascot, and localization. The development build requires a compatible LOPATA checkout. For the original application, see [BillyNabil/nabyscape](https://github.com/BillyNabil/nabyscape).

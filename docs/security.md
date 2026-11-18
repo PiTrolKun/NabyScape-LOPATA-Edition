@@ -1,5 +1,7 @@
 # Security, antivirus reports and network use
 
+> This page documents the security and network behavior of the original NabyScape. For the LOPATA Edition and its packaging, see the [edition README](../README.md).
+
 This page answers the questions raised in [issue #10](https://github.com/BillyNabil/nabyscape/issues/10) and anyone else checking NabyScape before installing it.
 
 ## Why a scanner may flag the installer
@@ -14,7 +16,7 @@ If your scanner reports a detection on an official release asset, please open an
 
 ## How releases are built
 
-Pushing a version tag runs [.github/workflows/release.yml](../.github/workflows/release.yml) on a GitHub-hosted Windows runner. It runs [tools/Build-Release.ps1](../tools/Build-Release.ps1), which publishes x64 and ARM64 from the tagged source, runs the logic tests on the native host, packages the Setup, Portable ZIP and notices, writes `SHA256SUMS`, and creates a **draft** release. The maintainer reviews the draft and publishes it. The run for each tag is visible under the repository's **Actions** tab.
+Pushing a version tag runs [.github/workflows/release.yml](https://github.com/BillyNabil/nabyscape/blob/v2.27.0/.github/workflows/release.yml) on a GitHub-hosted Windows runner. It runs [tools/Build-Release.ps1](../tools/Build-Release.ps1), which publishes x64 and ARM64 from the tagged source, runs the logic tests on the native host, packages the Setup, Portable ZIP and notices, writes `SHA256SUMS`, and creates a **draft** release. The maintainer reviews the draft and publishes it. The run for each tag is visible under the repository's **Actions** tab.
 
 Some older releases (for example the 2.10.x line) were packaged on the maintainer's PC before every release went through this workflow. Current releases are built by the workflow.
 

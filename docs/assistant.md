@@ -1,5 +1,7 @@
 # Naby AI · local 2.20.0 candidate
 
+> This page describes the assistant in the original NabyScape. LOPATA Edition uses the local LOPATA chat. See the [edition README](../README.md).
+
 Naby provides text chat, voice, a reactive character and context from a window or display you choose. AI is optional; island widgets continue working without a provider. No key, subscription or model weights are bundled.
 
 ## Connect and chat

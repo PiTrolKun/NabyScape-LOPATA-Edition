@@ -1,36 +1,40 @@
-name: Windows build
+name: LOPATA Edition package check
 
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
+    inputs:
+      lopata_ref:
+        description: Compatible PiTrolKun/LOPATA commit or tag
+        required: true
+        type: string
 
 concurrency:
-  group: windows-${{ github.ref }}
+  group: lopata-edition-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  package:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Check out the edition
+        uses: actions/checkout@v7.0.1
         with:
+          path: edition
+          persist-credentials: false
+      - name: Check out LOPATA
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: PiTrolKun/LOPATA
+          ref: ${{ inputs.lopata_ref }}
+          path: lopata
           persist-credentials: false
       - uses: actions/setup-dotnet@v6.0.0
         with:
           dotnet-version: 10.0.x
-      - name: Publish and run logic checks
+      - name: Build and verify the island package
         shell: pwsh
-        run: ./build.ps1 -OutputDirectory "$env:RUNNER_TEMP/nabyscape"
-      - name: Upload Windows build
-        if: success()
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: NabyScape-windows-x64
-          path: ${{ runner.temp }}/nabyscape/
-          retention-days: 14
+        run: ./edition/build.ps1 -LopataRepositoryRoot ./lopata -OutputDirectory "$env:RUNNER_TEMP/lopata-edition"

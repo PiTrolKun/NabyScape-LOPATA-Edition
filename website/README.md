@@ -1,5 +1,7 @@
 # NabyScape website
 
+> This directory contains the original NabyScape website source. See the [edition README](../README.md) for the LOPATA Edition.
+
 A buildless, dependency-free product site. Near-black surfaces, self-hosted Manrope, lime accents, a chrome Naby hero and a black dock stage with Terracotta, Lagoon and Plum ambience. The home page includes crisp HTML Closed/Hover/Open preview states with original coastal artwork, actual app captures, local AI/voice information, recent Settings captures and a published-release link that does not pretend local source is already released.
 
 ## Preview

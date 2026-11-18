@@ -16,7 +16,7 @@
     <Product>NabyScape — LOPATA Edition</Product>
     <Company>NabyScape</Company>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/PiTrolKun/nabyscape</RepositoryUrl>
+    <RepositoryUrl>https://github.com/PiTrolKun/NabyScape-LOPATA-Edition</RepositoryUrl>
     <!-- WPF owns DPI awareness; WinForms is used only for Screen and NotifyIcon. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <StartupObject>NabyScape.App</StartupObject>
