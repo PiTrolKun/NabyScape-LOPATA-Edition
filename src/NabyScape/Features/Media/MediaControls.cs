@@ -12,8 +12,7 @@ namespace NabyScape;
 
 internal sealed record MediaSourceChoice(string Id,string Name,Action Select);
 
-// A bounded disclosure below the footer keeps playback unobscured. The island
-// measures it as content, including when a short screen needs vertical scrolling.
+// The source and volume popovers take part in layout so the island can scroll them into view.
 internal sealed class MediaControls : Grid
 {
     private readonly Border popover=new(){Tag="media-popover",Background=UI.Brush("#111216"),BorderBrush=UI.Brush("#53565D"),BorderThickness=new(.7),CornerRadius=new(10),Padding=new(8),Margin=new(0,6,0,0),Visibility=Visibility.Collapsed};
@@ -34,12 +33,13 @@ internal sealed class MediaControls : Grid
     internal Button VolumeButton=>level;
     internal Button LibraryButton=>library;
 
-    internal MediaControls(StackPanel content,bool media,bool volume,Func<IReadOnlyList<MediaSourceChoice>> sources,Func<string?> selected,Func<FrameworkElement> volumeContent,Action? openList=null)
+    internal MediaControls(StackPanel content,bool media,bool volume,Func<IReadOnlyList<MediaSourceChoice>> sources,Func<string?> selected,Func<FrameworkElement> volumeContent,Action? openList=null,bool musicActionsFirst=false)
     {
         this.sources=sources;this.selected=selected;this.volumeContent=volumeContent;
         footer.ColumnDefinitions.Add(new());footer.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         footer.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         source=FooterButton("Choose media source",()=>Toggle("source"));
+        if (musicActionsFirst) UI.LocalizedName(source, "Media source");
         var chevron=Icons.Create("chevron",8,UI.Muted);chevron.Margin=new(7,0,0,0);source.Content=UI.Row(sourceIcon,sourceName,chevron);source.HorizontalAlignment=HorizontalAlignment.Left;source.Visibility=media?Visibility.Visible:Visibility.Collapsed;source.ToolTip=Localization.Text("Choose media source · Enter or Space to open");footer.Children.Add(source);
         library=FooterButton("Open music list",()=>{Close(false);openList?.Invoke();});
         UI.LocalizedName(library,"Open music list");
@@ -53,13 +53,33 @@ internal sealed class MediaControls : Grid
         footer.Children.Add(library);
         level=FooterButton("Volume controls",()=>Toggle("volume"));level.Content=UI.Row(levelIcon,levelText);level.HorizontalAlignment=HorizontalAlignment.Right;level.Visibility=volume?Visibility.Visible:Visibility.Collapsed;level.ToolTip=Localization.Text("Volume, mute, mixer and audio devices · Enter or Space to open");Grid.SetColumn(level,2);footer.Children.Add(level);
         if(!media){content.MinHeight=144;var heading=UI.Heading(Localization.Text("Volume"),18);content.Children.Add(heading);}
-        content.Children.Add(footer);RowDefinitions.Add(new(){Height=GridLength.Auto});RowDefinitions.Add(new(){Height=GridLength.Auto});Children.Add(content);Grid.SetRow(popover,1);Children.Add(popover);
+        if (media && musicActionsFirst)
+        {
+            footer.Margin = new Thickness(0, 0, 0, 10);
+            popover.Margin = new Thickness(0, 0, 0, 10);
+            AddRow(footer);
+            AddRow(popover);
+            AddRow(content);
+        }
+        else
+        {
+            content.Children.Add(footer);
+            AddRow(content);
+            AddRow(popover);
+        }
         KeyboardNavigation.SetTabNavigation(popover,KeyboardNavigationMode.Cycle);
         SizeChanged+=(_,_)=>Place();popover.SizeChanged+=(_,_)=>Place();
         Unloaded+=(_,_)=>Close(false);IsVisibleChanged+=(_,_)=>{if(!IsVisible)Close(false);};
         // Source lists own wheel scrolling; do not advance the widget carousel.
         popover.PreviewMouseWheel+=(_,e)=>{if(popover.Child is ScrollViewer viewer)viewer.ScrollToVerticalOffset(viewer.VerticalOffset-e.Delta*.35);e.Handled=true;};
         Refresh(0,false,false);
+    }
+
+    private void AddRow(FrameworkElement element)
+    {
+        Grid.SetRow(element, RowDefinitions.Count);
+        RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Children.Add(element);
     }
     private static Button FooterButton(string name,Action run)
     {

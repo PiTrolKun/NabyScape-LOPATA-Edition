@@ -14,6 +14,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Lopata.Collection;
+using Lopata.Island;
 
 namespace NabyScape;
 
@@ -80,7 +81,18 @@ internal static class LopataMusicDiagnostics
             island.Reveal(false);
             island.SelectPage("media", false);
             await Task.Delay(350, token);
+            Check(!app.Media.Available, "the player starts without an active media session");
+            CheckMusicActionsInView(island, Check, "at the standard height");
+            Check(Diagnostics.Descendants(island).OfType<TextBlock>().Any(text =>
+                text.IsVisible && text.Text == Localization.Text(OverlayWindow.IdleMusicHint)),
+                "the idle player points to the track list");
+            Capture(island, Path.Combine(directory, "idle-player.png"));
+            await CheckShortMusicPanel(app, island, token, Check);
             var controls = Diagnostics.Descendants(island).OfType<MediaControls>().Single();
+            controls.LibraryButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, controls.LibraryButton));
+            var idleListWindow = island.OwnedWindows.OfType<LocalMusicWindow>().Single();
+            Check(idleListWindow.IsVisible, "Track list opens a library before anything is playing");
+            idleListWindow.Close();
             controls.SourceButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, controls.SourceButton));
             await Task.Delay(120, token);
             island.UpdateLayout();
@@ -100,6 +112,7 @@ internal static class LopataMusicDiagnostics
             playButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, playButton));
             for (int i = 0; i < 40 && !app.Media.Playing; i++) await Task.Delay(70, token);
             Check(local.CurrentMusic.Track?.Name == "External" && app.Media.Playing, "the library play button starts the same island transport");
+            CheckMusicActionsInView(island, Check, "during playback");
 
             var primary = music.Single(t => t.Name=="ThisPC");
             await Play(primary,music);
@@ -203,6 +216,67 @@ internal static class LopataMusicDiagnostics
              hit is Visual; hit = VisualTreeHelper.GetParent(hit))
             if (hit == slider) return true;
         return false;
+    }
+
+    private static void CheckMusicActionsInView(OverlayWindow island, Action<bool, string> check, string scenario)
+    {
+        island.UpdateLayout();
+        var controls = Diagnostics.Descendants(island).OfType<MediaControls>().Single();
+        var scroll = Diagnostics.Descendants(island).OfType<ScrollViewer>().First();
+        var viewport = (ScrollContentPresenter)scroll.Template.FindName("PART_ScrollContentPresenter", scroll);
+        double bottomFade = scroll.ScrollableHeight - scroll.VerticalOffset > 0.5 ? 16 : 0;
+        foreach (var button in new[] { controls.LibraryButton, controls.SourceButton })
+        {
+            var bounds = button.TransformToAncestor(viewport).TransformBounds(new Rect(button.RenderSize));
+            var center = button.TranslatePoint(new Point(button.ActualWidth / 2, button.ActualHeight / 2), island);
+            var hit = island.InputHitTest(center) as Visual;
+            check(button.IsVisible && button.IsEnabled && bounds.Top >= -0.5 &&
+                bounds.Left >= -0.5 && bounds.Right <= viewport.ActualWidth + 0.5 &&
+                bounds.Bottom <= viewport.ActualHeight - bottomFade + 0.5 &&
+                (hit == button || hit?.IsDescendantOf(button) == true),
+                $"{AutomationProperties.GetName(button)} is in the visible viewport {scenario} " +
+                $"(bottom {bounds.Bottom:0.#}, viewport {viewport.ActualHeight:0.#}, fade {bottomFade:0.#})");
+        }
+    }
+
+    private static async Task CheckShortMusicPanel(App app, OverlayWindow island, CancellationToken token, Action<bool, string> check)
+    {
+        var saved = IslandPreferences.Read();
+        var scale = app.Settings.PanelScale;
+        var compact = app.Settings.CompactLayout;
+        async Task Apply(IslandPreferences appearance)
+        {
+            IslandPreferences.Save(appearance);
+            for (int i = 0; i < 30 && app.Settings.PanelMaxHeight != appearance.PanelHeight; i++)
+                await Task.Delay(100, token);
+            if (app.Settings.PanelMaxHeight != appearance.PanelHeight)
+                throw new InvalidOperationException("The test island did not apply the saved height.");
+        }
+
+        try
+        {
+            await Apply(saved with { Advanced = true, PanelHeight = 270, PanelWidth = 320 });
+            app.Settings.PanelScale = 1.25;
+            app.ChangeSettings();
+            island.SelectPage("media", false);
+            await Task.Delay(350, token);
+            CheckMusicActionsInView(island, check, "at minimum size with 125% content scale");
+            app.Settings.CompactLayout = false;
+            app.ChangeSettings();
+            island.Collapse();
+            island.Reveal(false);
+            await Task.Delay(350, token);
+            CheckMusicActionsInView(island, check, "in the classic panel at minimum size");
+        }
+        finally
+        {
+            app.Settings.CompactLayout = compact;
+            app.Settings.PanelScale = scale;
+            app.ChangeSettings();
+            await Apply(saved);
+            island.SelectPage("media", false);
+            await Task.Delay(350, token);
+        }
     }
 
     private static async Task CheckLists(App app, OverlayWindow island, string directory, CancellationToken token, Action<bool,string> check)

@@ -175,7 +175,15 @@ public sealed partial class OverlayWindow : Window
                     var mediaGrid=new Grid();mediaGrid.ColumnDefinitions.Add(new(){Width=GridLength.Auto});mediaGrid.ColumnDefinitions.Add(new());mediaGrid.Children.Add(art);Grid.SetColumn(info,1);mediaGrid.Children.Add(info);
                     previous=Icons.Button("previous","Previous track",()=>_=app.Media.Command("previous"),false,42);play=Icons.Button("play","Play or pause",()=>_=app.Media.Command("toggle"),true,50);playIcon="";next=Icons.Button("next","Next track",()=>_=app.Media.Command("next"),false,42);previous.Background=next.Background=Brushes.Transparent;
                     var transport=UI.Row(previous,play,next);transport.HorizontalAlignment=HorizontalAlignment.Center;transport.Margin=new(0,10,0,2);UI.Named(sessions,Localization.Text("Media session"));sessions.ToolTip=Localization.Text("Choose a media app");sessions.Margin=new(0,6,0,0);
-                    card=UI.Card(Localization.Text("Now playing"),mediaGrid,transport,sessions);break;
+                    if (app.UsesLopataEdition)
+                    {
+                        var mediaContent = new StackPanel();
+                        mediaContent.Children.Add(mediaGrid);
+                        mediaContent.Children.Add(transport);
+                        card = UI.Card(Localization.Text("Now playing"), BuildMediaControls(mediaContent, includeVolume: false));
+                    }
+                    else card=UI.Card(Localization.Text("Now playing"),mediaGrid,transport,sessions);
+                    break;
                 case "volume":
                     UI.Named(volume,Localization.Text("Windows volume"));volume.Margin=new(12,0,10,0);mute=Icons.Button("volume","Mute or unmute",()=> {app.Audio.ToggleMute();Update();},false,30);mute.Background=Brushes.Transparent;mute.Padding=new(4);mute.Margin=new(0);muteIcon="";
                     var audioOutput=UI.Button("",OpenAudioMenu);audioOutput.Content=volumeText;audioOutput.MinHeight=28;audioOutput.Padding=new(5);UI.Named(audioOutput,Localization.Text("Audio devices and microphone"));var audioRow=new DockPanel();DockPanel.SetDock(mute,Dock.Left);audioRow.Children.Add(mute);DockPanel.SetDock(audioOutput,Dock.Right);audioRow.Children.Add(audioOutput);audioRow.Children.Add(volume);card=UI.Card(Localization.Text("Volume"),audioRow);break;
@@ -203,6 +211,7 @@ public sealed partial class OverlayWindow : Window
         HideNotice();EndPeekGesture();StopHoverTimers();automaticPreview=false;activityDismiss.Stop();previewKind=activityTitle=activityDetail="";userHidden=false;app.Previews?.SetHidden(false);RememberExternalForeground();visibilityOverride=lastExternalForeground;revealOverride=visibilityOverride!=IntPtr.Zero;environmentHidden=false;SetTucked(false);Show();Position();if(expanded){if(activate)Activate();return;}expanded=true;peeking=false;RefreshNoticeEdge();peekPanel.Visibility=Visibility.Collapsed;compact.IsHitTestVisible=true;Motion.Fade(compact,1,120);Dimensions();
         // The layered HWND stays fixed across all three states; only its alpha contour changes.
         scroll.Visibility=Visibility.Visible;scroll.IsHitTestVisible=true;
+        if (app.UsesLopataEdition && (!app.Settings.CompactLayout || activePage == "media")) scroll.ScrollToTop();
         ConfigurePerformance();motion.Go(surface,IslandSurface.SurfaceWidthProperty,expandedWidth,app.Settings.AnimationMs);motion.Go(surface,IslandSurface.SurfaceHeightProperty,expandedHeight,app.Settings.AnimationMs);motion.OnComplete(()=>{});
         motion.Go(surface,IslandSurface.GlassLiftProperty,1,app.Settings.AnimationMs);WakeLiveRendering();
         Motion.Fade(scroll,1,Math.Min(260,app.Settings.AnimationMs));Motion.To(bodySlide,TranslateTransform.YProperty,0,320);
@@ -300,7 +309,11 @@ public sealed partial class OverlayWindow : Window
         try{
             if((change&(RuntimeChange.Media|RuntimeChange.Settings))!=0)
             {
-            SyncLyrics();SyncFavoriteTrackButton();SwapText(title,app.Media.DisplayTitle);SwapText(artist,app.Media.DisplayArtist);SwapArtwork(artwork,app.Media.Artwork);artwork.Visibility=app.Media.Artwork==null?Visibility.Collapsed:Visibility.Visible;
+            SyncLyrics();SyncFavoriteTrackButton();SwapText(title,app.Media.DisplayTitle);
+            string subtitle = app.UsesLopataEdition && !app.Media.Available && mediaControls is not null
+                ? Localization.Text(IdleMusicHint) : app.Media.DisplayArtist;
+            SwapText(artist, subtitle);
+            SwapArtwork(artwork,app.Media.Artwork);artwork.Visibility=app.Media.Artwork==null?Visibility.Collapsed:Visibility.Visible;
             if(play!=null){var icon=app.Media.Playing?"pause":"play";if(playIcon!=icon){playIcon=icon;play.Content=Icons.Create(icon,22,Brushes.Black);}play.IsEnabled=app.Media.CanToggle;next.IsEnabled=app.Media.CanNext;previous.IsEnabled=app.Media.CanPrevious;}
             var key=string.Join("|",app.Media.Sessions.Select(s=>s.SourceAppUserModelId));bool sessionsChanged=key!=sessionKey;if(sessionsChanged){sessionKey=key;sessions.Items.Clear();foreach(var session in app.Media.Sessions)sessions.Items.Add(MediaService.SessionName(session));}sessions.SelectedIndex=app.Media.Sessions.FindIndex(s=>s.SourceAppUserModelId==app.Media.Selected?.SourceAppUserModelId);var sessionVisibility=app.Media.Sessions.Count>1?Visibility.Visible:Visibility.Collapsed;bool sessionLayoutChanged=sessions.Visibility!=sessionVisibility;sessions.Visibility=sessionVisibility;
             if((sessionsChanged || sessionLayoutChanged) && app.Settings.CompactLayout){Dimensions();motion.Go(surface,IslandSurface.SurfaceHeightProperty,expandedHeight,Math.Min(300,app.Settings.AnimationMs));motion.OnComplete(()=>{});}

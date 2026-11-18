@@ -183,6 +183,7 @@ public sealed partial class OverlayWindow
         if(!app.Settings.CompactLayout || commandOpen || !compactPages.ContainsKey(page))return;
         if(animate && showLopataJobs)lopataWork?.ShowDetails(false);
         if(animate && activePage==page && compactPages[page].Visibility==Visibility.Visible)return;
+        if (app.UsesLopataEdition && page == "media" && page != activePage) scroll.ScrollToTop();
         FlushNotes();EnsureCompactPage(page);InvalidateSystemMonitor();activePage=page;
         if(Settings.ToolNames.ContainsKey(page))
         {
@@ -236,8 +237,44 @@ public sealed partial class OverlayWindow
                 Grid.SetColumn(lyricsButton,2);
                 playbackRow.Children.Add(lyricsButton);
                 Grid.SetColumn(info,1);row.Children.Add(info);panel.Children.Add(row);panel.Children.Add(playbackRow);row.Loaded+=(_,_)=>QueueMediaLayout();row.IsVisibleChanged+=(_,_)=>{if(row.IsVisible)QueueMediaLayout();};
-                row.SizeChanged+=(_,_)=>{bool narrow=row.ActualWidth<310;double size=narrow?64:88;cover.Width=cover.Height=artwork.Width=artwork.Height=size;cover.Margin=new(0,0,narrow?14:20,0);if(previousArtwork.TryGetValue(artwork,out var outgoing))outgoing.Width=outgoing.Height=size;musicWave.Width=narrow?112:164;cover.Clip=new RectangleGeometry(new Rect(0,0,size,size),narrow?11:15,narrow?11:15);previous.Width=previous.Height=next.Width=next.Height=narrow?28:38;play.Width=play.Height=narrow?38:46;title.FontSize=narrow?15:18;previous.Margin=new(0,0,narrow?2:8,0);next.Margin=new(narrow?2:8,0,0,0);};
-                if(app.Settings.LiveActivity){if(musicWave.Parent is Panel oldWave)oldWave.Children.Remove(musicWave);musicWave.Height=22;musicWave.Margin=new(0,0,0,8);var waveHost=new Grid{Margin=new(0,3,0,0)};waveHost.Children.Add(musicWave);panel.Children.Add(waveHost);}mediaLyrics=new LyricsView(app);SyncLyrics();timelinePanel.Margin=new(0,0,0,10);panel.Children.Add(timelinePanel);
+                void ResizePlayer()
+                {
+                    bool narrow = (row.ActualWidth > 0 ? row.ActualWidth : bodyWidth) < 310;
+                    bool compactCover = narrow || app.UsesLopataEdition && app.Settings.PanelMaxHeight / app.Settings.PanelScale <= 400;
+                    double size = compactCover ? 64 : 88;
+                    double radius = compactCover ? 11 : 15;
+                    cover.Width = cover.Height = artwork.Width = artwork.Height = size;
+                    cover.Margin = new Thickness(0, 0, compactCover ? 14 : 20, 0);
+                    cover.Clip = new RectangleGeometry(new Rect(0, 0, size, size), radius, radius);
+                    if (previousArtwork.TryGetValue(artwork, out var outgoing)) outgoing.Width = outgoing.Height = size;
+                    musicWave.Width = narrow ? 112 : 164;
+                    previous.Width = previous.Height = next.Width = next.Height = narrow ? 28 : 38;
+                    play.Width = play.Height = narrow ? 38 : 46;
+                    title.FontSize = narrow ? 15 : 18;
+                    previous.Margin = new Thickness(0, 0, narrow ? 2 : 8, 0);
+                    next.Margin = new Thickness(narrow ? 2 : 8, 0, 0, 0);
+                }
+                row.SizeChanged += (_, _) => ResizePlayer();
+                if (app.UsesLopataEdition)
+                {
+                    bodyReflow.Add(ResizePlayer);
+                    ResizePlayer();
+                }
+
+                timelinePanel.Margin = new Thickness(0, 0, 0, app.UsesLopataEdition ? 0 : 10);
+                if (app.UsesLopataEdition) panel.Children.Add(timelinePanel);
+                if (app.Settings.LiveActivity)
+                {
+                    if (musicWave.Parent is Panel oldWave) oldWave.Children.Remove(musicWave);
+                    musicWave.Height = 22;
+                    musicWave.Margin = new Thickness(0, 0, 0, 8);
+                    var waveHost = new Grid { Margin = new Thickness(0, 3, 0, 0) };
+                    waveHost.Children.Add(musicWave);
+                    panel.Children.Add(waveHost);
+                }
+                if (!app.UsesLopataEdition) panel.Children.Add(timelinePanel);
+                mediaLyrics = new LyricsView(app);
+                SyncLyrics();
             }
             var controls=BuildMediaControls(panel);
             return WidgetOn("media")?WrapMediaLyrics(controls):controls;

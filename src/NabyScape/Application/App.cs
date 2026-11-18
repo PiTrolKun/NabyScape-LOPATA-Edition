@@ -237,7 +237,7 @@ public sealed partial class App : Application
         PrivateDiagnostics.SetServiceState(DiagnosticService.Application,DiagnosticServiceState.Ready);
         PrivateDiagnostics.Record(DiagnosticStage.Application,DiagnosticCode.Completed,startupClock.Elapsed);
         if(diagnosticPath==null)UpdateHandoff.SignalStarted(e.Args);
-        if (!diagnosticMode || lopataFixture || languageFixture) ObserveLopataSettings();
+        if (!diagnosticMode || lopataFixture || languageFixture || musicFixture) ObserveLopataSettings();
         if(musicFixture) _=LopataMusicDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(lopataFixture) _=LopataEditionDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(updateDiagnostics is not null) _=updateDiagnostics.Run(this,overlay,diagnosticPath!);

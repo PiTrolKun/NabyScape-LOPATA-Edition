@@ -8,18 +8,20 @@ namespace NabyScape;
 
 public sealed partial class OverlayWindow
 {
+    internal const string IdleMusicHint = "Choose a track from the list";
     private MediaControls? mediaControls;
     private LocalMusicWindow? localMusicWindow;
     private long mediaExternalDismissedAt;
-    private FrameworkElement BuildMediaControls(StackPanel panel)
+    private FrameworkElement BuildMediaControls(StackPanel panel, bool includeVolume = true)
     {
-        mediaControls=new MediaControls(panel,WidgetOn("media"),WidgetOn("volume"),
+        mediaControls=new MediaControls(panel,WidgetOn("media"),includeVolume && WidgetOn("volume"),
             ()=>new[]{new MediaSourceChoice(MediaSourceSelection.NoneId,Localization.Text("None"),app.Media.SelectNone),new MediaSourceChoice(MediaSourceSelection.AutoId,Localization.Text("Auto"),app.Media.SelectAutomatic),
                 LocalChoice(LocalMusicList.Collection), LocalChoice(LocalMusicList.Folder), LocalChoice(LocalMusicList.Favorites)}.Concat(app.Media.Sessions.Select(session=>new MediaSourceChoice(session.SourceAppUserModelId,MediaService.SessionName(session),()=>
             {
                 // A session may disappear after its menu was rendered.
                 if(app.Media.Sessions.Contains(session))app.Media.Select(session);
-            }))).ToArray(),()=>app.Media.SourceSelectionId,BuildVolumePopover,()=>OpenLocalMusic(app.MusicLists.Selected));
+            }))).ToArray(),()=>app.Media.SourceSelectionId,BuildVolumePopover,()=>OpenLocalMusic(app.MusicLists.Selected),
+            musicActionsFirst: app.UsesLopataEdition);
         mediaControls.LayoutRequested+=QueueMediaLayout;mediaControls.SizeChanged+=(_,_)=>QueueMediaLayout();RefreshMediaControls(true);return mediaControls;
     }
     private MediaSourceChoice LocalChoice(LocalMusicList source) => new(source switch
