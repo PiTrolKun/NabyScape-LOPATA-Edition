@@ -21,6 +21,7 @@ internal static class LopataEditionDiagnostics
             if (!island.IsVisible || island.IsExpanded) throw new InvalidOperationException("Collapsed island not visible.");
             Capture(island, Path.Combine(directory, "island-compact.png"));
             island.DiagnosticRun = true;
+            await CheckMascot(app, island, directory);
             app.Media.DiagnosticFixture = true;
             app.Media.DiagnosticPlayback(false);
             // Reproduce a profile saved by the earlier build, before the preference minimum is applied.
@@ -38,7 +39,7 @@ internal static class LopataEditionDiagnostics
             island.Reveal(false);
             await Task.Delay(700);
             if (!island.IsExpanded || !Diagnostics.Descendants(island).OfType<Button>().Any(
-                button => button.Content?.ToString() == Localization.Text(LopataEdition.OpenCaption)))
+                button => UI.Identity(button) == LopataEdition.OpenCaption))
                 throw new InvalidOperationException("Expanded island missing LOPATA actions.");
             Capture(island, Path.Combine(directory, "island-open.png"));
 
@@ -64,6 +65,123 @@ internal static class LopataEditionDiagnostics
             Environment.ExitCode = 1;
         }
         finally { app.Quit(); }
+    }
+
+    private static async Task CheckMascot(App app, OverlayWindow island, string directory)
+    {
+        var report = new System.Collections.Generic.List<string>();
+        void Check(bool success, string name)
+        {
+            if (!success) throw new InvalidOperationException(name);
+            report.Add("PASS " + name);
+        }
+        async Task WaitFor(Func<bool> condition, string name)
+        {
+            for (int i = 0; i < 50 && !condition(); i++) await Task.Delay(40);
+            Check(condition(), name);
+        }
+        LopataMascotView View(bool compact) => Diagnostics.Descendants(island).OfType<LopataMascotView>()
+            .Single(view => view.Compact == compact);
+
+        static bool ShowsScreen(LopataMascotView view)
+        {
+            var bitmap = new RenderTargetBitmap((int)Math.Ceiling(view.ActualWidth),
+                (int)Math.Ceiling(view.ActualHeight), 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(view);
+            int stride = 4 * bitmap.PixelWidth;
+            var bytes = new byte[stride * bitmap.PixelHeight];
+            bitmap.CopyPixels(bytes, stride, 0);
+            int green = 0;
+            for (int i = 0; i < bytes.Length; i += 4)
+                if (bytes[i+1] > 70 && bytes[i+1] > bytes[i+2] * 1.6 && bytes[i+1] > bytes[i] * 1.6) green++;
+            return green > 8;
+        }
+
+        var small = View(true);
+        Check(small.IsVisible && small.Frame.State == MascotState.Idle && ShowsScreen(small),
+            "compact original CRT artwork is drawn with its green screen");
+        var model = new LopataMascotMotion();
+        model.LookToward(new Vector(50, -50));
+        for (int i = 0; i < 20; i++) model.Advance(.04, 0, false);
+        Check(model.Frame(true).Gaze == new Vector(8, -5) && !model.NeedsFrame,
+            "gaze stays in bounds and stops repainting when it settles");
+
+        float peak = 0;
+        app.Audio.DiagnosticPeak = () => peak;
+        app.Media.DiagnosticFixture = true;
+        try
+        {
+            app.Media.DiagnosticPlayback(true);
+            await WaitFor(() => small.Frame.State == MascotState.Music, "media session switches compact mascot to dance");
+            await Task.Delay(240);
+            Check(small.Frame.Sway == 0, "silence keeps the compact shovel centered");
+            peak = .65f;
+            await WaitFor(() => small.Frame.Sway > .15, "first audio accent moves the compact shovel right");
+            peak = 0;
+            await Task.Delay(310);
+            peak = .7f;
+            await WaitFor(() => small.Frame.Sway < -.15, "second audio accent moves the compact shovel left");
+            Capture(island, Path.Combine(directory, "mascot-compact-music.png"));
+
+            island.Reveal(false);
+            island.UpdateLayout();
+            await WaitFor(() => View(false).Frame.State == MascotState.Music && !island.IsAnimating,
+                "expanding keeps the music state and presents the full figure");
+            var full = View(false);
+            Check(full.IsVisible && ShowsScreen(full) && full.ActualHeight >= 54, "full mascot artwork fits the header");
+            Capture(island, Path.Combine(directory, "mascot-open-music.png"));
+
+            var running = new IslandResponse("ok", [new("fixture", "Fixture", "Running", true, false)], ModelActive: true);
+            island.ObserveMascotRuntime(running, false, true);
+            await WaitFor(() => full.Frame.State == MascotState.Work && full.Frame.Seconds > .16,
+                "active task has priority over music and starts the digging animation");
+            Capture(island, Path.Combine(directory, "mascot-open-work.png"));
+            var failed = running with { ModelFailure = "one-confirmed-failure" };
+            island.ObserveMascotRuntime(failed, false, true);
+            await WaitFor(() => full.Frame.State == MascotState.Error && full.Frame.Seconds > .10,
+                "confirmed failure interrupts work with a short reaction");
+            Capture(island, Path.Combine(directory, "mascot-open-error.png"));
+            await WaitFor(() => full.Frame.State == MascotState.Work, "error expires and returns to the active task");
+            island.ObserveMascotRuntime(failed, false, true);
+            Check(full.Frame.State == MascotState.Work, "a repeated status cannot replay the same failure");
+            island.ObserveMascotRuntime(new("ok", [new("fixture", "Fixture", "Paused", false, true)], ModelActive: false), false, true);
+            Check(full.Frame.State == MascotState.Music, "pausing a job returns to music");
+            app.Media.DiagnosticPlayback(false);
+            await WaitFor(() => full.Frame.State == MascotState.Idle, "pausing playback returns to idle");
+            island.ObserveMascotRuntime(new("offline"), true, false);
+            Check(full.Frame.State == MascotState.Work, "an autonomous local core can drive the mascot");
+
+            var reduce = app.Settings.ReduceMotion;
+            try
+            {
+                app.Settings.ReduceMotion = true;
+                island.ObserveMascotRuntime(new("offline"), true, false);
+                Check(full.Frame is { State: MascotState.Work, Still: true }, "reduced motion retains the work pose without animation");
+            }
+            finally { app.Settings.ReduceMotion = reduce; }
+
+            app.Media.DiagnosticPlayback(true);
+            await WaitFor(() => full.Frame.State == MascotState.Music, "music animation resumes in the open island");
+            island.ToggleVisibility();
+            await Task.Delay(120);
+            long reads = app.Audio.DiagnosticMeterReads;
+            await Task.Delay(240);
+            Check(island.UserHidden && app.Audio.DiagnosticMeterReads == reads,
+                "hidden island stops sampling playback for the mascot");
+            app.Media.DiagnosticPlayback(false);
+            island.ToggleVisibility();
+            await WaitFor(() => small.Frame.State == MascotState.Idle, "showing the island uses the current paused player state");
+        }
+        finally
+        {
+            island.ObserveMascotRuntime(new("offline"), false, false);
+            app.Media.DiagnosticPlayback(false);
+            app.Media.DiagnosticFixture = false;
+            app.Audio.DiagnosticPeak = null;
+            island.Collapse();
+            await Task.Delay(450);
+        }
+        File.WriteAllLines(Path.Combine(directory, "mascot-check.txt"), report);
     }
 
     private static async Task CheckSharedPreferences(App app, OverlayWindow island, IslandPreferences saved, string directory)

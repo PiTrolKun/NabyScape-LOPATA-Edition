@@ -25,7 +25,9 @@ public sealed partial class OverlayWindow
     private bool assistantRefreshQueued;
     private int assistantPeekRevision;
     private Point? assistantLastPointer;
-    private bool AssistantPointerTracking=>!DiagnosticRun && !userHidden && !IsTucked && !app.Settings.ReduceMotion && Motion.Enabled && (closedAssistant.IsVisible || peekAssistant.IsVisible);
+    private bool AssistantPointerTracking=>!DiagnosticRun && (app.UsesLopataEdition
+        ? MascotPointerTracking
+        : !userHidden && !IsTucked && !app.Settings.ReduceMotion && Motion.Enabled && (closedAssistant.IsVisible || peekAssistant.IsVisible));
     private void TrackAssistantPointer()
     {
         if(!AssistantPointerTracking){assistantLastPointer=null;ConfigureDisplayFollow();return;}
@@ -34,6 +36,7 @@ public sealed partial class OverlayWindow
     }
     private void TrackAssistantPointerAt(Point screenPoint)
     {
+        if (app.UsesLopataEdition) { TrackMascotPointer(screenPoint); return; }
         if(assistantLastPointer==screenPoint)return;assistantLastPointer=screenPoint;
         void Track(AssistantOrb orb)
         {
@@ -58,6 +61,7 @@ public sealed partial class OverlayWindow
     {
         header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});Grid.SetColumn(assistantHeaderSpace,5);header.Children.Add(assistantHeaderSpace);
         assistantCharacterHost.HorizontalAlignment=HorizontalAlignment.Center;assistantCharacterHost.VerticalAlignment=VerticalAlignment.Top;
+        if (app.UsesLopataEdition) { MountClosedLopataMascot(); return; }
         assistantCharacterButton=AssistantOrb.Launcher("AI character on island",()=>OpenAssistant(),closedAssistant);assistantCharacterButton.MinHeight=24;assistantCharacterButton.Margin=new(0,0,9,0);assistantCharacterButton.HorizontalAlignment=HorizontalAlignment.Right;assistantCharacterButton.VerticalAlignment=VerticalAlignment.Center;assistantCharacterButton.ToolTip=Localization.Text("AI companion · hover to meet · click to chat");
         assistantCharacterButton.MouseEnter+=(_,_)=>{if(app.UsesLopataEdition)return;hoverDelay.Stop();assistantHover.Interval=TimeSpan.FromMilliseconds(app.Settings.HoverDelayMs);assistantHover.Start();};
         assistantCharacterButton.MouseLeave+=(_,_)=>assistantHover.Stop();
@@ -100,6 +104,7 @@ public sealed partial class OverlayWindow
     }
     private void RefreshAssistantVisuals()
     {
+        if (app.UsesLopataEdition) return;
         bool spotify=AssistantSpotifyPlaying;
         void Apply(AssistantOrb orb){if(!orb.IsVisible)return;orb.State=app.Assistant.WakeListening?AssistantState.Listening:app.Assistant.State;orb.Level=app.Assistant.Level;orb.Live=app.Assistant.VoiceConnected || app.Assistant.WakeListening;orb.ReduceMotion=app.Settings.ReduceMotion;orb.Music=spotify;}
         Apply(closedAssistant);Apply(peekAssistant);
@@ -110,6 +115,12 @@ public sealed partial class OverlayWindow
     private void RefreshAssistantCharacter()
     {
         if(assistantCharacterButton==null)return;
+        if (app.UsesLopataEdition)
+        {
+            SizeClosedLopataMascot();
+            RefreshIdleDock();
+            return;
+        }
         bool enabled=AssistantCharacterAvailable;
         assistantCharacterButton.ToolTip=app.UsesLopataEdition?Localization.Text("LOPATA chat"):app.Assistant.VoiceConnected?Localization.Text("Microphone on · click for voice controls"):app.Assistant.WakeListening?app.Assistant.WakeStatus:app.Assistant.Desktop.Sharing?Localization.Text("Screen sharing on · click for controls"):Localization.Text("AI companion · hover to meet · click to chat");
         if(app.UsesLopataEdition)UI.LocalizedName(assistantCharacterButton,"LOPATA chat");
@@ -119,9 +130,16 @@ public sealed partial class OverlayWindow
         SyncAssistantVisibility();
         RefreshAssistantVisuals();RefreshIdleDock();
     }
-    private void SyncAssistantVisibility(){assistantCharacterHost.Visibility=AssistantCharacterAvailable && !expanded && !peeking && !FeedbackVisible?Visibility.Visible:Visibility.Collapsed;if(closedAssistant.IsVisible)closedAssistant.Music=AssistantSpotifyPlaying;ConfigureDisplayFollow();}
+    private void SyncAssistantVisibility()
+    {
+        if (app.UsesLopataEdition) { SyncLopataMascot(); return; }
+        assistantCharacterHost.Visibility=AssistantCharacterAvailable && !expanded && !peeking && !FeedbackVisible?Visibility.Visible:Visibility.Collapsed;
+        if(closedAssistant.IsVisible)closedAssistant.Music=AssistantSpotifyPlaying;
+        ConfigureDisplayFollow();
+    }
     internal void PreviewAssistant(bool reply=false)
     {
+        if (app.UsesLopataEdition) return;
         if(expanded || userHidden || !AssistantCharacterAvailable || (TuckRequested && !tuckPreview))return;
         assistantPeekRevision++;assistantReplyShowing=reply;ApplyAssistantPeekMode();
         HideNotice();EndPeekGesture();StopHoverTimers();if(!reply && assistantPendingReply==null)assistantReplyDismiss.Stop();automaticPreview=false;activityDismiss.Stop();peeking=true;assistantPeeking=true;peekDetailed=true;Show();Dimensions();
@@ -154,5 +172,8 @@ public sealed partial class OverlayWindow
     private void LeaveAssistantPanel(){if(assistantOpen){assistantOpen=false;bodyDirty=true;}}
     internal void CloseAssistant(){LeaveAssistantPanel();Collapse();}
     private void CleanupAssistantIsland()
-    {assistantHover.Stop();assistantReplyDismiss.Stop();islandAssistantView?.Dispose();app.Assistant.Changed-=QueueAssistantIslandChanged;app.Assistant.VisualChanged-=RefreshAssistantVisuals;app.SettingsChanged-=RefreshAssistantCharacter;}
+    {
+        if (app.UsesLopataEdition) { CleanupLopataMascot(); return; }
+        assistantHover.Stop();assistantReplyDismiss.Stop();islandAssistantView?.Dispose();app.Assistant.Changed-=QueueAssistantIslandChanged;app.Assistant.VisualChanged-=RefreshAssistantVisuals;app.SettingsChanged-=RefreshAssistantCharacter;
+    }
 }

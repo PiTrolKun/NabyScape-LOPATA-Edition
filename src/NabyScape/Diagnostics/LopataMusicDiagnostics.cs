@@ -112,6 +112,9 @@ internal static class LopataMusicDiagnostics
             playButton.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent, playButton));
             for (int i = 0; i < 40 && !app.Media.Playing; i++) await Task.Delay(70, token);
             Check(local.CurrentMusic.Track?.Name == "External" && app.Media.Playing, "the library play button starts the same island transport");
+            Check(Diagnostics.Descendants(island).OfType<LopataMascotView>().Any(view =>
+                !view.Compact && view.IsVisible && view.Frame.State == MascotState.Music),
+                "real local playback changes the expanded mascot to music while LOPATA is closed");
             CheckMusicActionsInView(island, Check, "during playback");
 
             var primary = music.Single(t => t.Name=="ThisPC");

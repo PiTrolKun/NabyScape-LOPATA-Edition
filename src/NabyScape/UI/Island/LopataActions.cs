@@ -5,14 +5,14 @@ namespace NabyScape;
 
 public sealed partial class OverlayWindow
 {
-    private void AddLopataActions(Panel panel)
+    private void AddLopataWindowActions(Panel panel)
     {
         var actions = new System.Windows.Controls.Primitives.UniformGrid
         {
             Rows = 1,
             Margin = new Thickness(0, 0, 0, 10)
         };
-        void Add(string caption, System.Action action)
+        void Add(string caption, string icon, System.Action action)
         {
             var button = UI.CaptionButton(caption, action);
             button.FontSize = 11;
@@ -20,12 +20,21 @@ public sealed partial class OverlayWindow
             button.Padding = new Thickness(1, 5, 1, 5);
             button.Margin = new Thickness(0, 0, 3, 0);
             button.HorizontalAlignment = HorizontalAlignment.Stretch;
+            if (app.UsesLopataEdition)
+            {
+                button.ToolTip = Localization.Text(caption);
+                var symbol = Icons.Create(icon, 13);
+                actions.SizeChanged += (_, _) =>
+                {
+                    bool small = actions.ActualWidth < 224;
+                    button.Content = small ? symbol : Localization.Text(caption);
+                };
+            }
             actions.Children.Add(button);
         }
-        Add(LopataEdition.OpenCaption, LopataEdition.OpenHost);
-        Add(LopataEdition.LayerCaption, app.ToggleLopataLayer);
-        Add(LopataEdition.CloseCaption, app.Quit);
+        Add(LopataEdition.OpenCaption, "arrow", LopataEdition.OpenHost);
+        Add(LopataEdition.LayerCaption, "screen", app.ToggleLopataLayer);
+        Add(LopataEdition.CloseCaption, "x", app.Quit);
         panel.Children.Add(actions);
-        AddLopataWork(panel);
     }
 }

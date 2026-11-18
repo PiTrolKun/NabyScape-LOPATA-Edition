@@ -134,7 +134,7 @@ public sealed partial class OverlayWindow
             return Math.Abs(x-reflectionX)+Math.Abs(y-reflectionY)>.001;
         }
     }
-    private bool HasLiveWork=>AudioVisualDemand || motion.Active || ReflectionMoving ||
+    private bool HasLiveWork=>AudioVisualDemand || MascotVisualDemand || motion.Active || ReflectionMoving ||
         (app.Media.Playing && timelineDuration>0 && ((peeking && !assistantPeeking && peekId=="media") || (expanded && musicWave.IsVisible))) ||
         (ActiveCountdown()?.Running==true && ((!expanded && !peeking && activity.IsVisible) || (peeking && !assistantPeeking && peekId is "timer" or "focus")));
     private void ConfigureLiveActivity()
@@ -161,10 +161,11 @@ public sealed partial class OverlayWindow
     private void LiveFrame()
     {
         var now=DateTimeOffset.UtcNow;double dt=Math.Clamp((now-lastLive).TotalSeconds,.001,.5);lastLive=now;
-        bool audioWanted=AudioVisualDemand,sample=false;
-        if(audioWanted){sampledPeak=app.Audio.MediaPeak(app.Media.AudioMeterSource);sample=audioSequence!=app.Audio.MediaLevel.Sequence;audioSequence=app.Audio.MediaLevel.Sequence;}
+        bool waveformWanted=AudioVisualDemand,sample=false;
+        if(waveformWanted || MascotAudioDemand){sampledPeak=app.Audio.MediaPeak(app.Media.AudioMeterSource,includeSpectrum:waveformWanted);sample=audioSequence!=app.Audio.MediaLevel.Sequence;audioSequence=app.Audio.MediaLevel.Sequence;}
         else sampledPeak=0;
         double peak=app.Media.Playing && !app.Audio.MediaMeterMuted?sampledPeak:0;
+        AdvanceMascot(dt, app.Audio.MediaMeterFallback ? 0 : peak, sample);
         var session=ActiveCountdown();bool running=session?.Running==true;
         if(HasLiveWork)quietSince=now;
         if((now-quietSince).TotalSeconds>1.2){StopLiveRendering();return;}

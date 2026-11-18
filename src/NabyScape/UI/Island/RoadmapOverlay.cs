@@ -42,7 +42,7 @@ public sealed partial class OverlayWindow
     {if(!commandOpen)return;commandOpen=false;BuildBody();ResizeToolPanel();if(expanded)scroll.Focus();}
     private FrameworkElement BuildCommandPage()
     {
-        var panel=new StackPanel{HorizontalAlignment=HorizontalAlignment.Stretch,Margin=new(3,0,3,0)};var heading=new DockPanel();var back=UI.Button(Localization.Text("Back"),CloseCommands);back.FontSize=11;back.MinHeight=28;back.Margin=new(8,0,0,0);DockPanel.SetDock(back,Dock.Right);heading.Children.Add(back);heading.Children.Add(UI.Heading(Localization.Text("Command bar"),18));panel.Children.Add(heading);
+        var panel=new StackPanel{HorizontalAlignment=HorizontalAlignment.Stretch,Margin=new(3,0,3,0)};var heading=new DockPanel();var back=UI.Button(Localization.Text("Back"),CloseCommands);back.FontSize=11;back.MinHeight=28;back.Margin=new(8,0,0,0);DockPanel.SetDock(back,Dock.Right);heading.Children.Add(back);heading.Children.Add(UI.Heading(Localization.Text("Command bar"),18));if(app.UsesLopataEdition)AddFullMascot(heading);panel.Children.Add(heading);
         commandInput=UI.Input(Localization.Text("Search commands"),"",Localization.Text("Search NabyScape actions and saved shortcuts. Enter runs the first match."));commandInput.Margin=new(0,14,0,12);commandInput.MaxLength=120;panel.Children.Add(commandInput);
         if(commandResults.Parent is Panel parent)parent.Children.Remove(commandResults);panel.Children.Add(commandResults);
         commandInput.TextChanged+=(_,_)=>RefreshCommands();

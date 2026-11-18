@@ -139,7 +139,8 @@ public sealed partial class App : Application
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         UsesLopataEdition = !diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture;
         if (UsesLopataEdition) PrepareLopataSettings();
-        if (musicFixture) { Settings.MediaIntegrationEnabled = false; Settings.LyricsEnabled = false; }
+        if (musicFixture || languageFixture || lopataFixture || updatesFixture) Settings.MediaIntegrationEnabled = false;
+        if (musicFixture) Settings.LyricsEnabled = false;
         if(assistantFixture || isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
         Updates=new(Store,Array.Exists(e.Args,a=>a=="--stage3-only")?new Stage3Diagnostics.Network():null,stagingDirectory:diagnosticPath!=null?Path.Combine(Store.DirectoryPath,"updates"):null);
         InitializeLopataUpdates();

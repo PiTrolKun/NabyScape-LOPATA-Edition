@@ -17,6 +17,8 @@ internal sealed class LopataConnection(Func<string?> findExecutable) : IDisposab
     private long commandVersion;
     internal IslandResponse State { get; private set; } = new("offline");
     internal event Action? Changed;
+    internal bool CoreWorking { get; private set; }
+    internal event Action? CoreFailed;
 
     internal async Task RefreshAsync()
     {
@@ -64,21 +66,42 @@ internal sealed class LopataConnection(Func<string?> findExecutable) : IDisposab
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
         limit.CancelAfter(TimeSpan.FromMinutes(8));
         var channel = IslandLink.CorePrefix + Guid.NewGuid().ToString("N");
-        await using var pipe = IslandLink.ListenCore(channel);
         try
         {
+            await using var pipe = IslandLink.ListenCore(channel);
             var start = new ProcessStartInfo(executable) { WorkingDirectory = folder, UseShellExecute = false, CreateNoWindow = true };
             start.ArgumentList.Add("--island-core");
             start.ArgumentList.Add(channel);
             using var worker = Process.Start(start) ?? throw new IOException("The core worker did not start.");
+            CoreWorking = true;
+            Changed?.Invoke();
             using var connect = CancellationTokenSource.CreateLinkedTokenSource(limit.Token);
             connect.CancelAfter(TimeSpan.FromSeconds(12));
             await pipe.WaitForConnectionAsync(connect.Token);
             await IslandLink.WriteAsync(pipe, new IslandRequest("core", Text: text, History: history), limit.Token);
-            return await IslandLink.ReadAsync<IslandResponse>(pipe, limit.Token);
+            var reply = await IslandLink.ReadAsync<IslandResponse>(pipe, limit.Token);
+            if (reply.Result == "core_failed" && !token.IsCancellationRequested) CoreFailed?.Invoke();
+            return reply;
         }
-        catch (OperationCanceledException) { return new(token.IsCancellationRequested ? "cancelled" : "core_failed"); }
-        catch (Exception error) when (error is IOException or Win32Exception or JsonException) { return new("core_failed"); }
+        catch (OperationCanceledException)
+        {
+            if (token.IsCancellationRequested || lifetime.IsCancellationRequested) return new("cancelled");
+            CoreFailed?.Invoke();
+            return new("core_failed");
+        }
+        catch (Exception error) when (error is IOException or Win32Exception or JsonException)
+        {
+            if (!lifetime.IsCancellationRequested && !token.IsCancellationRequested) CoreFailed?.Invoke();
+            return new("core_failed");
+        }
+        finally
+        {
+            if (CoreWorking)
+            {
+                CoreWorking = false;
+                Changed?.Invoke();
+            }
+        }
     }
 
     private void Publish(IslandResponse response)
@@ -86,7 +109,8 @@ internal sealed class LopataConnection(Func<string?> findExecutable) : IDisposab
         if (lifetime.IsCancellationRequested) return;
         var jobs = response.Jobs ?? [];
         string result = response.Jobs is not null ? "ok" : response.Result;
-        if (State.Result == result && State.Busy == response.Busy && (State.Jobs ?? []).SequenceEqual(jobs)) return;
+        if (State.Result == result && State.Busy == response.Busy && State.ModelActive == response.ModelActive
+            && State.ModelFailure == response.ModelFailure && (State.Jobs ?? []).SequenceEqual(jobs)) return;
         State = response with { Result = result, Jobs = jobs };
         Changed?.Invoke();
     }

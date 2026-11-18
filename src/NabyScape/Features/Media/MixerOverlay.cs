@@ -44,7 +44,9 @@ public sealed partial class OverlayWindow
         var panel=new StackPanel();
         var header=new DockPanel{Margin=new(0,0,0,12)};
         var back=MixerButton(app.Settings.CompactLayout?"Back to media":"Back to widgets",CloseMixer);DockPanel.SetDock(back,Dock.Left);header.Children.Add(back);
-        var title=UI.Heading(Localization.Text("Audio mixer"),16);title.Margin=new(12,0,0,0);header.Children.Add(title);panel.Children.Add(header);
+        var title=UI.Heading(Localization.Text("Audio mixer"),16);title.Margin=new(12,0,0,0);header.Children.Add(title);
+        if (app.UsesLopataEdition && !app.Settings.CompactLayout) AddFullMascot(header);
+        panel.Children.Add(header);
         mixerStatus.Margin=new(0,8,0,12);panel.Children.Add(mixerStatus);
         var scopes=new Grid{Margin=new(0,0,0,12)};scopes.ColumnDefinitions.Add(new());scopes.ColumnDefinitions.Add(new());
         mixerAppsTab=UI.Button(Localization.Text("Apps"),()=>ChooseMixerScope(MixerScope.Apps));mixerOutputsTab=UI.Button(Localization.Text("Outputs"),()=>ChooseMixerScope(MixerScope.Outputs));UI.Named(mixerAppsTab,Localization.Text("Show app volumes"));UI.Named(mixerOutputsTab,Localization.Text("Show output volumes"));
