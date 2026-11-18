@@ -54,7 +54,7 @@ public sealed partial class OverlayWindow
             Move(activity, 4);
             Move(feedbackIcon, 4);
             Move(closedSummaryHost, 5);
-            closedSummaryHost.LayoutTransform = new RotateTransform(90);
+            closedSummaryHost.LayoutTransform = new RotateTransform(-90);
             closedSummaryHost.VerticalAlignment = VerticalAlignment.Stretch;
             closedSummaryHost.Margin = new Thickness(0, 6, 0, 6);
             Move(closedTitleWave, 5, stretch: true);

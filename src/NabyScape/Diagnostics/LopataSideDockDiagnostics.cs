@@ -52,10 +52,10 @@ internal static class LopataSideDockDiagnostics
                 new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch),
                 label.FontSize, label.Foreground, VisualTreeHelper.GetDpi(label).PixelsPerDip);
             Require(label.IsVisible && label.Text == app.Media.Title && label.Text.Length > 0 &&
-                (portrait ? direction.Y > 19 && Math.Abs(direction.X) < .1 &&
+                (portrait ? direction.Y < -19 && Math.Abs(direction.X) < .1 &&
                     text.Width > island.PaintedWidth && label.ActualWidth >= text.Width
                     : direction.X > 19 && Math.Abs(direction.Y) < .1),
-                portrait ? "Closed title reads from top to bottom and fits along the strip" : "Returning to a horizontal edge restores horizontal title text");
+                portrait ? "Closed title reads from bottom to top and fits along the strip" : "Returning to a horizontal edge restores horizontal title text");
         }
 
         try
