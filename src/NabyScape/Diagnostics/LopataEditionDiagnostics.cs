@@ -214,12 +214,21 @@ internal static class LopataEditionDiagnostics
 
     private static async Task CheckScrollEdges(App app, OverlayWindow island, string directory)
     {
-        double savedHeight = app.Settings.PanelMaxHeight;
+        var saved = IslandPreferences.Read();
         var scroll = Diagnostics.Descendants(island).OfType<ScrollViewer>().First();
+
+        async Task ApplyHeight(IslandPreferences appearance)
+        {
+            IslandPreferences.Save(appearance);
+            int height = appearance.Advanced ? appearance.PanelHeight : new IslandPreferences().PanelHeight;
+            for (int i = 0; i < 30 && app.Settings.PanelMaxHeight != height; i++) await Task.Delay(100);
+            if (app.Settings.PanelMaxHeight != height)
+                throw new InvalidOperationException($"Panel height {height} did not reach the running island.");
+        }
+
         try
         {
-            app.Settings.PanelMaxHeight = 270;
-            app.ChangeSettings();
+            await ApplyHeight(saved with { Advanced = true, PanelHeight = 270 });
             island.SelectPage("status", false);
             for (int i = 0; i < 30 && !island.MonitorReady; i++) await Task.Delay(100);
             island.UpdateLayout();
@@ -247,8 +256,7 @@ internal static class LopataEditionDiagnostics
             Check(top: true, bottom: false);
             Capture(island, Path.Combine(directory, "island-scroll-end.png"));
 
-            app.Settings.PanelMaxHeight = 540;
-            app.ChangeSettings();
+            await ApplyHeight(saved with { Advanced = true, PanelHeight = 540 });
             island.SelectPage("media", false);
             island.UpdateLayout();
             if (scroll.ScrollableHeight > 0.5 || presenter.OpacityMask is not null)
@@ -256,8 +264,7 @@ internal static class LopataEditionDiagnostics
         }
         finally
         {
-            app.Settings.PanelMaxHeight = savedHeight;
-            app.ChangeSettings();
+            await ApplyHeight(saved);
         }
     }
 

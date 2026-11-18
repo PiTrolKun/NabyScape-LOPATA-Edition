@@ -108,6 +108,21 @@ internal static class LopataLanguageDiagnostics
             localChat.Close();
             Capture(settings, "edition-chat-ru");
 
+            island.Reveal(false);
+            island.UpdateLayout();
+            var islandActions = Diagnostics.Descendants(island).OfType<Button>().Where(button => button.IsVisible).ToArray();
+            var mascot = islandActions.Single(button => UI.Identity(button) == "Lopata.Chat.Mascot");
+            var islandChat = islandActions.Single(button => UI.Identity(button) == "LOPATA chat");
+            islandChat.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var draft = SettingsElements(localChat).OfType<TextBox>().Single(input => UI.Identity(input) == "LOPATA chat message");
+            draft.Text = "Черновик для проверки общего окна";
+            localChat.Close();
+            mascot.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Require(localChat.IsVisible && app.Windows.Cast<Window>().OfType<LopataChatWindow>().Single() == localChat &&
+                draft.Text == "Черновик для проверки общего окна", "The expanded mascot and Chat button share the same local chat and draft");
+            draft.Clear();
+            localChat.Close();
+
             var search = SettingsElements(settings).OfType<TextBox>().Single(input => UI.Identity(input) == Localization.Text("Search settings"));
             search.Text = "Hermes";
             settings.UpdateLayout();
