@@ -15,16 +15,16 @@ internal static class PreferenceReset
         ["Clipboard"]="ClipboardHistory".Split(' '),
         ["Weather"]="WeatherCity WeatherLatitude WeatherLongitude WeatherUnits".Split(' '),
         ["Visibility"]="HideFullscreen HideMaximized AlwaysTucked TuckEdge TuckHotkeyEnabled TuckHotkeyKey TuckHotkeyModifiers VisibilityHotkeyEnabled VisibilityHotkeyKey VisibilityHotkeyModifiers SmartActivities BrowserMediaPreviews".Split(' '),
-        ["Notifications"]="ExternalNotifications ExternalNotificationPopup ExternalNotificationText ExternalNotificationQuietHours ExternalNotificationMuted CountdownSound CountdownSoundVolume CountdownSoundFile NotificationSeconds NotificationAnimation QuietHours QuietStart QuietEnd NotificationsSnoozedUntil NotificationDelivery NotifyTimer NotifyFocus NotifyDownloads NotifyUpdates NotifyFailures DownloadsEnabled DownloadsFolder".Split(' '),
+        ["Notifications"]="ExternalNotifications ExternalNotificationPopup ExternalNotificationText ExternalNotificationQuietHours ExternalNotificationMuted CountdownSound CountdownSoundVolume CountdownSoundFile NotificationSeconds NotificationAnimation QuietHours QuietStart QuietEnd NotificationsSnoozedUntil NotificationDelivery NotifyTimer NotifyDownloads NotifyFailures DownloadsEnabled DownloadsFolder".Split(' '),
         ["Appearance"]="HomeWidget Preset Radius Background Accent Opacity SettingsMaterial GlassStyle GlassStrength AlbumAccent ControlFill ControlBorder SelectionFill CategoryStyle BoldMediaTitle BoldHeadings RecentColors ColorTheme CollapsedSameColor CollapsedBackground CollapsedOpacity".Split(' '),
         ["Layout"]="FollowMonitorAnimation FollowMonitorDuration DockUnlocked PanelAutoHeight Width Height ClosedClockPosition Horizontal DockEdge DockVertical DockInset Top Monitor DisplayMode CompactLayout PanelWidth PanelMaxHeight PanelPadding PanelScale SectionGap".Split(' '),
-        ["Content"]="HoverFollowsWidgets Widgets Tools HoverViews FocusMinutes BreakMinutes".Split(' '),
+        ["Content"]="HoverFollowsWidgets Widgets Tools HoverViews".Split(' '),
         ["Controls"]="HoverPeek TwoStageHover HoverWidth HoverHeight HoverDelayMs HoverDetailDelayMs SwipeDistance PanelSwipe DropReveal DetachablePreviews CoverGestures WheelAction MiddleAction VolumeStep HotkeyEnabled HotkeyKey HotkeyModifiers".Split(' '),
-        ["Audio"]="MediaIntegrationEnabled MediaFollowsPlayback ExcludeBrowserMedia WaveformSource WaveformSensitivity LyricsEnabled LyricsAnimation LyricsTextMode LyricsOffset ClosedMediaIcon ClosedMediaContent ReactiveFeedback WaveformIdleMotion VolumeFeedback BrightnessFeedback".Split(' '),
+        ["Audio"]="LocalMusicFolder MediaIntegrationEnabled MediaFollowsPlayback ExcludeBrowserMedia WaveformSource WaveformSensitivity LyricsEnabled LyricsAnimation LyricsTextMode LyricsOffset ClosedMediaIcon ClosedMediaContent ReactiveFeedback WaveformIdleMotion VolumeFeedback BrightnessFeedback".Split(' '),
         ["System"]="Clock24Hour ClockSeconds ShowDate MonitorNetwork MonitorStorage MonitorProcesses".Split(' '),
         ["Launch"]="LaunchStyle".Split(' '),
         ["AI"]=Array.Empty<string>(),
-        ["Application"]="AutoCheckUpdates AutoDownloadUpdates UiLanguage AccessibilityTextScale AccessibilityHighContrast SettingsShowAll".Split(' ')
+        ["Application"]="UiLanguage AccessibilityTextScale AccessibilityHighContrast SettingsShowAll".Split(' ')
     };
     internal static string Summary(string? category)
     {
@@ -38,13 +38,12 @@ internal static class PreferenceReset
             "Visibility"=>"hide, tuck, automatic previews and visibility shortcuts",
             "Notifications"=>"notification delivery, sounds, quiet hours and download alerts",
             "Layout"=>"island position, display and panel sizes",
-            "Content"=>"widget/tool order, hover pages and focus durations",
+            "Content"=>"widget and tool order, and hover pages",
             "Controls"=>"hover timing, gestures, tuck rules and global shortcuts",
             "Audio"=>"closed media display, media sources, waveform and feedback",
             "System"=>"clock format and monitor readings",
             "Launch"=>"launch appearance",
-            "Application" when System.Windows.Application.Current is App { UsesLopataEdition: true } => "text size, contrast and settings detail level",
-            "Application"=>"update checks and automatic downloads, interface language, text size and contrast",
+            "Application"=>"interface language, text size, contrast and settings detail level",
             _=>"update checks, notification delivery and download monitoring"
         };
         string detail=category==null?string.Join("; ",Categories.Where(pair=>pair.Value.Length>0).Select(pair=>SettingsWindow.CategoryTitle(pair.Key)+": "+Localization.Text(Detail(pair.Key)))):Localization.Text(Detail(category));

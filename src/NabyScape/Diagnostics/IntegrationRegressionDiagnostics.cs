@@ -39,8 +39,8 @@ internal static class IntegrationRegressionDiagnostics
         }
         foreach(double width in new[]{514d,340d})
         {
-            app.Settings.ReduceMotion=true;app.Settings.PanelWidth=width;app.ChangeSettings();island.Reveal(false);island.SelectPage("focus",false);await Task.Delay(100);island.UpdateLayout();
-            app.Session.Timer.Reset();app.Session.Focus.Reset();app.SaveSession();island.UpdateLayout();
+            app.Settings.ReduceMotion=true;app.Settings.PanelWidth=width;app.ChangeSettings();island.Reveal(false);island.SelectPage("timer",false);await Task.Delay(100);island.UpdateLayout();
+            app.Session.Timer.Reset();app.SaveSession();island.UpdateLayout();
             var starts=Diagnostics.Descendants(island).OfType<Button>().Where(b=>b.IsVisible && AutomationProperties.GetAutomationId(b) is "timer-primary" or "focus-primary").ToArray();check("Focused countdown primary controls exist at "+width,starts.Length==2 && starts.Select(AutomationProperties.GetAutomationId).Distinct().Count()==2 && starts.Select(AutomationProperties.GetName).Distinct().Count()==2);
             foreach(var button in starts)
             {

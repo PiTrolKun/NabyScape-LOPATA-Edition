@@ -96,12 +96,12 @@ internal static class LopataLanguageDiagnostics
             Require(Diagnostics.Descendants(settings).OfType<ComboBox>().Any(choice => !choice.IsEnabled &&
                 System.Windows.Automation.AutomationProperties.GetName(choice) == Localization.Text("Interface language")),
                 "Island settings respect the language selected in LOPATA");
-            Require(app.UsesLopataEdition && !app.Assistant.Options.Enabled && !app.SupportsWidget("voice"),
-                "The LOPATA edition leaves the upstream assistant and voice widget inactive");
+            Require(app.UsesLopataEdition && !app.SupportsWidget("voice") && !app.SupportsWidget("focus"),
+                "The LOPATA edition omits the retired voice and Focus widgets");
             settings.OpenCategory("AI");
             settings.UpdateLayout();
             var chatButton = SettingsElements(settings).OfType<Button>().Single(button => UI.Identity(button) == "Open chat");
-            Require(!SettingsElements(settings).OfType<AssistantProviderSettings>().Any(), "Chat settings have no upstream provider editor");
+            Require(!SettingsElements(settings).OfType<PasswordBox>().Any(), "Chat settings have no upstream provider editor");
             chatButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             var localChat = app.Windows.Cast<Window>().OfType<LopataChatWindow>().Single();
             Require(localChat.IsVisible, "The settings button opens the LOPATA chat window without sending a message");

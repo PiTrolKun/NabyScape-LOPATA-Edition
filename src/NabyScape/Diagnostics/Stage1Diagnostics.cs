@@ -67,7 +67,7 @@ internal static class Stage1Diagnostics
         var preview=Diagnostics.Descendants(settings).OfType<Expander>().Single(e=>AutomationProperties.GetName(e)=="Settings live preview");
         var form=Diagnostics.Descendants(settings).OfType<ScrollViewer>().Single(c=>AutomationProperties.GetName(c)=="Settings form viewport");
         Check("480x300 uses category chooser and collapsed preview with usable form",chooser.IsVisible && !preview.IsExpanded && form.ActualWidth>=300 && form.ActualHeight>=80);
-        var categories=new[]{("Appearance","Look & colors"),("Ambience","Ambience"),("Motion","Motion & speed"),("Layout","Position & size"),("Visibility","Show & hide"),("Controls","Controls"),("Content","Widgets & tools"),("Audio","Music & sound"),("Clipboard","Clipboard"),("Weather","Weather"),("System","Clock & system"),("Launch","Shortcuts"),("AI","Naby AI"),("Notifications","Notifications"),("Application","General")};
+        var categories=new[]{("Appearance","Look & colors"),("Ambience","Ambience"),("Motion","Motion & speed"),("Layout","Position & size"),("Visibility","Show & hide"),("Controls","Controls"),("Content","Widgets & tools"),("Audio","Music & sound"),("Clipboard","Clipboard"),("Weather","Weather"),("System","Clock & system"),("Launch","Shortcuts"),("AI","LOPATA chat"),("Notifications","Notifications"),("Application","General")};
         foreach(var (category,title) in categories)
         {chooser.SelectedItem=Localization.Text(title);settings.UpdateLayout();Check("compact category is reachable: "+category,Equals(chooser.SelectedItem,Localization.Text(title)) && Diagnostics.CurrentSettingsCategory(settings)==category && form.ExtentHeight>0 && form.ActualWidth>=300);}
         Capture(settings,"settings-480x300");

@@ -15,7 +15,7 @@ public sealed partial class SettingsWindow
     private void RefreshAmbientPreview()
     {
         var s=app.Settings;
-        string widget=previewMode=="Closed"?"closed":previewContent switch{"Music"=>"media","Timer"=>"timer","Focus"=>"focus","Stopwatch"=>"stopwatch","System"=>"system","Note"=>"notes","Tasks"=>"tasks","Calendar"=>"calendar","Shelf"=>"files","Smart clipboard"=>"clips","AI"=>"ai","Launch"=>"shortcuts",_=>"preview"};
+        string widget=previewMode=="Closed"?"closed":previewContent switch{"Music"=>"media","Timer"=>"timer","Stopwatch"=>"stopwatch","System"=>"system","Note"=>"notes","Tasks"=>"tasks","Calendar"=>"calendar","Shelf"=>"files","Smart clipboard"=>"clips","Launch"=>"shortcuts",_=>"preview"};
         bool allowed=AmbientPolicy.Includes(s,widget),moving=app.Media.Playing && s.LiveActivity && IsVisible && WindowState!=WindowState.Minimized && previewStage.IsVisible;
         ambientPreview.Radius=s.Radius;
         ambientPreview.SetAmbient(AmbientPolicy.ColorsFor(s,app.AmbientAudio.CoverColors),allowed?s.AmbientStrength:0,s.AmbientSpread,s.AmbientMotion,moving,AmbientLook.From(s));
@@ -35,7 +35,7 @@ public sealed partial class SettingsWindow
         controls.Children.Add(Check("Ambient light",s.CoverAmbient,v=>s.CoverAmbient=v));
         controls.Children.Add(Check("Show ambience on closed dock",s.ClosedAmbient,v=>s.ClosedAmbient=v));
         var widgets=new StackPanel();
-        foreach(var pair in Settings.Names.Where(p=>p.Key!="tools" && app.SupportsWidget(p.Key)).Concat(app.UsesLopataEdition ? Array.Empty<System.Collections.Generic.KeyValuePair<string,string>>() : new[]{new System.Collections.Generic.KeyValuePair<string,string>("ai","AI companion")}))
+        foreach(var pair in Settings.Names.Where(p=>p.Key!="tools" && app.SupportsWidget(p.Key)))
         {
             string id=pair.Key;
             string label=Localization.Format("Ambient light for {0}",Localization.Text(pair.Value));
@@ -83,7 +83,7 @@ public sealed partial class SettingsWindow
         var actions=new WrapPanel();
         foreach(int minutes in new[]{15,30,60})actions.Children.Add(UI.Button(Localization.Format("Snooze {0} min",minutes),()=>{s.NotificationsSnoozedUntil=DateTimeOffset.UtcNow.AddMinutes(minutes);app.Notifications.Clear();Save();Status();}));
         actions.Children.Add(UI.Button(Localization.Text("Resume notifications"),()=>{s.NotificationsSnoozedUntil=null;Save();Status();}));controls.Children.Add(actions);
-        controls.Children.Add(UI.Caption(app.UsesLopataEdition?"Snoozing notifications leaves the timer running. Notifications resume when the snooze ends or you select Resume, subject to quiet hours.":"Snooze ends automatically. It does not stop Timer or Focus. Resume removes the snooze; any scheduled quiet hours still apply.",11,UI.Muted));
+        controls.Children.Add(UI.Caption("Snoozing notifications leaves the timer running. Notifications resume when the snooze ends or you select Resume, subject to quiet hours.",11,UI.Muted));
         page.Children.Add(Section("Notification presentation",controls));
     }
 }

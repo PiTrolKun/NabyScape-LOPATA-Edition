@@ -52,10 +52,10 @@ internal static class LyricsProviderTests
     {
         test("Bini follows only bounded trusted HTTPS redirects without credentials",()=>Task.Run(async()=>
         {
-            var allowed=new RedirectFake("https://lrc.red/api/v1");using(var service=new LyricsService(allowed,new AssistantMemoryKeys()))Assert((await service.SearchBini("Fixture","Artist",CancellationToken.None)).Length==0 && allowed.Calls==2);
+            var allowed=new RedirectFake("https://lrc.red/api/v1");using(var service=new LyricsService(allowed,new LyricsMemoryKeys()))Assert((await service.SearchBini("Fixture","Artist",CancellationToken.None)).Length==0 && allowed.Calls==2);
             foreach(string url in new[]{"http://lrc.red/api/v1","https://foreign.example/api","https://lrc.red:444/api"})
             {
-                var blocked=new RedirectFake(url);using var service=new LyricsService(blocked,new AssistantMemoryKeys());bool rejected=false;
+                var blocked=new RedirectFake(url);using var service=new LyricsService(blocked,new LyricsMemoryKeys());bool rejected=false;
                 try{await service.SearchBini("Fixture","Artist",CancellationToken.None);}catch(System.IO.InvalidDataException){rejected=true;}
                 Assert(rejected && blocked.Calls==1);
             }
@@ -68,27 +68,27 @@ internal static class LyricsProviderTests
         test("All fourteen requested lyrics sources have unique identities",()=>Assert(LyricsProviders.Names.Length==14 && LyricsProviders.Names.Distinct().Count()==14));
         test("A failed PaxSenix catalogue edition preserves other successful matches",()=>Task.Run(async()=>
         {
-            using var service=new LyricsService(new Fake{MissingSecondPax=true},new AssistantMemoryKeys());Assert((await service.FetchProvider("PaxSenix","Fixture","Artist",180,CancellationToken.None)).Length==1);
+            using var service=new LyricsService(new Fake{MissingSecondPax=true},new LyricsMemoryKeys());Assert((await service.FetchProvider("PaxSenix","Fixture","Artist",180,CancellationToken.None)).Length==1);
         }).GetAwaiter().GetResult());
         foreach(string source in new[]{"BiniLyrics","lrc.red","BetterLyrics","BetterLyrics Potato","Unison","LyricsPlus","KuGou","PaxSenix"})
         {
             string selected=source;
-            test("Provider adapter routes and parses "+selected,()=>Task.Run(async()=>{using var service=new LyricsService(new Fake(),new AssistantMemoryKeys());var results=await service.FetchProvider(selected,"Fixture","Artist",180,CancellationToken.None);Assert(results.Length==1 && LyricTiming.Parse(results[0].Lrc).Length>0);}).GetAwaiter().GetResult());
+            test("Provider adapter routes and parses "+selected,()=>Task.Run(async()=>{using var service=new LyricsService(new Fake(),new LyricsMemoryKeys());var results=await service.FetchProvider(selected,"Fixture","Artist",180,CancellationToken.None);Assert(results.Length==1 && LyricTiming.Parse(results[0].Lrc).Length>0);}).GetAwaiter().GetResult());
         }
         test("PaxSenix credentials use only the authenticated API request",()=>Task.Run(async()=>
         {
-            var keys=new AssistantMemoryKeys();keys.Write(LyricsProviders.PaxKey,"fixture-key");var fake=new Fake();using var service=new LyricsService(fake,keys);
+            var keys=new LyricsMemoryKeys();keys.Write(LyricsProviders.PaxKey,"fixture-key");var fake=new Fake();using var service=new LyricsService(fake,keys);
             foreach(string source in new[]{"PaxSenix: Spotify","PaxSenix: Musixmatch"})Assert((await service.FetchProvider(source,"Fixture","Artist",180,CancellationToken.None)).Length==1);
             Assert(fake.Authenticated);
         }).GetAwaiter().GetResult());
         test("Musixmatch plain lyrics remain untimed and retain credit",()=>Task.Run(async()=>
         {
-            var keys=new AssistantMemoryKeys();keys.Write(LyricsProviders.MusixmatchKey,"fixture-key");using var service=new LyricsService(new Fake(),keys);var result=(await service.FetchProvider("Musixmatch","Fixture","Artist",180,CancellationToken.None)).Single();Assert(result.Lrc=="" && result.Plain=="Original fixture text" && result.Album=="Fixture credit");
+            var keys=new LyricsMemoryKeys();keys.Write(LyricsProviders.MusixmatchKey,"fixture-key");using var service=new LyricsService(new Fake(),keys);var result=(await service.FetchProvider("Musixmatch","Fixture","Artist",180,CancellationToken.None)).Single();Assert(result.Lrc=="" && result.Plain=="Original fixture text" && result.Album=="Fixture credit");
             service.ImportPlain("Fixture","Artist",180,result.Plain,"Fixture credit");Assert(service.Result.Lines.Length==0 && service.Result.Plain.Length>0);
         }).GetAwaiter().GetResult());
         test("YouTube video identity is tied to its track and real caption timestamps",()=>Task.Run(async()=>
         {
-            using var service=new LyricsService(new Fake(),new AssistantMemoryKeys());service.ConfigureVideo("https://youtu.be/abcdefghijk","Fixture","Artist");Assert(service.HasVideo("Fixture","Artist") && !service.HasVideo("Other","Artist"));
+            using var service=new LyricsService(new Fake(),new LyricsMemoryKeys());service.ConfigureVideo("https://youtu.be/abcdefghijk","Fixture","Artist");Assert(service.HasVideo("Fixture","Artist") && !service.HasVideo("Other","Artist"));
             var captions=(await service.FetchProvider("YouTube captions","Fixture","Artist",180,CancellationToken.None)).Single();Assert(LyricTiming.Parse(captions.Lrc)[0].At==1.25);
             var music=(await service.FetchProvider("YouTube Music","Fixture","Artist",180,CancellationToken.None)).Single();Assert(music.Lrc=="" && music.Plain=="Original fixture text");
         }).GetAwaiter().GetResult());

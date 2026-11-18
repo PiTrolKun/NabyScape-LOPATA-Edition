@@ -80,7 +80,7 @@ public sealed partial class SettingsWindow
             bool animate=!app.Settings.ReduceMotion && app.Settings.LiveActivity && app.Media.Playing;
             double peak=animate?app.Audio.MediaPeak(app.Media.Selected?.SourceAppUserModelId):0;animate=animate && !app.Audio.MediaMeterMuted;
             bool fresh=animate && sequence!=app.Audio.MediaLevel.Sequence;sequence=app.Audio.MediaLevel.Sequence;
-            wave.Sample(animate?peak:0,previewDt,0,false,false,animate,seconds,fresh,app.Settings.WaveformIdleMotion,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
+            wave.Sample(animate?peak:0,previewDt,0,false,animate,seconds,fresh,app.Settings.WaveformIdleMotion,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
         });return wave;
     }
     private void RefreshLivePreviewData()
@@ -106,7 +106,6 @@ public sealed partial class SettingsWindow
         else if(name.Contains("volume indicator",StringComparison.OrdinalIgnoreCase) || name=="Volume step"){previewMode="Closed";previewContent="Volume feedback";}
         else if(name.Contains("motion",StringComparison.OrdinalIgnoreCase) || name.Contains("activity",StringComparison.OrdinalIgnoreCase) || name=="Animation duration"){previewMode="Hover";previewContent="Music";}
         else if(name.Contains("hover",StringComparison.OrdinalIgnoreCase) || name=="Two-stage reveal" || name=="Swipe distance"){previewMode="Hover";}
-        else if(name.Contains("Focus duration",StringComparison.OrdinalIgnoreCase) || name.Contains("Break duration",StringComparison.OrdinalIgnoreCase)){previewMode="Panel";previewContent="Focus";}
         else if(name.Contains("Closed media",StringComparison.OrdinalIgnoreCase) || name.Contains("Closed island",StringComparison.OrdinalIgnoreCase)){previewMode="Closed";previewContent="Music";}
         else if(name.Contains("color",StringComparison.OrdinalIgnoreCase) || name.Contains("outline",StringComparison.OrdinalIgnoreCase) || name=="Control surfaces"){previewMode="Panel";previewContent="Control colors";}
         else if(name.Contains("clipboard",StringComparison.OrdinalIgnoreCase) || name.Contains("history",StringComparison.OrdinalIgnoreCase)){previewMode="Panel";previewContent="Smart clipboard";}
@@ -128,7 +127,7 @@ public sealed partial class SettingsWindow
         float peak=app.Media.Playing && app.Settings.LiveActivity && !app.Settings.ReduceMotion?app.Audio.MediaPeak(app.Media.Selected?.SourceAppUserModelId):0;
         bool animate=app.Media.Playing && !app.Audio.MediaMeterMuted && app.Settings.LiveActivity && !app.Settings.ReduceMotion;
         bool fresh=animate && signalSequence!=app.Audio.MediaLevel.Sequence;signalSequence=app.Audio.MediaLevel.Sequence;
-        audioSignalWave.Sample(peak,previewDt,0,false,false,animate,seconds,fresh,app.Settings.WaveformIdleMotion,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
+        audioSignalWave.Sample(peak,previewDt,0,false,animate,seconds,fresh,app.Settings.WaveformIdleMotion,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
         audioSignalState.Text=!app.Settings.LiveActivity?Localization.Text("Live activity is off · enable it in Audio"):app.Settings.ReduceMotion?Localization.Text("Reduce Motion is on · the waveform stays still"):AudioSignalBlocker() is {} blocker?blocker:!app.Media.Playing?Localization.Text("Playback paused · quiet baseline"):app.Audio.MediaMeterMuted?Localization.Text("Selected app or output is muted"):app.Audio.MediaMeterFallback?Localization.Format("App audio not matched · following the default output · {0}% peak",(peak*100).ToString("0")):app.Audio.MediaMeterSessions==0?Localization.Text("No matching audio meter · optional gentle fallback"):Localization.Format("Live meter · audio sessions: {0} · {1:0}% peak",app.Audio.MediaAudibleSessions,peak*100);
         if(app.Settings.WaveformSource=="Spectrum" && app.Media.Playing && app.Audio.SpectrumStatus is {} spectrum)audioSignalState.Text+="\n"+Localization.Format("Spectrum unavailable · {0} · using amplitude",spectrum);
     }

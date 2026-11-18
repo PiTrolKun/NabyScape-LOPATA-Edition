@@ -36,7 +36,6 @@ public sealed partial class OverlayWindow
     {
         get
         {
-            if(assistantOpen || VoiceRoomOpen)return AssistantView.PanelSize(app.Settings,VoiceRoomOpen).Height;
             if(PortraitDock)return Math.Max(expandedHeight,PeekExpandedHeight);
             if(!app.Settings.CompactLayout)return expandedHeight;
             var screen=Native.ChooseScreen(app.Settings);return Math.Min(app.Settings.PanelMaxHeight,screen.WorkingArea.Height/Native.Scale(screen)-16);
@@ -44,15 +43,15 @@ public sealed partial class OverlayWindow
     }
     internal bool IsPeeking=>peeking;
     internal string ActivePage=>activePage;
-    internal static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer" or "focus"=>"focus","stopwatch"=>"stopwatch","voice"=>"voice","shortcuts"=>"access","tools"=>"tools",_=>"status"};
+    internal static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer"=>"timer","stopwatch"=>"stopwatch","shortcuts"=>"access","tools"=>"tools",_=>"status"};
     private string PageName(string page)=>PageName(app,page);
-    internal static string PageName(App app,string page)=>Localization.Text(Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","focus"=>app.SupportsWidget("focus")?"Focus":"Timer","stopwatch"=>"Stopwatch","voice"=>"Naby voice","status"=>"Status","tools"=>"Tools",_=>"Launch"});
+    internal static string PageName(App app,string page)=>Localization.Text(Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","timer"=>"Timer","stopwatch"=>"Stopwatch","status"=>"Status","tools"=>"Tools",_=>"Launch"});
     private string? hoverPanelWidget;
     private bool WidgetOn(string id)=>app.SupportsWidget(id) && (id==hoverPanelWidget || app.Settings.Widgets.Any(w=>w.Enabled && w.Id==id));
     private IEnumerable<WidgetSetting> PanelWidgets=>app.Settings.Widgets.Where(w=>app.SupportsWidget(w.Id) && (w.Enabled || w.Id==hoverPanelWidget));
     private void OpenHoverPanel(string widget,bool activate=true)
     {
-        LeaveAssistantPanel();
+
         string page=PageFor(widget);
         bool hidden=!app.Settings.Widgets.Any(w=>w.Enabled && w.Id==widget) || !app.Settings.CompactLayout && Settings.ToolNames.ContainsKey(widget);
         bool leavingMixer=classicMixerOpen;classicMixerOpen=false;
@@ -73,10 +72,10 @@ public sealed partial class OverlayWindow
         }));
         root.MouseEnter+=(_,_)=>{if(DiagnosticRun)return;if(IsTucked){RevealTuckedPreview();return;}leaveDelay.Stop();if(peeking){automaticPreview=false;activityDismiss.Stop();}else{previewKind=activityTitle=activityDetail="";}if(!coverGesture.Pressed && !expanded && !peeking && app.Settings.HoverPeek && app.Settings.CompactLayout && !userHidden && !TuckRequested)hoverDelay.Start();};
         root.MouseLeave+=(_,_)=>{if(DiagnosticRun)return;hoverDelay.Stop();if(peeking || TuckRequested)leaveDelay.Start();};
-        hoverDelay.Tick+=(_,_)=>{hoverDelay.Stop();if(assistantCharacterButton.IsMouseOver){PreviewAssistant();return;}if(PointerInside() && !expanded && !userHidden && !TuckRequested)PreviewActivity();};
+        hoverDelay.Tick+=(_,_)=>{hoverDelay.Stop();if(PointerInside() && !expanded && !userHidden && !TuckRequested)PreviewActivity();};
         leaveDelay.Tick+=(_,_)=>
         {
-            leaveDelay.Stop();if(!(peeking || TuckRequested) || AssistantReplyVisible || PointerInside() || fileDragActive)return;
+            leaveDelay.Stop();if(!(peeking || TuckRequested) || PointerInside() || fileDragActive)return;
             // A drop-down hanging outside the panel keeps it open; collapse once it closes with the pointer outside.
             if(OwnedPopupOpen){leaveDelay.Start();return;}
             if(!PeekInteractionActive)Collapse();
@@ -116,13 +115,13 @@ public sealed partial class OverlayWindow
         seekDelay.Tick+=async(_,_)=>{seekDelay.Stop();await app.Media.Seek(seekSlider.Value);};
         InitializeMediaTimeline();
     }
-    private void StopHoverTimers(){hoverDelay.Stop();leaveDelay.Stop();detailDelay.Stop();assistantHover.Stop();}
+    private void StopHoverTimers(){hoverDelay.Stop();leaveDelay.Stop();detailDelay.Stop();}
     internal void PreviewActivity()
     {
         if(app.Notifications.Current!=null && !expanded && !peeking && !fileDragActive && !userHidden){OpenNotice();return;}
         if(PeekPages().Length==0 || (!app.Settings.CompactLayout && !tuckPreview && !fileDragActive) || (!app.Settings.HoverPeek && !automaticPreview && !tuckPreview && !fileDragActive) || expanded || peeking || userHidden || (TuckRequested && !tuckPreview && !fileDragActive))return;
         if(PortraitDock && !DiagnosticRun && PointerInside() && Native.CursorPoint(out var pointer))portraitHoverPointer=pointer.Y;
-        peeking=true;RefreshNoticeEdge();SyncAssistantVisibility();Show();Dimensions();ConfigurePerformance();peekDetailed=!app.Settings.TwoStageHover || automaticPreview;detailDelay.Stop();if(!peekDetailed)detailDelay.Start();
+        peeking=true;RefreshNoticeEdge();SyncLopataMascot();Show();Dimensions();ConfigurePerformance();peekDetailed=!app.Settings.TwoStageHover || automaticPreview;detailDelay.Stop();if(!peekDetailed)detailDelay.Start();
         scroll.Visibility=Visibility.Collapsed;compact.IsHitTestVisible=false;Motion.Fade(compact,0,80);
         PreparePeekDeck();
         peekPanel.Visibility=Visibility.Visible;peekPanel.IsHitTestVisible=true;Motion.Fade(peekPanel,1,160);
@@ -131,14 +130,14 @@ public sealed partial class OverlayWindow
     }
     private void UpdatePeek()
     {
-        if(!peeking || noticeShowing || assistantPeeking)return;
+        if(!peeking || noticeShowing)return;
         UpdatePeekDeck();
         bool media=app.Media.Available;ApplyMediaTypography(peekTitle,media && app.Settings.BoldMediaTitle);
         peekArt.Visibility=media && app.Media.Artwork!=null?Visibility.Visible:Visibility.Collapsed;SwapArtwork(peekArt,media?app.Media.Artwork:null);
         peekFallback.Visibility=peekArt.Visibility==Visibility.Visible?Visibility.Collapsed:Visibility.Visible;
         var now=DateTimeOffset.Now;
-        string caption=media?app.Media.Title:WidgetOn("focus") && app.Session.Focus.Remaining(now)>0?Localization.Format("Focus · {0}", app.Session.Focus.Display(now)):WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?Localization.Format("Timer · {0}", app.Session.Timer.Display(now)):now.ToString("HH:mm");
-        if(activityDetail=="Ending soon")caption=(previewKind=="timer"?Localization.Format("Timer · {0}", app.Session.Timer.Display(now)):"Focus · "+app.Session.Focus.Display(now));
+        string caption=media?app.Media.Title:WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?Localization.Format("Timer · {0}", app.Session.Timer.Display(now)):now.ToString("HH:mm");
+        if(activityDetail=="Ending soon")caption=Localization.Format("Timer · {0}", app.Session.Timer.Display(now));
         if(media)SwapText(peekTitle,caption);else Motion.Text(peekTitle,caption);
         string detail=media?app.Media.Artist:ActiveCountdown()!=null?Localization.Text("Session running · click for controls"):now.ToString("dddd, d MMMM",Localization.Culture);
         if(media)SwapText(peekSubtitle,detail);else Motion.Text(peekSubtitle,detail);
@@ -162,10 +161,6 @@ public sealed partial class OverlayWindow
         var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,app.Settings.SectionGap)};
         // Equal side columns keep the page dots centered between the two ends.
         navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});navigation.ColumnDefinitions.Add(new());navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});
-        if (!app.UsesLopataEdition)
-        {
-            var launcher=AssistantLauncher();launcher.HorizontalAlignment=HorizontalAlignment.Left;navigation.Children.Add(launcher);
-        }
         var close = LopataActions.Button(LopataEdition.CloseCaption, "x", app.Quit, size: 28);
         close.Margin = new(0);
         close.Background = Brushes.Transparent;
@@ -194,7 +189,7 @@ public sealed partial class OverlayWindow
     }
     internal void SelectPage(string page,bool animate=true)
     {
-        LeaveAssistantPanel();
+
         mediaControls?.Close(false);EnsureBody();
 
         if(!app.Settings.CompactLayout || commandOpen || !compactPages.ContainsKey(page))return;
@@ -319,23 +314,13 @@ public sealed partial class OverlayWindow
             var controls=BuildMediaControls(panel, heading => WithHomeWidgetStar(heading, "media"));
             return WidgetOn("media")?WrapMediaLyrics(controls):controls;
         }
-        if(page=="voice")return new AssistantVoiceView(app);
         if(page=="stopwatch")return new StopwatchView(app, heading => WithHomeWidgetStar(heading, page));
-        if(page=="focus")
-        {
-            var row=new Grid();bool stacked=bodyWidth<310;int count=PanelWidgets.Count(w=>PageFor(w.Id)=="focus");for(int i=0;i<count;i++){if(stacked)row.RowDefinitions.Add(new(){Height=GridLength.Auto});else row.ColumnDefinitions.Add(new());}int column=0;
-            foreach(var widget in PanelWidgets.Where(w=>PageFor(w.Id)=="focus"))
+        if (page == "timer")
+            return new Border
             {
-                var contents=new CountdownView(app,widget.Id=="focus", decorateHeading: heading => WithHomeWidgetStar(heading, page));
-                var module=new Border{BorderBrush=UI.Brush(IslandPalette.ControlBorder(app.Settings)),BorderThickness=new Thickness(0),Padding=stacked?new Thickness(0,4,0,4):new Thickness(column==0?0:14,4,column==0?14:0,4),Margin=stacked?new Thickness(0,column==0?0:16,0,0):new Thickness(column==0?0:8,0,0,0),Child=contents};if(stacked)Grid.SetRow(module,column++);else Grid.SetColumn(module,column++);row.Children.Add(module);module.SetResourceReference(Border.BorderBrushProperty,"ControlBorder");
-            }
-            bodyReflow.Add(()=>
-            {
-                bool vertical=bodyWidth<310;row.RowDefinitions.Clear();row.ColumnDefinitions.Clear();int index=0;
-                foreach(Border module in row.Children){if(vertical)row.RowDefinitions.Add(new(){Height=GridLength.Auto});else row.ColumnDefinitions.Add(new());Grid.SetRow(module,vertical?index:0);Grid.SetColumn(module,vertical?0:index);module.BorderThickness=new Thickness(0);module.Padding=vertical?new Thickness(0,4,0,4):new Thickness(index==0?0:14,4,index==0?14:0,4);module.Margin=vertical?new Thickness(0,index==0?0:16,0,0):new Thickness(index==0?0:8,0,0,0);index++;}
-            });
-            return row;
-        }
+                Padding = new Thickness(0, 4, 0, 4),
+                Child = new CountdownView(app, decorateHeading: heading => WithHomeWidgetStar(heading, page))
+            };
         if(page=="status")
         {
             var panel=new StackPanel();
@@ -378,6 +363,6 @@ public sealed partial class OverlayWindow
     private void QueueMediaLayout()
     {
         if(mediaLayoutPending)return;mediaLayoutPending=true;
-        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,()=>{mediaLayoutPending=false;if(expanded && app.Settings.CompactLayout && activePage=="media" && !assistantOpen && !commandOpen)ResizeToolPanel();});
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,()=>{mediaLayoutPending=false;if(expanded && app.Settings.CompactLayout && activePage=="media" && !commandOpen)ResizeToolPanel();});
     }
 }

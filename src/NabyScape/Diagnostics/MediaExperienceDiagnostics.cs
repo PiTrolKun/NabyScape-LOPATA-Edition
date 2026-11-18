@@ -56,8 +56,6 @@ internal static class MediaExperienceDiagnostics
         island.ShowTools("notes",false);await Task.Delay(120);check("Notes survive moving between separate tool panels",Entry("Quick notes").Text=="Note retained while changing panels.");
         note=Entry("Quick notes");note.Focus();note.Select(5,8);double beforeScroll=Field<ScrollViewer>(island,"scroll").VerticalOffset;s.Accent="#C5D8F2";app.ChangeSettings();await Task.Delay(120);check("Resource-only preferences preserve note editor, selection and scroll",ReferenceEquals(note,Entry("Quick notes")) && note.SelectionStart==5 && note.SelectionLength==8 && Math.Abs(beforeScroll-Field<ScrollViewer>(island,"scroll").VerticalOffset)<1);
         s.PanelAutoHeight=false;s.PanelMaxHeight=520;app.ChangeSettings();await Task.Delay(80);check("Manual panel height can grow beyond its current content",Math.Abs(island.PaintedHeight-520)<1);s.PanelAutoHeight=true;s.PanelMaxHeight=650;app.ChangeSettings();
-        s.FocusMinutes=17;s.BreakMinutes=4;app.ChangeSettings();island.SelectPage("focus",false);await Task.Delay(140);var focus=Entry("Focus minutes");focus.Text="31";focus.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice,PresentationSource.FromVisual(island),0,Key.Enter){RoutedEvent=Keyboard.PreviewKeyDownEvent});check("Focus duration is editable directly in the panel",s.FocusMinutes==31 && Entry("Break minutes").Text=="4");
-        var start=Diagnostics.Descendants(island).OfType<Button>().Single(b=>AutomationProperties.GetName(b)=="Start focus");start.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));check("Focus start uses the edited duration",app.Session.Focus.Running && app.Session.Focus.Remaining(DateTimeOffset.UtcNow)>30*60);app.Session.Focus.Reset();app.SaveSession();Capture("focus-editable");
         s.DockUnlocked=true;app.ChangeSettings();island.Collapse();await Task.Delay(160);check("Dock exposes named move and corner-resize grips",Diagnostics.Descendants(island).OfType<Thumb>().Count(t=>t.IsVisible && AutomationProperties.GetName(t).Contains("island"))==3);Capture("dock-editing");
         var saved=DockLayout.From(s);s.Width=390;s.Height=52;s.PanelWidth=760;s.HoverWidth=680;Invoke(island,"ReflowDisplay");saved.Restore(s);app.ChangeSettings();check("Cancelling geometry edits restores independent closed, hover and panel sizes",s.Width==saved.Width && s.HoverWidth==saved.HoverWidth && s.PanelWidth==saved.PanelWidth);
         s.DockUnlocked=false;s.HoverWidth=710;s.HoverHeight=260;app.ChangeSettings();island.PreviewActivity();await Task.Delay(180);check("Hover width can exceed panel width independently",island.PaintedWidth>island.PaintedHeight && Math.Abs(island.PaintedWidth-710)<2);Capture("hover-independent-size");island.Collapse();
@@ -66,7 +64,7 @@ internal static class MediaExperienceDiagnostics
             s.PanelWidth=width;app.ChangeSettings();island.Reveal(false);island.SelectPage("media",false);await Task.Delay(180);
             var body=Field<StackPanel>(island,"body");var bounds=body.TransformToAncestor(island).TransformBounds(new Rect(0,0,body.ActualWidth,body.ActualHeight));double left=(island.ActualWidth-island.PaintedWidth)/2;
             check("Media horizontal insets are symmetric at "+width+" DIP",Math.Abs((bounds.Left-left)-(left+island.PaintedWidth-bounds.Right))<2);
-            var fft=new SpectrumTransform(48000);for(int sample=0;sample<8000;sample++)fft.Add((float)(.18*Math.Sin(2*Math.PI*110*sample/48000)+.04*Math.Sin(2*Math.PI*1400*sample/48000)+.013*Math.Sin(2*Math.PI*7600*sample/48000)));Field<ActivityVisual>(island,"musicWave").Sample(.4,.1,0,false,false,true,0,true,false,fft.Bands,s.WaveformSensitivity);
+            var fft=new SpectrumTransform(48000);for(int sample=0;sample<8000;sample++)fft.Add((float)(.18*Math.Sin(2*Math.PI*110*sample/48000)+.04*Math.Sin(2*Math.PI*1400*sample/48000)+.013*Math.Sin(2*Math.PI*7600*sample/48000)));Field<ActivityVisual>(island,"musicWave").Sample(.4,.1,0,false,true,0,true,false,fft.Bands,s.WaveformSensitivity);
             Capture("media-"+width);foreach(double dpi in new[]{1.5,2d})Capture("media-"+width+"-"+(dpi*100),dpi);
         }
         island.Collapse();island.ToggleVisibility();await Task.Delay(1200);check("Output spectrum releases capture after its last visual consumer",app.Audio.SpectrumCaptureCount==0);island.ToggleVisibility();
@@ -88,12 +86,6 @@ internal static class MediaExperienceDiagnostics
         }
         using(var output=File.Create(Path.Combine(directory,"lyrics-presets.gif")))gif.Save(output);s.ReduceMotion=true;Motion.Configure(s);
         check("All lyric presets render within the content inset",lyrics.ActualWidth<=Field<StackPanel>(island,"body").ActualWidth+.5);
-        var provider=new AssistantProvider{Name="Local fixture",Model="fixture"};app.Assistant.Options.Providers.Clear();app.Assistant.Options.Providers.Add(provider);app.Assistant.Options.SelectedProvider=provider.Id;app.Assistant.Options.Enabled=true;app.Assistant.SaveOptions();app.Assistant.Conversation.Record("user","Help me plan a calmer workspace.");app.Assistant.Conversation.Record("assistant","Start with the tools you use most. Keep your notes close, and give the rest a little room.");
-        foreach(double width in new[]{300d,526d})
-        {
-            s.PanelWidth=width;s.PanelMaxHeight=460;app.ChangeSettings();island.OpenAssistant(false);await Task.Delay(180);Capture("naby-chat-"+width);var input=Entry("Message AI companion");input.Text="A message draft";input.Select(2,5);s.Accent="#FFFFFF";app.ChangeSettings();await Task.Delay(80);check("AI composer remains usable with preserved draft at "+width+" DIP",Entry("Message AI companion").Text=="A message draft" && input.SelectionStart==2 && input.SelectionLength==5);
-        }
-        island.CloseAssistant();
         var window=new SettingsWindow(app){ShowActivated=false};window.Show();await Task.Delay(160);
         foreach(string category in new[]{"Audio","Layout","Application","Content"})
         {
@@ -105,7 +97,7 @@ internal static class MediaExperienceDiagnostics
                 check("Settings lyric sample never starts an external metadata request",typeof(LyricsService).GetField("pending",Private)!.GetValue(app.Lyrics)==null);
             }
         }
-        window.Close();check("UI diagnostics never start voice or screen sharing",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
+        window.Close();
         File.WriteAllText(Path.Combine(directory,"capture-notes.txt"),"WPF RenderTargetBitmap captures at 100/150/200% rendering scale; this is not physical monitor/DPI relocation or GPU-presented-frame measurement. Note, task, conversation and lyric text are original fixtures. No credential, microphone, screen sharing, shell action or actual media command used. Lyrics lookup tests use fake HTTP. "+(live?(spectrum?"Real output FFT bands verified from current media in memory. No samples were saved.":"Live source was muted or could not be resolved; measured amplitude fallback verified. No samples were saved."):"Live output spectrum hardware check skipped: no playing media session was available."));
     }
 }

@@ -42,13 +42,13 @@ public sealed partial class SettingsWindow
     }
     private void CompletionSoundSettings()
     {
-        var s=app.Settings;var sounds=UI.CaptionChoice(new[]{"Chime","Bell","Custom","Off"},s.CountdownSound);UI.Named(sounds,Localization.Text(app.UsesLopataEdition?"Timer sound":"Timer and Focus completion sound"));
+        var s=app.Settings;var sounds=UI.CaptionChoice(new[]{"Chime","Bell","Custom","Off"},s.CountdownSound);UI.Named(sounds,Localization.Text("Timer sound"));
         var path=UI.Text(s.CountdownSoundFile.Length>0?System.IO.Path.GetFileName(s.CountdownSoundFile):Localization.Text("No custom sound chosen"),11,UI.Muted);
         var volume=new StackPanel();AddSlider(volume,"Completion sound volume",s.CountdownSoundVolume*100,0,100,value=>s.CountdownSoundVolume=value/100,"%");
         sounds.SelectionChanged+=(_,_)=>{s.CountdownSound=sounds.SelectedValue?.ToString()??"Chime";Save();};
         var feedback=UI.Text("",11,UI.Muted);
         var choose=UI.Button(Localization.Text("Choose WAV…"),()=>{var dialog=new Microsoft.Win32.OpenFileDialog{Filter=Localization.Text("Wave audio (*.wav)")+"|*.wav",Title=Localization.Text("Choose a completion sound (up to 15 seconds)")};if(dialog.ShowDialog(this)!=true)return;s.CountdownSoundFile=dialog.FileName;s.CountdownSound="Custom";sounds.SelectedValue="Custom";path.Text=System.IO.Path.GetFileName(dialog.FileName);Save();});
-        var soundHelp=app.UsesLopataEdition?"The timer plays this sound through the current Windows output when timer alerts are enabled. Choose Off for silence. Custom WAV files may be up to 15 seconds and must be under 10 MB.":"Timer and Focus play this sound directly when their per-type notification toggle is on. It uses the current Windows output; Off silences it. Custom WAV files must be under 10 MB and at most 15 seconds. File paths are kept locally and excluded from layout exports.";
+        var soundHelp="The timer plays this sound through the current Windows output when timer alerts are enabled. Choose Off for silence. Custom WAV files may be up to 15 seconds and must be under 10 MB.";
         page.Children.Add(Section("Completion sound",sounds,volume,path,choose,UI.Button(Localization.Text("Preview sound"),()=>{app.CountdownAudio.Play(s);feedback.Text=app.CountdownAudio.LastError??Localization.Text("Played through your Windows output. Sound does not depend on Windows notifications.");}),feedback,UI.Caption(soundHelp,11,UI.Muted)));
     }
 }

@@ -86,7 +86,7 @@ public sealed partial class OverlayWindow
             surface.BeginUpdate();
             try{if(!noticeShowing){motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:peeking?PeekSurfaceWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:peeking?CurrentPeekHeight:ClosedSurfaceHeight);}}
             finally{surface.EndUpdate();}
-            if(peeking && !noticeShowing){if(assistantPeeking)LayoutAssistantPeek();else PreparePeekDeck();}
+            if(peeking && !noticeShowing)PreparePeekDeck();
         }
         surface.Refresh();ApplyEnvironmentTuck();Position();Update();ConfigureLiveActivity();return true;
     }

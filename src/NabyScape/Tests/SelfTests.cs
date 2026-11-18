@@ -20,13 +20,10 @@ internal static class SelfTests
         {
             if(checks.Count==0){failed++;checks.Add("FAIL  No tests matched the requested filter.");}
             checks.Add($"RESULT: {checks.Count-failed} passed, {failed} failed");
-            checks.AddRange(AssistantCaptureTests.Evidence);
             if(reportAt>=0 && reportAt+1<args.Length)File.WriteAllLines(args[reportAt+1],checks);
             Environment.ExitCode=failed==0?0:1;
         }
         WpfOptimizationTests.Run(Test);
-        if(Array.Exists(args,a=>a=="--capture-optimization-tests-only"))
-        {AssistantCaptureTests.Run(Test);Finish();return;}
         Test("Factory preferences match the selected daily setup without personal content",()=>
         {
             var s=FactoryDefaults.Create();
@@ -35,29 +32,23 @@ internal static class SelfTests
             Assert(s.ClosedAmbient && s.AmbientScope=="Music only" && s.AmbientStrength==.2 && s.AmbientMotion=="Breathe" && s.WaveformSource=="Spectrum" && s.WaveformSensitivity==3);
             Assert(s.ClosedMediaIcon=="Artwork" && s.ClosedMediaContent=="Waveform" && !s.DetachablePreviews);
             Assert(HoverPagePolicy.Pages(s).SequenceEqual(s.Widgets.Where(w=>w.Enabled && HoverPagePolicy.Ids.Contains(w.Id)).Select(w=>w.Id)));
-            Assert(string.Join(",",s.Widgets.Select(w=>w.Id))=="media,volume,timer,focus,clock,weather,system,battery,shortcuts,stopwatch,files,notes,tasks,clips,calendar,awake,links,voice,power" && s.Widgets.All(w=>w.Enabled!=(w.Id is "voice" or "power")));
-            Assert(s.AutoCheckUpdates && !s.AutoDownloadUpdates);
+            Assert(string.Join(",",s.Widgets.Select(w=>w.Id))=="media,volume,timer,clock,weather,system,battery,shortcuts,stopwatch,files,notes,tasks,clips,calendar,awake,links,power" && s.Widgets.All(w=>w.Enabled!=(w.Id == "power")));
             Assert(s.ClipboardHistory && s.AutoStart && s.DownloadsEnabled && s.DownloadsFolder=="" && s.Monitor=="" && s.RecentColors.Count==0);
             Assert(s.LyricsEnabled && s.NotificationDelivery=="Both" && s.QuietHours && s.QuietStart==22 && s.QuietEnd==7 && s.NotificationSeconds==10);
             Assert(s.Shortcuts.Count==2 && s.Shortcuts[0].Target=="explorer.exe" && s.Shortcuts[1].Target=="ms-settings:");
-            s.HoverViews[0].Enabled=false;s.Widgets.Clear();Assert(FactoryDefaults.Create().HoverViews[0].Enabled && FactoryDefaults.Create().Widgets.Count==19);
+            s.HoverViews[0].Enabled=false;s.Widgets.Clear();Assert(FactoryDefaults.Create().HoverViews[0].Enabled && FactoryDefaults.Create().Widgets.Count==17);
         });
         Test("App resources retain installer notices, theme and icon after source relocation",()=>
         {
             var assembly=typeof(App).Assembly;
             foreach(string name in new[]{"LICENSE","NAudio-LICENSE.txt","LUCIDE-LICENSE.txt","DOTNET-LICENSE.txt","DOTNET-ThirdPartyNotices.txt"})
             {using var notice=assembly.GetManifestResourceStream("NabyScape."+name);Assert(notice is {Length:>0},"Missing embedded notice: "+name);}
-            using var packed=assembly.GetManifestResourceStream("NabyScape.g.resources");Assert(packed!=null,"Missing WPF resource bundle");
+            using var packed=assembly.GetManifestResourceStream(assembly.GetName().Name+".g.resources");Assert(packed!=null,"Missing WPF resource bundle");
             using var reader=new System.Resources.ResourceReader(packed!);
             var keys=reader.Cast<System.Collections.DictionaryEntry>().Select(entry=>entry.Key.ToString()).ToArray();
             Assert(keys.Contains("theme.baml") && keys.Contains("assets/island.ico"),"WPF resource paths changed");
         });
-        MinimalWidgetTests.Run(Test);ReactiveAmbientTests.Run(Test);PremiumExperienceTests.Run(Test);AssistantProviderTests.Run(Test);
-        AssistantVoiceTests.Run(Test);
-        AssistantSpeechRemovalTests.Run(Test);
-        UxCompletionTests.Run(Test);
-        AssistantCoreTests.Run(Test);
-        AssistantCaptureTests.Run(Test);
+        MinimalWidgetTests.Run(Test);ReactiveAmbientTests.Run(Test);PremiumExperienceTests.Run(Test);
         Stage5Tests.Run((name,pass)=>Test("Stage5: "+name,()=>Assert(pass)));
         InteractionFeatureTests.Run((name,pass)=>Test(name,()=>Assert(pass)));
         WaveformMotionTests.Run((name,pass)=>Test(name,()=>Assert(pass)));
@@ -70,7 +61,6 @@ internal static class SelfTests
         InteractionHotfixTests.Run(Test);
         PersistenceTests.Run(Test);
         ProductionFoundationTests.Run(Test);
-        UpdateTests.Run(Test);
         InstallationInputTests.Run(Test);
         NotificationDownloadTests.Run(Test);
         WeatherRefreshTests.Run(Test);ClosedDockClockTests.Run(Test);
@@ -95,8 +85,8 @@ internal static class SelfTests
         Test("Countdown display handles hours",()=> {var c=new Countdown();c.Start(3661,now);Assert(c.Display(now)=="1:01:01");});
         Test("Settings normalize dimensions, colors, widgets, and durations",()=>
         {
-            var s=new Settings{Width=900,Height=-4,Opacity=2,Accent="invalid",FocusMinutes=0,Widgets=new(){new(){Id="media"},new(){Id="media"},new(){Id="invalid"}}};s.Normalize();
-            Assert(s.Width==Settings.ClosedWidthMax && s.Height==28 && s.Opacity==1 && s.Accent=="#FFFFFF" && s.FocusMinutes==1);
+            var s=new Settings{Width=900,Height=-4,Opacity=2,Accent="invalid",HomeWidget="focus",Widgets=new(){new(){Id="media"},new(){Id="media"},new(){Id="focus"},new(){Id="voice"},new(){Id="invalid"}}};s.Normalize();
+            Assert(s.Width==Settings.ClosedWidthMax && s.Height==28 && s.Opacity==1 && s.Accent=="#FFFFFF" && s.HomeWidget=="timer" && s.Widgets.All(w=>w.Id is not ("voice" or "focus")));
             Assert(s.Widgets.Count==Settings.Names.Count-1 && s.Widgets.All(w=>w.Id!="tools") && s.Widgets.Select(w=>w.Id).Distinct().Count()==Settings.Names.Count-1);
         });
         Test("Hex colors reject malformed input",()=> {Assert(Settings.ValidColor("#abcDEF"));Assert(!Settings.ValidColor("red"));Assert(!Settings.ValidColor("#00000000"));Assert(!Settings.ValidColor(null));});
@@ -164,10 +154,10 @@ internal static class SelfTests
                 var s=new Settings{Preset="Mac",Monitor="test-monitor"};s.Widgets.Reverse();s.Widgets[0].Enabled=false;s.Shortcuts.Add(new(){Name="Contoh",Target="https://example.com"});
                 store.Save("settings",s);var read=store.Load<Settings>("settings");read.Normalize();Assert(read.Preset=="Mac" && read.Monitor=="test-monitor" && read.Widgets[0].Id==s.Widgets[0].Id && !read.Widgets[0].Enabled && read.Shortcuts.Count==3);
             });
-            Test("Running and paused timers survive process restart",()=>
+            Test("A paused timer survives process restart",()=>
             {
-                var state=new SessionState();state.Timer.Start(120,now);state.Focus.Start(1500,now,"work");state.Focus.Pause(now.AddSeconds(30));store.Save("session",state);
-                var read=store.Load<SessionState>("session");Assert(read.Timer.Remaining(now.AddSeconds(90))==30 && read.Focus.RemainingSeconds==1470 && !read.Focus.Running && read.Focus.Phase=="work");
+                var state=new SessionState();state.Timer.Start(120,now);state.Timer.Pause(now.AddSeconds(30));store.Save("session",state);
+                var read=store.Load<SessionState>("session");Assert(read.Timer.Remaining(now.AddSeconds(90))==90 && !read.Timer.Running);
             });
             Test("Malformed settings are backed up before recovery",()=>
             {

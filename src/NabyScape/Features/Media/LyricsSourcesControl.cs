@@ -55,7 +55,7 @@ internal sealed class LyricsSourcesControl : StackPanel
         foreach(string source in LyricsProviders.Names)
         {
             bool key=LyricsProviders.NeedsKey(source);bool connector=LyricsProviders.NeedsConnector(source);bool video=LyricsProviders.NeedsVideo(source);
-            bool ready=video?app.Lyrics.HasVideo(app.Media.Title,app.Media.Artist):connector?app.Lyrics.HasConnector(source):!key || new AssistantKeys().Exists(LyricsProviders.KeyFor(source));
+            bool ready=video?app.Lyrics.HasVideo(app.Media.Title,app.Media.Artist):connector?app.Lyrics.HasConnector(source):!key || new LyricsKeys().Exists(LyricsProviders.KeyFor(source));
             Row(source,ready?"":video?"Add video link":key?"Connect API key":"Connect lyrics server",()=>{if(!ready){Configure(source,key);return;}_=Fetch(source);},app.Lyrics.SelectedSource==source);
         }
         menu.Children.Add(new Separator{Margin=new(0,6,0,6)});
@@ -69,10 +69,10 @@ internal sealed class LyricsSourcesControl : StackPanel
         if(key){UI.Named(secret,source+" API key");menu.Children.Add(secret);}else menu.Children.Add(endpoint);
         Row("Save connection","",()=>
         {
-            try{if(key){new AssistantKeys().Write(LyricsProviders.KeyFor(source),secret.Password);secret.Clear();}else if(video)app.Lyrics.ConfigureVideo(endpoint.Text,app.Media.Title,app.Media.Artist);else app.Lyrics.ConfigureConnector(source,new Uri(endpoint.Text.Trim(),UriKind.Absolute));ShowSources();}
+            try{if(key){new LyricsKeys().Write(LyricsProviders.KeyFor(source),secret.Password);secret.Clear();}else if(video)app.Lyrics.ConfigureVideo(endpoint.Text,app.Media.Title,app.Media.Artist);else app.Lyrics.ConfigureConnector(source,new Uri(endpoint.Text.Trim(),UriKind.Absolute));ShowSources();}
             catch(Exception ex){status.Text=ex.Message;}
         });
-        if(key)Row("Remove saved key","",()=>{try{new AssistantKeys().Remove(LyricsProviders.KeyFor(source));ShowSources();}catch(Exception ex){status.Text=ex.Message;}});
+        if(key)Row("Remove saved key","",()=>{try{new LyricsKeys().Remove(LyricsProviders.KeyFor(source));ShowSources();}catch(Exception ex){status.Text=ex.Message;}});
         Row("Back","",ShowSources);
     }
     private void ShowTextChoices()

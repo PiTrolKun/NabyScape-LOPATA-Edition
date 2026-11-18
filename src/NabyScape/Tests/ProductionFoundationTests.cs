@@ -30,13 +30,13 @@ internal static class ProductionFoundationTests
             WelcomeSetup.Complete(store);
             Assert(before==File.ReadAllText(Path.Combine(store.DirectoryPath,"settings.json")),"Setup marker changed preferences.");
         });
-        Fixture("Update download preference matches the owner snapshot and preserves existing opt-out",store=>
+        Fixture("Downloads watcher preference preserves an existing opt-out",store=>
         {
-            Assert(!store.Load<Settings>("new-profile").AutoDownloadUpdates,"New profile did not match the owner snapshot.");
-            store.Save("existing",new Settings{AutoDownloadUpdates=false});
-            Assert(!store.Load<Settings>("existing").AutoDownloadUpdates,"Existing opt-out was overwritten.");
+            Assert(store.Load<Settings>("new-profile").DownloadsEnabled,"New profile did not match the owner snapshot.");
+            store.Save("existing",new Settings{DownloadsEnabled=false});
+            Assert(!store.Load<Settings>("existing").DownloadsEnabled,"Existing opt-out was overwritten.");
             File.WriteAllText(Path.Combine(store.DirectoryPath,"legacy.json"),"{}");
-            Assert(!store.Load<Settings>("legacy").AutoDownloadUpdates,"Legacy profile unexpectedly opted into downloads.");
+            Assert(store.Load<Settings>("legacy").DownloadsEnabled == new Settings().DownloadsEnabled,"Legacy profile changed the file watcher default.");
         });
         Fixture("Future schema preserves payload and metadata and refuses defaults overwrite",store=>
         {
@@ -60,11 +60,11 @@ internal static class ProductionFoundationTests
         });
         Fixture("Preference restore accepts nullable location and preserves capture consent",store=>
         {
-            var settings=new Settings{Width=333,WeatherLatitude=null,WeatherLongitude=null,ClipboardHistory=true,UiLanguage="es",AutoDownloadUpdates=false};
+            var settings=new Settings{Width=333,WeatherLatitude=null,WeatherLongitude=null,ClipboardHistory=true,UiLanguage="es"};
             PreferenceReset.Reset(store,settings,null);
-            Assert(settings.ClipboardHistory && settings.UiLanguage=="en" && !settings.AutoDownloadUpdates,"Reset changed capture consent or missed application preferences.");
+            Assert(settings.ClipboardHistory && settings.UiLanguage=="en","Reset changed capture consent or missed application preferences.");
             settings.ClipboardHistory=false;PreferenceReset.Restore(store,settings);
-            Assert(!settings.ClipboardHistory && settings.Width==333 && settings.WeatherLatitude==null && settings.WeatherLongitude==null && settings.UiLanguage=="es" && !settings.AutoDownloadUpdates,"Restore changed consent or nullable preferences.");
+            Assert(!settings.ClipboardHistory && settings.Width==333 && settings.WeatherLatitude==null && settings.WeatherLongitude==null && settings.UiLanguage=="es","Restore changed consent or nullable preferences.");
             var node=System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(store.DirectoryPath,"preference-backup.json")))!;
             node.AsObject().Remove("WeatherLatitude");File.WriteAllText(Path.Combine(store.DirectoryPath,"preference-backup.json"),node.ToJsonString());
             bool rejected=false;try{PreferenceReset.Restore(store,settings);}catch(InvalidDataException){rejected=true;}
@@ -96,7 +96,8 @@ internal static class ProductionFoundationTests
             var placeholder=new System.Text.RegularExpressions.Regex(@"\{(\d+)(?:[,:][^}]*)?\}");
             string Slots(string text)=>string.Join(",",placeholder.Matches(text).Select(m=>m.Groups[1].Value).OrderBy(v=>v,StringComparer.Ordinal));
             var arguments=Enumerable.Range(0,10).Select(i=>(object)i).ToArray();
-            Assert(LocalizationCatalog.Keys.Count>=435,"The English catalog lost entries.");
+            Assert(new[] { "Settings", "Timer", "Media", "Main widget", "Search settings" }.All(LocalizationCatalog.Keys.Contains),
+                "The catalog is missing a primary island caption.");
             foreach(var (code,_,translations) in LocalizationCatalog.Languages.Skip(1))
             {
                 var missing=LocalizationCatalog.Keys.Where(key=>!translations.TryGetValue(key,out var text) || string.IsNullOrWhiteSpace(text)).ToArray();

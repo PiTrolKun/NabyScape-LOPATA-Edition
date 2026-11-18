@@ -35,7 +35,7 @@ public sealed partial class OverlayWindow
     {body.UpdateLayout();Dimensions(true);if(expanded){motion.Go(surface,IslandSurface.SurfaceWidthProperty,expandedWidth,Math.Min(300,app.Settings.AnimationMs));motion.Go(surface,IslandSurface.SurfaceHeightProperty,expandedHeight,Math.Min(300,app.Settings.AnimationMs));}}
     internal void ShowCommands(bool activate=true)
     {
-        LeaveAssistantPanel();FlushNotes();commandOpen=true;BuildBody();scroll.ScrollToTop();Reveal(activate);ResizeToolPanel();
+        FlushNotes();commandOpen=true;BuildBody();scroll.ScrollToTop();Reveal(activate);ResizeToolPanel();
         if(activate)Dispatcher.BeginInvoke(()=>commandInput?.Focus());
     }
     private void CloseCommands()
@@ -51,13 +51,11 @@ public sealed partial class OverlayWindow
     }
     private IEnumerable<(string title,string detail,Action run)> Commands()
     {
-        yield return app.UsesLopataEdition
-            ? ("LOPATA chat", "Use LOPATA's local core to chat", app.ShowLopataChat)
-            : ("AI companion", "Chat, voice and reviewed actions · configure your own provider", app.ShowAssistant);
+        yield return ("LOPATA chat", "Use LOPATA's local core to chat", app.ShowLopataChat);
         yield return ("Notifications","See every recent alert, including Downloads · Enter",()=>{CloseCommands();OpenNotificationCenter();});
         yield return ("Tuck / Return to automatic","Toggle the manual tuck latch; hover the edge to preview",()=>{CloseCommands();ToggleTuck();});
         yield return ("Open Settings","Appearance, widgets, and interaction",app.ShowSettings);
-        foreach(var pair in new[]{("media","Media controls"),("focus",app.SupportsWidget("focus")?"Timers & focus":"Timer"),("status","System status"),("access","Quick launch")})
+        foreach(var pair in new[]{("media","Media controls"),("timer","Timer"),("status","System status"),("access","Quick launch")})
         {
             var page=pair.Item1;if(!PanelWidgets.Any(w=>PageFor(w.Id)==page))continue;
             yield return (Localization.Text(pair.Item2),"Open this island page",()=>{CloseCommands();if(app.Settings.CompactLayout)SelectPage(page);});

@@ -18,8 +18,8 @@ internal static class NotificationCenterText
         if(age<TimeSpan.FromDays(1))return Localization.Format("{0} h ago",(int)age.TotalHours);
         return at.ToLocalTime().ToString("dd MMM HH:mm",Localization.Culture);
     }
-    internal static string Kind(InternalNotice notice)=>notice.Kind=="external"?notice.Source??"App":Localization.Text(notice.Kind switch{"timer"=>"Timer","focus"=>"Focus","downloads"=>"Downloads","updates"=>"Update",_=>"NabyScape"});
-    internal static string Icon(string kind)=>kind switch{"timer"=>"timer","focus"=>"focus","downloads"=>"folder","updates"=>"settings",_=>"bell"};
+    internal static string Kind(InternalNotice notice)=>notice.Kind=="external"?notice.Source??"App":Localization.Text(notice.Kind switch{"timer"=>"Timer","downloads"=>"Downloads","updates"=>"Update",_=>"NabyScape"});
+    internal static string Icon(string kind)=>kind switch{"timer"=>"timer","downloads"=>"folder","updates"=>"settings",_=>"bell"};
 }
 
 // The notification center opens as an island popup listing this session's alerts, newest first.
@@ -41,7 +41,7 @@ public sealed partial class OverlayWindow
         if(expanded)Collapse();
         if(fileDragActive || dockEditing)return;
         if(noticeCard!=null)visuals.Children.Remove(noticeCard);
-        StopHoverTimers();SetTucked(false);peeking=true;noticeShowing=true;centerShowing=true;RefreshNoticeEdge();peekPanel.Visibility=Visibility.Collapsed;SyncAssistantVisibility();
+        StopHoverTimers();SetTucked(false);peeking=true;noticeShowing=true;centerShowing=true;RefreshNoticeEdge();peekPanel.Visibility=Visibility.Collapsed;SyncLopataMascot();
         centerUnseen=app.Notifications.History.Where(e=>!e.Read).ToHashSet();
         // Header and actions stay put; only the list scrolls.
         var content=new Grid();for(int row=0;row<4;row++)content.RowDefinitions.Add(new(){Height=row==2?new GridLength(1,GridUnitType.Star):GridLength.Auto});

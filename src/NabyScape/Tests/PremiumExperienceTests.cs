@@ -42,24 +42,5 @@ internal static class PremiumExperienceTests
             var source=new Settings{AmbientStrength=.82,AmbientMotion="Breathe",InteractionMotion="Expressive",NotificationsSnoozedUntil=DateTimeOffset.UtcNow.AddHours(1),QuietHours=true};var target=new Settings();string json=CustomizationProfile.Export(source);CustomizationProfile.Import(json,target);
             Assert(target.AmbientStrength==.82 && target.AmbientMotion=="Breathe" && target.InteractionMotion=="Expressive" && !json.Contains("NotificationsSnoozedUntil") && !json.Contains("QuietHours"));
         });
-        test("Hermes preset is an agent backend without assumed voice, vision or local functions",()=>
-        {
-            var p=AssistantProviderCatalog.Create("Hermes Agent");Assert(p.Backend=="Hermes" && p.Protocol=="ChatCompletions" && p.BaseUrl=="http://127.0.0.1:8642/v1/" && p.Model=="hermes-agent" && !p.Tools && !p.Vision && p.RealtimeUrl=="");
-            p.HermesSessionId=Guid.NewGuid().ToString("N");Assert(!JsonSerializer.Serialize(p).Contains(p.HermesSessionId));
-        });
-        test("Hermes chat isolates sessions, rotates on Clear and sends a unique admission key",()=>Task.Run(async()=>
-        {
-            var sessions=new System.Collections.Generic.List<string>();var admissions=new System.Collections.Generic.HashSet<string>();
-            using var transport=new AssistantTransport(new Handler(request=>
-            {
-                Assert(request.RequestUri!.AbsolutePath=="/v1/chat/completions" && request.Headers.Authorization?.Parameter=="fixture-only-not-a-real-key");
-                sessions.Add(request.Headers.GetValues("X-Hermes-Session-Id").Single());Assert(admissions.Add(request.Headers.GetValues("Idempotency-Key").Single()));
-                return new(HttpStatusCode.OK){Content=new StringContent("{\"choices\":[{\"message\":{\"content\":\"A Hermes response\"}}]}",Encoding.UTF8,"application/json")};
-            }));
-            using var conversation=new AssistantConversation(transport);var provider=AssistantProviderCatalog.Create("Hermes Agent");
-            foreach(string text in new[]{"Hello","Continue"})await conversation.Send(provider,"fixture-only-not-a-real-key","Be concise",text,null,Array.Empty<AssistantTool>(),(_,_)=>Task.FromResult("unused"));
-            conversation.Clear();await conversation.Send(provider,"fixture-only-not-a-real-key","Be concise","Hello",null,Array.Empty<AssistantTool>(),(_,_)=>Task.FromResult("unused"));
-            Assert(sessions.Count==3 && sessions[0]==sessions[1] && sessions[2]!=sessions[0] && conversation.Messages.Last().Text=="A Hermes response");
-        }).GetAwaiter().GetResult());
     }
 }

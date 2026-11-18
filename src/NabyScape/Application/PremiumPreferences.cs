@@ -10,7 +10,7 @@ public sealed partial class Settings
     public double AmbientSpread {get;set;}=.75;
     public string AmbientMotion {get;set;}="Drift";
     public string AmbientScope {get;set;}="All widgets";
-    public List<string> AmbientWidgets {get;set;}=Names.Keys.Where(id=>id!="tools").Concat(new[]{"closed","ai"}).ToList();
+    public List<string> AmbientWidgets {get;set;}=Names.Keys.Where(id=>id!="tools").Concat(new[]{"closed"}).ToList();
     public string AmbientColorSource {get;set;}="Album cover";
     public string AmbientCustomColor {get;set;}="#7AA8DC";
     public string AmbientAudioResponse {get;set;}="Responsive";
@@ -30,7 +30,7 @@ public sealed partial class Settings
         QuietStart=Math.Clamp(QuietStart,0,23);QuietEnd=Math.Clamp(QuietEnd,0,23);
         if(AmbientMotion is not ("Still" or "Breathe" or "Drift"))AmbientMotion="Drift";
         if(AmbientScope is not ("All widgets" or "Music only" or "Selected widgets"))AmbientScope="All widgets";
-        AmbientWidgets=(AmbientWidgets??new()).Where(id=>id!=null && (id is "closed" or "ai" || Names.ContainsKey(id) && id!="tools")).Distinct().ToList();
+        AmbientWidgets=(AmbientWidgets??new()).Where(id=>id!=null && (id == "closed" || Names.ContainsKey(id) && id!="tools")).Distinct().ToList();
         if(AmbientColorSource is not ("Album cover" or "Accent color" or "Custom color" or "Custom blend"))AmbientColorSource="Album cover";
         if(AmbientCustomColor==null || AmbientCustomColor.Length!=7 || AmbientCustomColor[0]!='#' || !uint.TryParse(AmbientCustomColor.AsSpan(1),System.Globalization.NumberStyles.HexNumber,null,out _))AmbientCustomColor="#7AA8DC";
         if(AmbientAudioResponse is not ("Off" or "Soft" or "Responsive" or "Punchy"))AmbientAudioResponse="Responsive";

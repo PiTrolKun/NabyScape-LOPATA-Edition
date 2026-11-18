@@ -12,6 +12,14 @@ namespace NabyScape;
 
 public sealed partial class OverlayWindow
 {
+    private readonly Grid mascotHost = new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Top
+    };
+    private readonly Border mascotHeaderSpace = new();
+    private Button closedMascotButton = null!;
+
     private readonly LopataMascotMotion mascotMotion = new();
     private readonly DispatcherTimer mascotError = new() { Interval = TimeSpan.FromSeconds(LopataMascotMotion.ErrorSeconds) };
     private LopataMascotView? closedMascot, fullMascot;
@@ -64,14 +72,18 @@ public sealed partial class OverlayWindow
         return button;
     }
 
-    private void MountClosedLopataMascot()
+    private void InitializeClosedMascot(Grid header)
     {
-        assistantCharacterButton = CreateMascotButton(true);
-        assistantCharacterButton.Margin = new Thickness(0, 0, 8, 0);
-        assistantCharacterButton.HorizontalAlignment = HorizontalAlignment.Right;
-        assistantCharacterButton.VerticalAlignment = VerticalAlignment.Center;
-        assistantCharacterHost.Children.Add(assistantCharacterButton);
-        visuals.Children.Add(assistantCharacterHost);
+        header.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        Grid.SetColumn(mascotHeaderSpace, 5);
+        header.Children.Add(mascotHeaderSpace);
+
+        closedMascotButton = CreateMascotButton(true);
+        closedMascotButton.Margin = new Thickness(0, 0, 8, 0);
+        closedMascotButton.HorizontalAlignment = HorizontalAlignment.Right;
+        closedMascotButton.VerticalAlignment = VerticalAlignment.Center;
+        mascotHost.Children.Add(closedMascotButton);
+        visuals.Children.Add(mascotHost);
         app.LopataLink.Changed += ReadMascotRuntime;
         app.LopataLink.CoreFailed += StartMascotError;
         app.Media.Changed += ReadMascotRuntime;
@@ -89,21 +101,21 @@ public sealed partial class OverlayWindow
     private void SizeClosedLopataMascot()
     {
         double height = Math.Clamp(app.Settings.Height - 2, 24, 36);
-        assistantCharacterButton.Width = Math.Round(height * 58 / 34);
-        assistantCharacterButton.Height = height;
-        assistantHeaderSpace.Width = assistantCharacterButton.Width + 8;
+        closedMascotButton.Width = Math.Round(height * 58 / 34);
+        closedMascotButton.Height = height;
+        mascotHeaderSpace.Width = closedMascotButton.Width + 8;
         ArrangeClosedMascot();
         SyncLopataMascot();
     }
 
     private void ArrangeClosedMascot()
     {
-        assistantCharacterHost.Width = ClosedContentWidth;
+        mascotHost.Width = ClosedContentWidth;
         bool side = PortraitDock;
-        assistantCharacterHost.Height = side ? assistantCharacterButton.Height : app.Settings.Height;
-        assistantCharacterHost.Margin = side ? new Thickness(0, Math.Max(0, ClosedSurfaceHeight-46), 0, 0) : new Thickness(0);
-        assistantCharacterButton.HorizontalAlignment = side ? HorizontalAlignment.Center : HorizontalAlignment.Right;
-        assistantCharacterButton.Margin = side ? new Thickness(0) : new Thickness(0, 0, 8, 0);
+        mascotHost.Height = side ? closedMascotButton.Height : app.Settings.Height;
+        mascotHost.Margin = side ? new Thickness(0, Math.Max(0, ClosedSurfaceHeight-46), 0, 0) : new Thickness(0);
+        closedMascotButton.HorizontalAlignment = side ? HorizontalAlignment.Center : HorizontalAlignment.Right;
+        closedMascotButton.Margin = side ? new Thickness(0) : new Thickness(0, 0, 8, 0);
     }
 
     private void ReadMascotRuntime() => ObserveMascotRuntime(app.LopataLink.State, app.LopataLink.CoreWorking,
@@ -143,8 +155,8 @@ public sealed partial class OverlayWindow
         if (closedMascot is null) return;
         var visibility = !expanded && !peeking && !FeedbackVisible && !IsTucked && !userHidden
             ? Visibility.Visible : Visibility.Collapsed;
-        if (assistantCharacterHost.Visibility != visibility) assistantCharacterHost.Visibility = visibility;
-        if (assistantHeaderSpace.Visibility != visibility) assistantHeaderSpace.Visibility = visibility;
+        if (mascotHost.Visibility != visibility) mascotHost.Visibility = visibility;
+        if (mascotHeaderSpace.Visibility != visibility) mascotHeaderSpace.Visibility = visibility;
         ConfigureDisplayFollow();
         VisibleLopataMascot?.Present(mascotMotion.Frame(MascotCanAnimate));
         WakeLiveRendering();

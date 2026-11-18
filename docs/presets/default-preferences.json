@@ -32,9 +32,7 @@
   "CountdownSoundVolume": 1,
   "NotificationDelivery": "Both",
   "NotifyTimer": true,
-  "NotifyFocus": true,
   "NotifyDownloads": true,
-  "NotifyUpdates": true,
   "NotifyFailures": true,
   "ExternalNotifications": false,
   "ExternalNotificationPopup": true,
@@ -86,10 +84,6 @@
     },
     {
       "Id": "timer",
-      "Enabled": true
-    },
-    {
-      "Id": "focus",
       "Enabled": true
     },
     {
@@ -146,10 +140,6 @@
     },
     {
       "Id": "links",
-      "Enabled": true
-    },
-    {
-      "Id": "voice",
       "Enabled": true
     }
   ],
@@ -228,10 +218,7 @@
   "WaveformIdleMotion": true,
   "VolumeFeedback": true,
   "BrightnessFeedback": true,
-  "AutoCheckUpdates": true,
   "AutoStart": true,
-  "FocusMinutes": 25,
-  "BreakMinutes": 5,
   "Widgets": [
     {
       "Id": "media",
@@ -243,10 +230,6 @@
     },
     {
       "Id": "timer",
-      "Enabled": true
-    },
-    {
-      "Id": "focus",
       "Enabled": true
     },
     {
@@ -300,10 +283,6 @@
     {
       "Id": "links",
       "Enabled": true
-    },
-    {
-      "Id": "voice",
-      "Enabled": false
     }
   ],
   "CoverAmbient": true,
@@ -316,7 +295,6 @@
     "volume",
     "timer",
     "stopwatch",
-    "focus",
     "clock",
     "system",
     "battery",
@@ -328,8 +306,7 @@
     "calendar",
     "awake",
     "links",
-    "closed",
-    "ai"
+    "closed"
   ],
   "AmbientColorSource": "Album cover",
   "AmbientCustomColor": "#7AA8DC",
@@ -341,7 +318,6 @@
   "QuietHours": true,
   "QuietStart": 22,
   "QuietEnd": 7,
-  "AutoDownloadUpdates": false,
   "Monitor": "",
   "WeatherCity": "",
   "WeatherLatitude": null,
@@ -349,5 +325,7 @@
   "DownloadsFolder": "",
   "CountdownSoundFile": "",
   "RecentColors": [],
-  "NotificationsSnoozedUntil": null
+  "NotificationsSnoozedUntil": null,
+  "HomeWidget": "media",
+  "LocalMusicFolder": ""
 }

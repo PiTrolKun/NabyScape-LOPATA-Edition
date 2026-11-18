@@ -4,7 +4,7 @@ public sealed partial class SettingsWindow
 {
     private static readonly Dictionary<string,string> SettingDescriptions=new()
     {
-        ["Show ambience on closed dock"]="Show ambient light on the compact dock during music, voice, countdowns or notifications. Idle and tucked docks stay black. The main ambient switch must also be on.",
+        ["Show ambience on closed dock"]="Show ambient light on the compact dock during music, countdowns or notifications. Idle and tucked docks stay black. The main ambient switch must also be on.",
         ["Ambient light"]="Add soft colored light behind your widgets.",
         ["Ambient intensity"]="Set the brightest the light can be. Music can make it pulse below this level.",
         ["Ambient sensitivity"]="Amplifies the visual response to measured media audio without changing playback volume. 100% uses the original level.",
@@ -25,7 +25,7 @@ public sealed partial class SettingsWindow
         ["Compact panel with tabs"]="Shows one category at a time. Turn off to show the widget layout.",
         ["Preview on hover"]="Rest your pointer on the island to browse without opening a panel.",
         ["Two-stage reveal"]="Shows a small preview first, then more detail after a short delay.",
-        ["Live activity · audio, progress & focus breathing"]="Animates measured audio levels and running sessions. Stops rendering while hidden.",
+        ["Live activity · audio and timer progress"]="Animates measured audio levels and running sessions. Stops rendering while hidden.",
         ["Feedback for volume & audio device changes"]="Briefly shows changes made with Windows audio controls.",
         ["Reduce motion"]="Stops continuous animation and removes animated transitions.",
         ["Enable visibility shortcut"]="Hides the entire island or brings it back. The tray can always restore it.",
@@ -33,7 +33,7 @@ public sealed partial class SettingsWindow
         ["Gentle waveform motion during quiet playback"]="Adds subtle decorative motion when the selected media app reports silence.",
         ["Closed-island volume indicator"]="Shows an icon and level briefly after the Windows volume changes.",
         ["Closed-island brightness indicator"]="Shows brightness changes only on displays supported by Windows.",
-        ["Preview new tracks & sessions ending soon"]="Briefly reveals new songs and upcoming timer or focus endings.",
+        ["Preview new tracks & sessions ending soon"]="Shows a preview when a track starts or the timer is about to finish.",
         ["Save text & image history locally"]="Captures new clipboard items on this PC. Turning it off clears saved history.",
         ["Network transfer rates"]="Shows current upload and download speeds in the Network tab.",
         ["Storage capacity"]="Shows used and free space for available drives in the Storage tab.",
@@ -67,7 +67,6 @@ public sealed partial class SettingsWindow
         ["Media"]="Shows song artwork, playback controls and media-session selection.",
         ["Volume"]="Shows the Windows master volume and access to the app mixer.",
         ["Timer"]="Adds a countdown with pause, reset and completion notifications.",
-        ["Focus mode"]="Adds work and break sessions using your chosen durations.",
         ["Clock & date"]="Shows local time and date in Status.",
         ["System monitor"]="Shows CPU, RAM and detailed hardware, network, storage and process views.",
         ["Battery"]="Shows charge and charging state. Hidden automatically on PCs without a battery.",

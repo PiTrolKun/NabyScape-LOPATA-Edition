@@ -48,7 +48,6 @@ internal static class ClosedClockDiagnostics
             }
             Capture($"closed-clock-{position.ToLowerInvariant()}-{(music?"music":"idle")}-{width:0}");
         }
-        check("Closed clock checks never connect voice or share a screen",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
         File.WriteAllText(Path.Combine(directory,"closed-clock-notes.txt"),"Isolated profile, synthetic media playback, WPF renderings of the closed dock for Automatic/Left/Center/Right at 400 and 600 px. No network, microphone or screen capture.");
     }
 }

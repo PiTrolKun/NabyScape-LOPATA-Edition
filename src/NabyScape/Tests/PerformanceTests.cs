@@ -64,17 +64,6 @@ internal static class PerformanceTests
                 Assert(System.Linq.Enumerable.SequenceEqual(original,stream.ToArray()));stream.Position=0;var full=new PngBitmapDecoder(stream,BitmapCreateOptions.PreservePixelFormat,BitmapCacheOption.OnLoad).Frames[0];Assert(full.PixelWidth==size.Item1 && full.PixelHeight==size.Item2);
             }
         });
-        test("Single-clock mascot pose matches the original four sine channels",()=>
-        {
-            var ease=new System.Windows.Media.Animation.SineEase{EasingMode=System.Windows.Media.Animation.EasingMode.EaseInOut};
-            double Wave(double seconds,double period){double phase=seconds%(period*2)/period;return ease.Ease(phase>1?2-phase:phase);}
-            foreach(bool music in new[]{false,true})for(int i=0;i<500;i++)
-            {
-                double t=i*.137,scale=1+.035*Wave(t,music?.7:2.4),angle=(music?-5:-3)*Wave(t,music?1.1:3.4),y=-3.5*Wave(t,music?.65:2.1);
-                var original=new TransformGroup{Children={new ScaleTransform(scale,scale,50,50),new RotateTransform(angle,50,50),new TranslateTransform(0,y)}};
-                var pose=AssistantIdleMotion.Pose(t,music);foreach(var point in new[]{new Point(0,0),new Point(50,50),new Point(83,83)})Assert((pose.Transform(point)-original.Transform(point)).Length<1e-9);
-            }
-        });
         test("CPU overview queries GPU counters without sensor or process metadata",()=>
         {
             var queries=new List<string>();var reader=new HardwareMonitor.Reader((scope,query)=>{queries.Add(scope+"|"+query);return new();},()=>0);reader.Read(0,true);

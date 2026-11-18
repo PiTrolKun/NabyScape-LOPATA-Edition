@@ -1,6 +1,6 @@
-# Translating NabyScape
+# Translating NabyScape — LOPATA Edition
 
-NabyScape's interface is available in English, Español, Bahasa Indonesia, Русский, Українська and 한국어. Corrections and new languages are welcome, and you don't need to be a programmer: every translation is a plain line of text.
+NabyScape's interface is available in English, Español, Bahasa Indonesia, Русский, Українська and 한국어. Each translation is a plain line of text. LOPATA also supplies Russian overrides and user translations for the island.
 
 ## Where the strings live
 
@@ -29,7 +29,7 @@ Only the app's own text is translated. Song titles, lyrics, notes, file names, c
 ## Translation rules
 
 - Keep placeholders such as `{0}` and `{1}` exactly as they are. You can move them within the sentence: `"할 일 {1}개 중 {0}개 완료"` is fine. The self-test checks that every translation uses the same placeholders as the English.
-- Don't translate product and service names: NabyScape, Naby, Naby AI, Hermes, Windows, GitHub, Spotify, LRCLIB, Open-Meteo, Claude, Telegram, SHA-256, JSON, API, URL.
+- Don't translate product and service names: NabyScape, LOPATA, Windows, GitHub, Spotify, LRCLIB, Open-Meteo, Claude, Telegram, SHA-256, JSON, API, URL.
 - Keep key names such as `Ctrl+F`, `Shift+Enter` and `Escape` unless your language's Windows uses its own names (Spanish uses `Mayús+Intro`).
 - Keep it short. Sidebar labels and buttons have limited room, so prefer the shortest natural wording. Long text in a sidebar label ends in "…".
 - Use your language's own quotation marks and decimal separator, for example «…» and `0,1` in Russian and Ukrainian.
@@ -46,11 +46,8 @@ Only the app's own text is translated. Song titles, lyrics, notes, file names, c
 | Notifications / alerts | Notificaciones / avisos | Notifikasi | Уведомления / оповещения | Сповіщення | 알림 |
 | Shortcuts (apps) | Accesos directos | Pintasan | Ярлыки | Ярлики | 바로 가기 |
 | Keyboard shortcut | Atajo de teclado | Pintasan keyboard | Сочетание клавиш | Сполучення клавіш | 단축키 |
-| Focus | Concentración | Fokus | Фокус / фокусировка | Фокус / фокусування | 집중 |
 | Quiet hours | Horas de silencio | Jam tenang | Тихие часы | Тихі години | 방해 금지 시간 |
 | Preview | Vista previa | Pratinjau | Предпросмотр | Попередній перегляд | 미리 보기 |
-| AI companion | Asistente de IA | Asisten AI | ИИ-помощник | ШІ-помічник | AI 도우미 |
-| Provider | Proveedor | Penyedia | Провайдер | Провайдер | 제공업체 |
 
 ## Improve an existing translation
 

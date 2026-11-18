@@ -42,7 +42,7 @@ internal static class LopataWidgetReviewDiagnostics
             Require(!app.SupportsWidget("focus") && !app.Previews.CanOpen("focus") &&
                 !island.HoverDeckIds.Contains("focus"), "LOPATA filters Focus from old widget settings, hover and detached views");
             island.Reveal(false);
-            island.SelectPage("focus",false);
+            island.SelectPage("timer",false);
             await WaitFor(()=>TextIs(island,"Timer") && !TextIs(island,"Focus"),
                 "The countdown page shows the normal Timer and omits Focus");
             string durationLabel = Localization.Language == "ru" ? "из 5 мин" : "of 5 min";

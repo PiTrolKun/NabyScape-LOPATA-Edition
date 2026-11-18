@@ -14,21 +14,21 @@ public sealed partial class SettingsWindow
         var actions=new WrapPanel{Margin=new(0,10,0,8)};
         actions.Children.Add(UI.CaptionButton("Use essentials",()=>
         {
-            string[] keep=app.UsesLopataEdition?["media","clock","timer"]:["media","clock","timer","focus"];
+            string[] keep=["media","clock","timer"];
             foreach(var widget in s.Widgets)widget.Enabled=keep.Contains(widget.Id);
             foreach(var view in s.HoverViews)view.Enabled=keep.Contains(view.Id);
-            s.HoverFollowsWidgets=true;Save();Navigate("Content");SetSaveFeedback("Essentials selected · music, clock, timer and focus. Saved content and running sessions are preserved.");
+            s.HoverFollowsWidgets=true;Save();Navigate("Content");SetSaveFeedback("Essentials selected · music, clock and timer. Saved content and running sessions are preserved.");
         }));
         actions.Children.Add(UI.CaptionButton("Customize",()=>
         {
             var target=page.Children.OfType<Border>().FirstOrDefault(b=>b.Tag as string=="Enabled widgets & order");target?.BringIntoView();
         }));body.Children.Add(actions);
-        body.Children.Add(UI.Text(Localization.Text("Essentials shows music, clock, timer and focus. Other widgets stay off until you enable them. Animation quality stays the same."),12,UI.Muted));
+        body.Children.Add(UI.Text(Localization.Text("Essentials shows music, clock and timer. Other widgets stay off until you enable them. Animation quality stays the same."),12,UI.Muted));
         body.Children.Add(Check("Connect to music apps",s.MediaIntegrationEnabled,v=>s.MediaIntegrationEnabled=v));
         body.Children.Add(UI.Text(Localization.Text("Off disconnects Windows media sessions and releases track artwork. It leaves playback in your music app untouched."),12,UI.Muted));
         body.Children.Add(Check("Watch for completed downloads",s.DownloadsEnabled,v=>s.DownloadsEnabled=v));
-        var links=new WrapPanel{Margin=new(0,8,0,0)};links.Children.Add(UI.CaptionButton("Clipboard capture",()=>Navigate("Clipboard")));if(app.UsesLopataEdition)links.Children.Add(UI.CaptionButton("LOPATA chat",()=>Navigate("AI")));else links.Children.Add(UI.CaptionButton("Voice & wake word",()=>Navigate("AI")));body.Children.Add(links);
-        body.Children.Add(UI.Caption(app.UsesLopataEdition?"Turning a widget off preserves your saved data. Hidden weather and system pages stop working. The island releases audio capture when no preview needs it.":"Clipboard capture and voice listening have separate switches. Turning a widget off preserves your notes, files and timers. Hidden weather and system pages stop their work; audio capture is released when no visual needs it.",12,UI.Muted));
+        var links=new WrapPanel{Margin=new(0,8,0,0)};links.Children.Add(UI.CaptionButton("Clipboard capture",()=>Navigate("Clipboard")));links.Children.Add(UI.CaptionButton("LOPATA chat",()=>Navigate("AI")));body.Children.Add(links);
+        body.Children.Add(UI.Caption("Turning a widget off preserves your saved data. Hidden weather and system pages stop working. The island releases audio capture when no preview needs it.",12,UI.Muted));
         page.Children.Add(Section("Feature usage",body));
     }
 }

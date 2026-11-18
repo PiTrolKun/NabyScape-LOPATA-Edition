@@ -11,7 +11,7 @@ internal sealed class SettingsScene : FrameworkElement
 {
     // Malgun Gothic supplies Hangul (e.g. the 한국어 language name); Latin and Cyrillic stay in Segoe UI.
     private static readonly FontFamily SceneFont=new("Segoe UI, Malgun Gothic");
-    internal static readonly string[] Sections={"Other apps","Feature usage","Your setup","Ambient light","Notification presentation","Visualizer","Lyrics","Move & resize","Completion sound","AI companion","Naby in the dock","Theme","Shape","Settings material","Color & material","Surface","Controls & outlines","Typography","Text and navigation","Motion","Animation performance","Dock placement","Display","Closed island","Open panel","Hover preview","Hover & swipe","Enabled widgets & order","Individual tools","Hover pages","Clipboard history","Focus sessions","Stopwatch","Automatic tucking","Manual tuck shortcut","Panel navigation","Drag to Island","Detachable previews","Closed cover gestures","Automatic activity","Notch gestures","Global hotkey","Hide or show the island","Closed media display","Waveform source","Live signal","Live feedback","Volume mixer","Audio behavior","Header wheel","Clock","Monitor details","Launch display","Shortcuts","Layout profile","Notifications","Downloads","Updates","Reset preferences","Behavior","Local storage","Language & accessibility","Private diagnostics","About NabyScape"};
+    internal static readonly string[] Sections={"Other apps","Feature usage","Your setup","LOPATA chat","Ambient light","Notification presentation","Visualizer","Lyrics","Move & resize","Completion sound","Theme","Shape","Settings material","Color & material","Surface","Controls & outlines","Typography","Text and navigation","Motion","Animation performance","Dock placement","Display","Closed island","Open panel","Hover preview","Hover & swipe","Enabled widgets & order","Individual tools","Hover pages","Clipboard history","Stopwatch","Automatic tucking","Manual tuck shortcut","Panel navigation","Drag to Island","Detachable previews","Closed cover gestures","Automatic activity","Notch gestures","Global hotkey","Hide or show the island","Closed media display","Waveform source","Live signal","Live feedback","Volume mixer","Audio behavior","Header wheel","Clock","Monitor details","Launch display","Shortcuts","Layout profile","Notifications","Downloads","Updates","Reset preferences","Behavior","Local storage","Language & accessibility","Private diagnostics","About NabyScape"};
     private readonly string kind;
     internal string Section=>kind;
     private readonly Settings s;
@@ -73,12 +73,10 @@ internal sealed class SettingsScene : FrameworkElement
             case "Feature usage":
                 Text("Choose what runs",24,18,18,true);Text(s.Widgets.Count(w=>w.Enabled)+" enabled widgets",24,51,12);Note("Essentials or Custom · background switches stay explicit");break;
             case "Your setup":
-                Text("Your next step",24,18,18,true);Text("Music · AI · Voice · Lyrics · Weather",24,51,12);Note("Saved settings and verified connections have distinct statuses");break;
-            case "AI companion":
-                dc.DrawEllipse(UI.Brush("#23262D"),new Pen(UI.Brush("#777D88"),1),new Point(53,51),24,24);dc.DrawRoundedRectangle(white,null,new Rect(42,37,7,16),3.5,3.5);dc.DrawRoundedRectangle(white,null,new Rect(57,37,7,16),3.5,3.5);Text("Connect your AI",94,24,15,true);Text("Provider → model → chat / voice",94,51,12);Keys("Local key",298,23,95);Note("Optional · keys in Windows Credential Manager · session capture controls");break;
-            case "Naby in the dock":
-                Box(22,16,220,82,UI.Brush("#101114"));dc.DrawEllipse(UI.Brush("#23262D"),new Pen(UI.Brush("#777D88"),1),new Point(54,44),16,16);Text("Ask Naby",80,30,13,true);Text("Own size · your colors",80,52,11,false,muted);
-                Text("Content size "+(s.PanelScale*100).ToString("0")+"%",262,30,11);Text("Inset "+s.PanelPadding.ToString("0")+" px",262,52,11);Note("Only the dock settings that reach Naby");break;
+                Text("Your next step",24,18,18,true);Text("Music · LOPATA chat · Lyrics · Weather",24,51,12);Note("Playback, lyrics and weather status");break;
+            case "LOPATA chat":
+                Text("LOPATA chat",24,28,16,true);
+                Note("Talk to LOPATA through its installed local core.");break;
             case "Theme":
                 Box(22,19,170,62,UI.Brush("#0B0C0E"));Text("Dark",36,31,13,true);Text("Classic black dock",36,54,11,false,muted);
                 Box(214,19,170,62,UI.Brush("#F5F5F7"));Text("Light",228,31,13,true,UI.Brush("#1B1D22"));Text("Dark text on light",228,54,11,false,UI.Brush("#5B616B"));
@@ -97,7 +95,7 @@ internal sealed class SettingsScene : FrameworkElement
             case "Typography":
                 Text("Song title",24,23,21,s.BoldMediaTitle);Text("Artist name",24,54,12,false,muted);Text("Panel heading",232,27,16,s.BoldHeadings);Text("Body text stays regular",232,56,11,false,muted);Note("Current title weights; body text stays the same");break;
             case "Text and navigation":
-                foreach(var item in new[]{("Media",22d),(Application.Current is App {UsesLopataEdition:true}?"Timer":"Focus",112d),("Status",202d),("Tools",292d)}){Box(item.Item2,22,76,46);if(s.CategoryStyle=="Dots"){dc.DrawEllipse(white,null,new Point(item.Item2+38,44),3,3);continue;}if(s.CategoryStyle!="Text")dc.DrawEllipse(null,new Pen(white,1.4),new Point(item.Item2+38,36),6,6);if(s.CategoryStyle!="Icons")Text(item.Item1,item.Item2+14,s.CategoryStyle=="Text"?38:49,11);}Note("Navigation · "+s.CategoryStyle.Replace("IconsLabels","Icons + labels"));break;
+                foreach(var item in new[]{("Media",22d),("Timer",112d),("Status",202d),("Tools",292d)}){Box(item.Item2,22,76,46);if(s.CategoryStyle=="Dots"){dc.DrawEllipse(white,null,new Point(item.Item2+38,44),3,3);continue;}if(s.CategoryStyle!="Text")dc.DrawEllipse(null,new Pen(white,1.4),new Point(item.Item2+38,36),6,6);if(s.CategoryStyle!="Icons")Text(item.Item1,item.Item2+14,s.CategoryStyle=="Text"?38:49,11);}Note("Navigation · "+s.CategoryStyle.Replace("IconsLabels","Icons + labels"));break;
             case "Motion":
                 Box(23,28,68,22,Brushes.Black);Text("Music",34,33,9);Line(108,40,176,40);Box(193,16,135,63,Brushes.Black);Cover(203,25,22);Text("Song title",234,28,10,true);Bar(204,65,112,.4);Text(s.ReduceMotion?"Instant state change":$"{s.AnimationMs:0} ms transition",23,78,11);Text("Closed → open",193,87,11,false,muted);break;
             case "Animation performance":
@@ -128,7 +126,6 @@ internal sealed class SettingsScene : FrameworkElement
                     {
                         case "media":Cover(x+8,41,22);Bar(x+36,44,42,.7);Bar(x+36,53,32,.5);Bar(x+8,72,71,.35);break;
                         case "timer":Text("05:00",x+10,40,18,true);Bar(x+10,69,67,.45);break;
-                        case "focus":dc.DrawEllipse(null,new Pen(muted,2),new Point(x+21,53),10,10);Text("25:00",x+37,47,11,true,null,45);Text("Work session",x+9,69,9);break;
                         case "calendar":Text("16",x+11,39,21,true);Text("OCT",x+43,48,10);Bar(x+10,73,66,.6);break;
                         case "tasks":for(int j=0;j<3;j++){dc.DrawRectangle(null,line,new Rect(x+10,42+j*12,6,6));Bar(x+23,45+j*12,50,.7);}break;
                         case "files":for(int j=0;j<3;j++)Box(x+11+j*11,49-j*4,28,25,UI.Brush(j==2?"#737D8C":"#353B45"),3);break;
@@ -140,8 +137,6 @@ internal sealed class SettingsScene : FrameworkElement
                 Text("Text",22,20,12,true);Text("Copied thought",22,42,11,false,muted);Text("Link",158,20,12,true);Text("example.com",158,42,11,false,muted);Box(296,18,40,40);dc.DrawEllipse(muted,null,new Point(324,28),3,3);Line(301,50,312,35);Line(312,35,331,52);Text("Image",346,30,11);Toggle(22,74,s.ClipboardHistory);Text(s.ClipboardHistory?"History enabled":"History off",64,74,11);Note("Example items · turning history off deletes saved items");break;
             case "Stopwatch":
                 Text("Stopwatch",28,13,12,true);Text("00:00",28,33,28,true);Keys("Start",205,29,78);Keys("Reset",292,29,78);Note("Start → Pause → Resume · Reset clears elapsed time");break;
-            case "Focus sessions":
-                Text(s.FocusMinutes+":00",28,20,28,true);Text("Focus",30,59,12,false,muted);Line(170,25,170,77);Text(s.BreakMinutes+":00",224,20,28,true);Text("Break",226,59,12,false,muted);Note("Used when the next session starts");break;
             case "Automatic tucking":
                 Box(20,18,112,35,Brushes.Black);Text("Visible",45,66,11);Box(154,18,112,s.TuckEdge,Brushes.Black,2);Text(Localization.Format("Tucked · {0:0} DIP",s.TuckEdge),164,66,11);dc.DrawRoundedRectangle(null,line,new Rect(288,18,112,35),8,8);Text("Hidden",320,66,11);Note(s.AlwaysTucked?"Always tucked · hover the edge for a preview":"Automatic rules · manual hide removes the whole island");break;
             case "Manual tuck shortcut":
@@ -169,7 +164,7 @@ internal sealed class SettingsScene : FrameworkElement
             case "Move & resize":
                 Island(95,22,220,36);Line(88,18,66,18);Line(66,18,66,83);Line(66,83,88,83);Text("↔",180,70,20);Toggle(352,28,s.DockUnlocked);Note("Drag the top grip to move · lower corners resize each state");break;
             case "Completion sound":
-                Text(s.CountdownSound=="Off"?"Silent":"♪",25,18,28,true);Wave(119,50);Text(s.CountdownSound,264,25,16,true);Text((s.CountdownSoundVolume*100).ToString("0")+"%",264,53,12,false,muted);Note(Application.Current is App {UsesLopataEdition:true}?"Timer sound":"Timer & Focus · audible without Windows notifications");break;
+                Text(s.CountdownSound=="Off"?"Silent":"♪",25,18,28,true);Wave(119,50);Text(s.CountdownSound,264,25,16,true);Text((s.CountdownSoundVolume*100).ToString("0")+"%",264,53,12,false,muted);Note("Timer sound");break;
             case "Live feedback":
                 Island(24,23,208,34);Bar(54,47,146,.66);Text("Volume / brightness",252,27,12);Text("Temporary feedback",252,50,11,false,muted);Note(Localization.Format("Volume {0} · brightness {1} · quiet motion {2}",OnOff(s.VolumeFeedback),OnOff(s.BrightnessFeedback),OnOff(s.WaveformIdleMotion)));break;
             case "Volume mixer":case "Audio behavior":
@@ -192,7 +187,7 @@ internal sealed class SettingsScene : FrameworkElement
                 var ambientColors=AmbientPolicy.ColorsFor(s,ambientPalette);
                 if(s.CoverAmbient){var light=new DrawingGroup{OpacityMask=AmbientPaint.BottomFade(s.AmbientSpread,AmbientLook.From(s))};light.Children.Add(new GeometryDrawing(AmbientPaint.ColorBand(ambientColors,s.AmbientStrength,AmbientLook.From(s)),null,new RectangleGeometry(new Rect(36,12,348,82))));dc.DrawDrawing(light);}dc.Pop();Cover(51,28,36);Text(s.AmbientScope,102,30,15,true);Text(s.AmbientAudioResponse+" · "+(int)(s.AmbientStrength*100)+"%",102,56,11);Note(s.AmbientColorSource+" · "+s.AmbientMotion+" · audio-reactive");break;
             case "Notification presentation":
-                Box(46,10,328,77,Brushes.Black,16);Text("Focus complete",68,25,16,true);Text("Time for a short break",68,52,11,false,muted);Text("2 queued",286,28,10,false,muted);Bar(68,73,280,.65);Note(s.NotificationAnimation+" · "+s.NotificationSeconds+" sec · "+(s.QuietHours?"quiet hours on":"quiet hours off"));break;
+                Box(46,10,328,77,Brushes.Black,16);Text("Timer finished",68,25,16,true);Text("Your timer has finished.",68,52,11,false,muted);Text("2 queued",286,28,10,false,muted);Bar(68,73,280,.65);Note(s.NotificationAnimation+" · "+s.NotificationSeconds+" sec · "+(s.QuietHours?"quiet hours on":"quiet hours off"));break;
             case "Notifications":
                 Box(36,18,215,34,Brushes.Black,17);Text("Timer finished",53,29,11,true);Keys(s.NotificationDelivery,274,20,110);Note("Notch / Windows / Both / Off · hidden island uses Windows");break;
             case "Other apps":
@@ -200,7 +195,8 @@ internal sealed class SettingsScene : FrameworkElement
             case "Downloads":
                 Box(24,18,42,47);Text("↓",36,25,21);Text("Report.pdf",83,22,14,true);Text("2 arrivals · drag originals",83,49,11,false,muted);Toggle(350,25,s.DownloadsEnabled);Note("Example only · folder arrivals inferred after stable readable size");break;
             case "Updates":
-                Text("Installed "+OfficialUpdates.InstalledVersion,22,15,13,true);Text("Example: newer stable",225,15,12,true);Bar(24,55,365,.6);Text("Check > download 60% > verify > install",24,70,12);Note("Automatic checks "+(s.AutoCheckUpdates?"on":"off")+" - no automatic installation");break;
+                Text("Updates are managed by LOPATA",24,30,14,true);
+                Note("LOPATA releases appear in the island's update indicator.");break;
             case "Reset preferences":
                 Keys("Your preferences",20,24,128);Line(158,39,196,39);Keys("Backup saved",208,24,120);Text("Reset selected category",22,71,12,true);Note("Notes, Tasks, startup and clipboard capture stay intact");break;
             case "Behavior":

@@ -32,10 +32,6 @@
         "Enabled": true
       },
       {
-        "Id": "focus",
-        "Enabled": true
-      },
-      {
         "Id": "calendar",
         "Enabled": true
       },
@@ -71,10 +67,6 @@
       },
       {
         "Id": "timer",
-        "Enabled": true
-      },
-      {
-        "Id": "focus",
         "Enabled": true
       },
       {

@@ -73,7 +73,7 @@ internal static class LauncherTests
             var settings=new Settings{CategoryStyle="Icons",LaunchStyle="Text"};Check(!LauncherPresentation.ShowLabel(settings.CategoryStyle) && LauncherPresentation.ShowIcon(settings.CategoryStyle) && LauncherPresentation.ShowLabel(settings.LaunchStyle) && !LauncherPresentation.ShowIcon(settings.LaunchStyle));
             Check(LauncherPresentation.ShowLabel("IconsLabels") && LauncherPresentation.ShowIcon("IconsLabels"));
         });
-        test("Semantic compact Timer and Focus headings toggle at size eleven without margins",()=>
+        test("Semantic compact headings toggle at size eleven without margins",()=>
         {
             var panel=new StackPanel();var timer=UI.Heading("Timer",11,UI.Muted);var focus=UI.Heading("Focus",11,UI.Muted);panel.Children.Add(timer);panel.Children.Add(focus);
             LauncherPresentation.ApplyHeadingTypography(panel,true);Check(timer.FontWeight==FontWeights.SemiBold && focus.FontWeight==FontWeights.SemiBold);

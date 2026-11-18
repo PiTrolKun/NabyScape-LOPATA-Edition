@@ -45,7 +45,7 @@ public sealed partial class OverlayWindow
                 // A second forecast can replace the view while a previous resize is
                 // queued. Resize the current mounted view, rather than dropping its
                 // only layout notification because the old instance was unloaded.
-                if(expanded && toolsMode=="weather" && toolsContent.Children.OfType<WeatherView>().Any(current=>current.IsLoaded && current.IsVisible) && !assistantOpen && !commandOpen)
+                if(expanded && toolsMode=="weather" && toolsContent.Children.OfType<WeatherView>().Any(current=>current.IsLoaded && current.IsVisible) && !commandOpen)
                     ResizeToolPanel();
             }
             finally{weatherLayoutPending=false;}
@@ -74,7 +74,7 @@ public sealed partial class OverlayWindow
         var list=new StackPanel{Margin=new(0,3,0,4)};
         for(int i=0;i<toolChoices.Length;i++)
         {
-            
+
             var choice=toolChoices[i];if(!ToolOn(choice.mode))continue;var content=new Grid();content.ColumnDefinitions.Add(new(){Width=new GridLength(28)});content.ColumnDefinitions.Add(new());content.ColumnDefinitions.Add(new(){Width=new GridLength(18)});
             var icon=ToolIcon(choice.mode);icon.Width=18;icon.Height=18;icon.HorizontalAlignment=HorizontalAlignment.Left;content.Children.Add(icon);
             var label=UI.Text(choice.title,12);Grid.SetColumn(label,1);content.Children.Add(label);

@@ -14,10 +14,8 @@ public sealed partial class OverlayWindow
     private bool idleClosed;
     private double lastClosedWidth=double.NaN;
     private bool? idleLayoutState;
-    private bool ClosedVoiceActivity=>app.Assistant.VoiceConnected || app.Assistant.Busy || app.Assistant.Desktop.Sharing;
-    private bool IdleContent=>!FeedbackVisible && app.Notifications.Current==null && !ClosedVoiceActivity &&
+    private bool IdleContent=>!FeedbackVisible && app.Notifications.Current==null &&
         !(ClosedMediaActive) &&
-        !(WidgetOn("focus") && app.Session.Focus.Remaining(DateTimeOffset.UtcNow)>0) &&
         !(WidgetOn("timer") && app.Session.Timer.Remaining(DateTimeOffset.UtcNow)>0);
     private double ClosedSurfaceWidth=>PortraitDock?SideDockLayout.ClosedWidth(app.Settings):ClosedLyricsWidth;
     private double ClosedContentWidth=>PortraitDock?ClosedSurfaceWidth-8:ClosedClockLayout.ContentWidth(ClosedSurfaceWidth,expandedWidth,surface.Notch);
@@ -34,10 +32,6 @@ public sealed partial class OverlayWindow
         double inset=ClosedClockLayout.LeadingInset(slot,idleClosed,compactClock.Visibility==Visibility.Visible,Math.Max(compactClock.ActualWidth,compactClock.DesiredSize.Width));
         if(Math.Abs(activity.Margin.Left-inset)>.5){activity.Margin=new(inset,0,9,0);closedCover.Margin=new(inset,0,9,0);feedbackIcon.Margin=new(inset,0,0,0);}
     }
-    private string ClosedVoiceLabel=>app.Assistant.State switch
-    {
-        AssistantState.Listening=>Localization.Text("Listening"),AssistantState.Thinking=>Localization.Text("Thinking…"),AssistantState.Speaking=>Localization.Text("Speaking"),AssistantState.Connecting=>Localization.Text("Connecting…"),AssistantState.Error=>Localization.Text("Voice needs attention"),_=>Localization.Text(app.Assistant.Desktop.Sharing?"Screen sharing":"Naby voice")
-    };
     private void RefreshIdleDock()
     {
         if(!idleDockReady)return;
@@ -72,7 +66,7 @@ public sealed partial class OverlayWindow
             idleDate.Inlines.Add(new Run(" "+idleDateDay.ToString("MMM",culture).ToUpper(culture)){FontSize=10*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#B7BDC7")});
             idleDate.ToolTip=idleDateDay.ToString("D",culture);
         }
-        compact.Width=ClosedContentWidth;assistantCharacterHost.Width=ClosedContentWidth;
+        compact.Width=ClosedContentWidth;mascotHost.Width=ClosedContentWidth;
         if(!expanded && !peeking && !userHidden && !TuckRequested && !dockEditing)
         {
             double target=ClosedSurfaceWidth;

@@ -56,7 +56,7 @@ internal static class PremiumDiagnostics
                     var sections=Diagnostics.LogicalDescendants((DependencyObject)form.Content).OfType<Border>().Where(b=>b.Tag is string).ToArray();
                     var scenes=Diagnostics.SettingsExamples(settings);
                     Diagnostics.ExpandSettingsExamples(settings,scenes.Select(s=>s.Section).ToArray());
-                    Check(category+" has visible settings content without duplicate preview drawers at width "+width,category=="Weather"?Tree(settings).OfType<WeatherView>().Any(w=>w.IsVisible && w.ActualWidth>0):category=="AI"?Tree(settings).OfType<AssistantProviderSettings>().Any(v=>v.IsVisible && v.ActualWidth>0):sections.Length>0 && sections.All(s=>s.ActualWidth>0));
+                    Check(category+" has visible settings content without duplicate preview drawers at width "+width,category=="Weather"?Tree(settings).OfType<WeatherView>().Any(w=>w.IsVisible && w.ActualWidth>0):sections.Length>0 && sections.All(s=>s.ActualWidth>0));
                     Check(category+" form controls fit at width "+width,SettingsFit(settings));
                     async Task Reach(Border section)
                     {

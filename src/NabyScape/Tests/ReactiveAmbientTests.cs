@@ -18,24 +18,24 @@ internal static class ReactiveAmbientTests
         test("Ambient normalizes malformed colors, scope, selection and nonfinite sensitivity",()=>
         {
             var s=new Settings{AmbientScope="other",AmbientWidgets=new(){"notes","notes","unknown","ai"},AmbientColorSource="other",AmbientCustomColor="#GGGGGG",AmbientAudioResponse="other",AmbientSensitivity=double.NaN};s.Normalize();
-            Assert(s.AmbientScope=="All widgets" && s.AmbientWidgets.SequenceEqual(new[]{"notes","ai"}) && s.AmbientColorSource=="Album cover" && s.AmbientCustomColor=="#7AA8DC" && s.AmbientAudioResponse=="Responsive" && s.AmbientSensitivity==1.4);
+            Assert(s.AmbientScope=="All widgets" && s.AmbientWidgets.SequenceEqual(new[]{"notes"}) && s.AmbientColorSource=="Album cover" && s.AmbientCustomColor=="#7AA8DC" && s.AmbientAudioResponse=="Responsive" && s.AmbientSensitivity==1.4);
         });
         test("Ambient scopes include only chosen content and respect the master switch",()=>
         {
-            var s=new Settings();Assert(AmbientPolicy.Includes(s,"notes") && AmbientPolicy.Includes(s,"focus"));
+            var s=new Settings();Assert(AmbientPolicy.Includes(s,"notes") && AmbientPolicy.Includes(s,"timer"));
             s.AmbientScope="Music only";Assert(AmbientPolicy.Includes(s,"media") && !AmbientPolicy.Includes(s,"tasks"));
             s.AmbientScope="Selected widgets";s.AmbientWidgets=new(){"notes"};Assert(AmbientPolicy.Includes(s,"notes") && !AmbientPolicy.Includes(s,"media"));
             s.CoverAmbient=false;Assert(!AmbientPolicy.Includes(s,"notes"));s.CoverAmbient=true;s.AmbientStrength=0;Assert(!AmbientPolicy.Includes(s,"notes"));
         });
         test("Media None suppresses every live ambience scope without changing preferences",()=>
         {
-            var s=new Settings{CoverAmbient=true,ClosedAmbient=true,AmbientStrength=.8,AmbientWidgets=new(){"media","focus","notes","closed"}};
+            var s=new Settings{CoverAmbient=true,ClosedAmbient=true,AmbientStrength=.8,AmbientWidgets=new(){"media","timer","notes","closed"}};
             foreach(string scope in new[]{"All widgets","Music only","Selected widgets"})
             {
                 s.AmbientScope=scope;
-                foreach(string widget in new[]{"media","focus","notes","closed","ai"})Assert(!AmbientPolicy.Includes(s,widget,true));
+                foreach(string widget in new[]{"media","timer","notes","closed","ai"})Assert(!AmbientPolicy.Includes(s,widget,true));
             }
-            s.AmbientScope="All widgets";Assert(AmbientPolicy.Includes(s,"focus") && s.CoverAmbient && s.ClosedAmbient && s.AmbientStrength==.8);
+            s.AmbientScope="All widgets";Assert(AmbientPolicy.Includes(s,"timer") && s.CoverAmbient && s.ClosedAmbient && s.AmbientStrength==.8);
         });
         test("Ambient color source falls back without artwork and custom color stays independent",()=>
         {

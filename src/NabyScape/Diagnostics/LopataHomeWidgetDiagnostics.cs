@@ -80,22 +80,22 @@ internal static class LopataHomeWidgetDiagnostics
             Require(island.ActivePage == "media" && Selected(Star()), "The main widget opens with a filled star");
             CheckPlacement("media", heading => UI.Identity(heading) == "Media source");
             capture(island, Path.Combine(directory,"home-star-media.png"));
-            island.SelectPage("focus",false);
+            island.SelectPage("timer",false);
             await Settle();
             Require(!Selected(Star()), "The Timer star is an outline before selection");
             CheckPlacement("timer", heading => heading is TextBlock text && text.Text == Localization.Text("Timer"));
 
             Click(Star());
-            Require(Selected(Star()) && Equals(chooser.SelectedValue, "focus") &&
-                app.Store.Load<Settings>("settings").HomeWidget == "focus", "The star updates settings and persists the Timer");
+            Require(Selected(Star()) && Equals(chooser.SelectedValue, "timer") &&
+                app.Store.Load<Settings>("settings").HomeWidget == "timer", "The star updates settings and persists the Timer");
             Click(Star());
-            Require(settings.HomeWidget == "focus", "Clicking the selected star leaves exactly one main widget");
+            Require(settings.HomeWidget == "timer", "Clicking the selected star leaves exactly one main widget");
             capture(island, Path.Combine(directory,"home-star-timer.png"));
             island.SelectPage("notes",false);
             Require(!Selected(Star()), "The Notes star remains an outline");
             island.Collapse();
             island.Reveal(false);
-            Require(island.ActivePage == "focus", "Reopening the island returns to the selected Timer");
+            Require(island.ActivePage == "timer", "Reopening the island returns to the selected Timer");
 
             chooser.SelectedValue = "notes";
             Require(settings.HomeWidget == "notes" && !Selected(Star()), "Changing settings clears the old star without switching the open widget");
@@ -105,7 +105,7 @@ internal static class LopataHomeWidgetDiagnostics
             island.Collapse();
             island.ShowTools("links",false);
             Require(island.ActivePage == "links", "A direct shortcut still opens its requested tool");
-            foreach (string page in LopataHomeWidget.Choices(app).Where(page => page is not ("media" or "focus")))
+            foreach (string page in LopataHomeWidget.Choices(app).Where(page => page is not ("media" or "timer")))
             {
                 island.SelectPage(page, false);
                 await Settle();

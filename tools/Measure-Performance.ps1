@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Executable,[Parameter(Mandatory)][string]$Directory,[string]$Scenarios='hidden,closed-paused,closed-playing,panel-media,settings-static,settings-moving,mini-windows',[ValidateRange(1,10)][int]$Runs=2,[ValidateRange(1,600)][int]$Seconds=15,[switch]$Cycles,[switch]$AlternateCharacter)
+param([Parameter(Mandatory)][string]$Executable,[Parameter(Mandatory)][string]$Directory,[string]$Scenarios='hidden,closed-paused,closed-playing,panel-media,settings-static,settings-moving,mini-windows',[ValidateRange(1,10)][int]$Runs=2,[ValidateRange(1,600)][int]$Seconds=15,[switch]$Cycles)
 $ErrorActionPreference='Stop'
 Add-Type @'
 using System;
@@ -20,9 +20,8 @@ public static class OptimizationMemory {
 $report=[IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($Directory))
 if(Test-Path -LiteralPath $report){throw 'Use a new directory for every measurement; do not mix prior progress or samples.'}
 New-Item -ItemType Directory -Path $report | Out-Null
-$arguments=@('--assistant-only','--performance-benchmark','--benchmark-seconds',$Seconds,'--benchmark-runs',$Runs,'--benchmark-scenarios',$Scenarios,'--diagnostics',('"'+$report+'"'))
+$arguments=@('--isolated-diagnostics','--performance-benchmark','--benchmark-seconds',$Seconds,'--benchmark-runs',$Runs,'--benchmark-scenarios',$Scenarios,'--diagnostics',('"'+$report+'"'))
 if(!$Cycles){$arguments+='--benchmark-no-cycles'}
-if($AlternateCharacter){$arguments+='--benchmark-alternate-character'}
 $process=Start-Process -FilePath ([IO.Path]::GetFullPath($Executable)) -ArgumentList $arguments -WindowStyle Hidden -PassThru
 $samples=[Collections.Generic.List[object]]::new()
 try {

@@ -80,7 +80,7 @@ internal static class LyricTiming
 internal sealed partial class LyricsService : IDisposable
 {
     private readonly HttpClient client;
-    private readonly IAssistantKeys lyricKeys;
+    private readonly ILyricsKeys lyricKeys;
     private readonly Dictionary<string,LyricResult> cache=new();
     private CancellationTokenSource? pending;
     private string key="";
@@ -95,8 +95,8 @@ internal sealed partial class LyricsService : IDisposable
     internal LyricResult Result {get;private set;}=new(Array.Empty<LyricLine>(),"Lyrics are off.");
     internal event Action? Changed;
     private static string TrackKey(string title,string artist,double duration)=>title+"\n"+artist+"\n"+Math.Round(duration);
-    internal LyricsService(HttpMessageHandler? handler=null,IAssistantKeys? providerKeys=null)
-    {lyricKeys=providerKeys??new AssistantKeys();client=new(handler??new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false}){Timeout=TimeSpan.FromSeconds(8),MaxResponseContentBufferSize=2*1024*1024};client.DefaultRequestHeaders.UserAgent.ParseAdd("NabyScape/2.7.0 (+https://github.com/BillyNabil/nabyscape)");}
+    internal LyricsService(HttpMessageHandler? handler=null,ILyricsKeys? providerKeys=null)
+    {lyricKeys=providerKeys??new LyricsKeys();client=new(handler??new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false}){Timeout=TimeSpan.FromSeconds(8),MaxResponseContentBufferSize=2*1024*1024};client.DefaultRequestHeaders.UserAgent.ParseAdd("NabyScape/2.7.0 (+https://github.com/BillyNabil/nabyscape)");}
     private bool networkBlocked;
     private string localIdentity = "";
     private LyricResult? localOverride;

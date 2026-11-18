@@ -58,7 +58,7 @@ public sealed partial class OverlayWindow
             if(t>=1){StopFollowSlide();Position();}
         };
         Closed+=(_,_)=>{followSlide.Stop();pointerCheck.Stop();};
-        pointerCheck.Tick+=(_,_)=>{ResolveFollow();TrackAssistantPointer();CheckHiddenTuckEdge();};
+        pointerCheck.Tick+=(_,_)=>{ResolveFollow();if(MascotPointerTracking && Native.CursorPoint(out var cursor))TrackMascotPointer(new Point(cursor.X,cursor.Y));CheckHiddenTuckEdge();};
         IsVisibleChanged+=(_,_)=>ConfigureDisplayFollow();
         app.SettingsChanged+=ConfigureDisplayFollow;
         ConfigureDisplayFollow();
@@ -66,7 +66,7 @@ public sealed partial class OverlayWindow
     private void ConfigureDisplayFollow()
     {
         if(app.Settings.DisplayMode!="Follow"){StopFollowSlide();Native.FollowMonitor=null;}
-        if(userHidden || !IsVisible || (app.Settings.DisplayMode!="Follow" && !AssistantPointerTracking && !HiddenTuckHover))
+        if(userHidden || !IsVisible || (app.Settings.DisplayMode!="Follow" && !MascotPointerTracking && !HiddenTuckHover))
         {
             pointerCheck.Stop();followPolicy.Reset();
             if(app.Settings.DisplayMode!="Follow"){StopFollowSlide();Native.FollowMonitor=null;}
@@ -115,6 +115,6 @@ public sealed partial class OverlayWindow
         Width=WindowHostWidth;Height=Math.Max(HostHeight,ClosedSurfaceHeight);
         refreshHz=Native.RefreshRate(IslandScreen);
         surface.BeginUpdate();try{if(!noticeShowing){motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:peeking?PeekSurfaceWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:peeking?CurrentPeekHeight:ClosedSurfaceHeight);}}finally{surface.EndUpdate();}
-        Position();CheckEnvironment();SyncAssistantVisibility();
+        Position();CheckEnvironment();SyncLopataMascot();
     }
 }

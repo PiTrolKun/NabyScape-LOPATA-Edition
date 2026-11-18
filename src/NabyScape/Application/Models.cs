@@ -22,9 +22,7 @@ public sealed partial class Settings
 {
     public string NotificationDelivery {get;set;}="Notch";
     public bool NotifyTimer {get;set;}=true;
-    public bool NotifyFocus {get;set;}=true;
     public bool NotifyDownloads {get;set;}=true;
-    public bool NotifyUpdates {get;set;}=true;
     public bool NotifyFailures {get;set;}=true;
     // Alerts other apps show in Windows (Claude, Telegram, ...). Off until the person turns it on.
     public bool ExternalNotifications {get;set;}
@@ -72,7 +70,7 @@ public sealed partial class Settings
     public bool MonitorNetwork { get; set; }=true;
     public bool MonitorStorage { get; set; }=true;
     public bool MonitorProcesses { get; set; }=true;
-    public List<WidgetSetting> HoverViews { get; set; }=new[]{"media","timer","focus","calendar","notes","files","system"}.Select(id=>new WidgetSetting{Id=id,Enabled=id!="system"}).ToList();
+    public List<WidgetSetting> HoverViews { get; set; }=new[]{"media","timer","calendar","notes","files","system"}.Select(id=>new WidgetSetting{Id=id,Enabled=id!="system"}).ToList();
     public bool ClipboardHistory { get; set; }
     public List<WidgetSetting> Tools {get;set;}=ToolNames.Keys.Select(id=>new WidgetSetting{Id=id}).ToList();
     public static readonly Dictionary<string,string> ToolNames=new(){["files"]="File shelf",["notes"]="Notes",["tasks"]="Tasks",["clips"]="Clipboard",["calendar"]="Calendar",["awake"]="Keep awake",["links"]="Clean links",["power"]="Power plan",["weather"]="Weather"};
@@ -115,10 +113,7 @@ public sealed partial class Settings
     public bool VolumeFeedback { get; set; }=true;
     public bool BrightnessFeedback { get; set; }=true;
     public List<string> RecentColors { get; set; }=new();
-    public bool AutoCheckUpdates { get; set; }=true;
     public bool AutoStart { get; set; }
-    public int FocusMinutes { get; set; } = 25;
-    public int BreakMinutes { get; set; } = 5;
     public List<WidgetSetting> Widgets { get; set; } = Defaults();
     public List<Shortcut> Shortcuts { get; set; } = new()
     {
@@ -127,14 +122,15 @@ public sealed partial class Settings
     };
     public static readonly Dictionary<string,string> Names = new()
     {
-        ["voice"]="Naby voice", ["media"]="Media", ["volume"]="Volume", ["timer"]="Timer", ["stopwatch"]="Stopwatch", ["focus"]="Focus mode",
+        ["media"]="Media", ["volume"]="Volume", ["timer"]="Timer", ["stopwatch"]="Stopwatch",
         ["clock"]="Clock & date", ["system"]="System monitor", ["battery"]="Battery", ["shortcuts"]="Shortcuts",["tools"]="Everyday tools",
         ["files"]="File shelf",["notes"]="Notes",["tasks"]="Tasks",["clips"]="Clipboard",["calendar"]="Calendar",["awake"]="Keep awake",["links"]="Clean links",["power"]="Power plan",["weather"]="Weather"
     };
-    public static List<WidgetSetting> Defaults() => Names.Keys.Where(id=>id!="tools").Select(id => new WidgetSetting { Id=id,Enabled=id is not ("stopwatch" or "voice" or "power") }).ToList();
+    public static List<WidgetSetting> Defaults() => Names.Keys.Where(id=>id!="tools").Select(id => new WidgetSetting { Id=id,Enabled=id is not ("stopwatch" or "power") }).ToList();
     public void Normalize()
     {
         NormalizeLanguageAccessibility();
+        if (HomeWidget == "focus") HomeWidget = "timer";
         if(Array.IndexOf(SettingsBackdrop.Choices,SettingsMaterial)<0)SettingsMaterial="";
         if(NotificationDelivery is not ("Notch" or "Windows" or "Both" or "Off"))NotificationDelivery="Notch";
         ExternalNotificationMuted=(ExternalNotificationMuted??new()).Where(n=>!string.IsNullOrWhiteSpace(n)).Select(n=>n.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(100).ToList();
@@ -163,7 +159,6 @@ public sealed partial class Settings
         CategoryStyle="Dots";
         if(LaunchStyle is not ("IconsLabels" or "Icons" or "Text"))LaunchStyle="IconsLabels";
         RecentColors=(RecentColors??new()).Where(ValidColor).Distinct(StringComparer.OrdinalIgnoreCase).Take(8).ToList();
-        FocusMinutes=Math.Clamp(FocusMinutes,1,240); BreakMinutes=Math.Clamp(BreakMinutes,1,120);
         if(Preset!="Mac" && Preset!="iPhone") Preset="iPhone";
         if(!ValidColor(Background)) Background="#000000";
         if(!ValidColor(Accent)) Accent="#FFFFFF";
@@ -177,7 +172,7 @@ public sealed partial class Settings
             bool enabled=Widgets[legacy].Enabled;Widgets.RemoveAt(legacy);
             foreach(var tool in Tools)if(!Widgets.Any(w=>w.Id==tool.Id))Widgets.Insert(legacy++,new(){Id=tool.Id,Enabled=enabled && tool.Enabled});
         }
-        foreach(var id in Names.Keys.Where(id=>id!="tools")) if(!Widgets.Any(w=>w.Id==id)) Widgets.Add(new(){Id=id,Enabled=id=="weather" || id is not ("stopwatch" or "voice" or "power") && !ToolNames.ContainsKey(id)});
+        foreach(var id in Names.Keys.Where(id=>id!="tools")) if(!Widgets.Any(w=>w.Id==id)) Widgets.Add(new(){Id=id,Enabled=id=="weather" || id is not ("stopwatch" or "power") && !ToolNames.ContainsKey(id)});
         // Legacy availability also gates hover pages. Hiding a main-panel widget
         // must not remove an independently enabled hover page.
         foreach(var tool in Tools)tool.Enabled|=Widgets.Any(w=>w.Id==tool.Id && w.Enabled);
@@ -215,7 +210,6 @@ public sealed class SessionState
 {
     public StopwatchState Stopwatch {get;set;}=new();
     public Countdown Timer { get; set; } = new();
-    public Countdown Focus { get; set; } = new();
 }
 public sealed partial class Store
 {

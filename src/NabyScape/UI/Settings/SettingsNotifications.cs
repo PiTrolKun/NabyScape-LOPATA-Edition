@@ -9,11 +9,10 @@ public sealed partial class SettingsWindow
         var delivery=UI.CaptionChoice(new[]{"Notch","Windows","Both","Off"},s.NotificationDelivery);UI.Named(delivery,Localization.Text("Notification delivery"));delivery.SelectionChanged+=(_,_)=>{s.NotificationDelivery=delivery.SelectedValue?.ToString()??"Notch";Save();};
         var countdownNotifications=new StackPanel();
         countdownNotifications.Children.Add(Check("Timer finished",s.NotifyTimer,v=>s.NotifyTimer=v));
-        if(app.SupportsWidget("focus"))countdownNotifications.Children.Add(Check("Focus finished",s.NotifyFocus,v=>s.NotifyFocus=v));
         page.Children.Add(Section("Notifications",
             delivery,
             countdownNotifications,Check("Downloads ready",s.NotifyDownloads,v=>s.NotifyDownloads=v),
-            app.UsesLopataEdition?UI.Caption("LOPATA releases appear in the island's update indicator.",11,UI.Muted):Check("Update available",s.NotifyUpdates,v=>s.NotifyUpdates=v),Check("Important app failures",s.NotifyFailures,v=>s.NotifyFailures=v),
+            UI.Caption("LOPATA releases appear in the island's update indicator.",11,UI.Muted),Check("Important app failures",s.NotifyFailures,v=>s.NotifyFailures=v),
             UI.Text(Localization.Text("Notch shows a compact indicator. Hover or click for details. Manually hidden islands use Windows instead. Volume and brightness take priority; panels and editors stay undisturbed. The notification center keeps this session's last 50 alerts; nothing is saved to disk."),11,UI.Muted),
             UI.Row(UI.CaptionButton("Send test notification",app.SendTestNotification,true),UI.CaptionButton("Open notification center",app.OpenNotifications)),UI.Text(Localization.Text("Open it from the bell in the island panel, the tray menu, or Ctrl+K → Notifications. Windows delivery follows your Windows notification preferences."),11,UI.Muted)));
         ExternalNotificationSettings();

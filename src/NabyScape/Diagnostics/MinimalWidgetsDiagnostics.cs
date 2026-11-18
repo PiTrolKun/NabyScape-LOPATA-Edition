@@ -16,7 +16,7 @@ internal static class MinimalWidgetsDiagnostics
     {
         const BindingFlags flags=BindingFlags.NonPublic|BindingFlags.Instance;
         T Field<T>(string name)=>(T)typeof(OverlayWindow).GetField(name,flags)!.GetValue(island)!;
-        var s=app.Settings;s.GlassStyle=false;s.Background="#000000";app.Assistant.Options.Enabled=true;app.Assistant.SaveOptions();s.CompactLayout=true;s.CategoryStyle="Dots";s.LaunchStyle="Icons";s.PanelWidth=526;s.PanelMaxHeight=500;s.PanelPadding=34;s.PanelScale=1;s.PanelAutoHeight=true;s.HideMaximized=s.HideFullscreen=s.AlwaysTucked=false;s.SmartActivities=false;s.ReduceMotion=true;s.LiveActivity=true;s.AmbientScope="All widgets";s.AmbientMotion="Still";s.AmbientAudioResponse="Off";s.AmbientStrength=.18;s.CountdownSound="Off";s.NotificationDelivery="Off";s.ClipboardHistory=true;
+        var s=app.Settings;s.GlassStyle=false;s.Background="#000000";s.CompactLayout=true;s.CategoryStyle="Dots";s.LaunchStyle="Icons";s.PanelWidth=526;s.PanelMaxHeight=500;s.PanelPadding=34;s.PanelScale=1;s.PanelAutoHeight=true;s.HideMaximized=s.HideFullscreen=s.AlwaysTucked=false;s.SmartActivities=false;s.ReduceMotion=true;s.LiveActivity=true;s.AmbientScope="All widgets";s.AmbientMotion="Still";s.AmbientAudioResponse="Off";s.AmbientStrength=.18;s.CountdownSound="Off";s.NotificationDelivery="Off";s.ClipboardHistory=true;
         foreach(var w in s.Widgets)w.Enabled=w.Id!="stopwatch";
         s.Shortcuts=new(){new(){Name="Explorer",Target="explorer.exe"},new(){Name="Settings",Target="ms-settings:"},new(){Name="Notepad",Target=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"notepad.exe")}};
         app.ChangeSettings();app.Media.DiagnosticPlayback(true);app.Audio.DiagnosticPeak=()=>.3f;
@@ -58,7 +58,7 @@ internal static class MinimalWidgetsDiagnostics
         check("Playback and waveform share the same horizontal center",Math.Abs(Center(transport)-Center(wave))<1);
         island.SelectPage("focus",false);await Task.Delay(80);check("Countdowns use two thin progress instruments",Diagnostics.Descendants(island).OfType<ProgressRing>().Count(r=>r.IsVisible)==2);
         var start=Diagnostics.Descendants(island).OfType<Button>().Single(b=>AutomationProperties.GetAutomationId(b)=="timer-primary");Click(start);check("Ring countdown retains state-driven primary action",app.Session.Timer.Running && AutomationProperties.GetItemStatus(start)=="Pause");Click(start);check("The same action pauses the original session",!app.Session.Timer.Running && AutomationProperties.GetItemStatus(start)=="Resume");
-        app.Session.Timer.Reset();app.Session.Focus.Reset();app.SaveSession();
+        app.Session.Timer.Reset();app.SaveSession();
         island.SelectPage("tasks",false);await Task.Delay(60);var task=Diagnostics.Descendants(island).OfType<CheckBox>().Single(c=>AutomationProperties.GetName(c)=="Polish widget interactions");task.IsChecked=true;task.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));check("Task summary reflects saved completion without rebuilding rows",app.Productivity.Tasks.Count(t=>t.Done)==2 && Diagnostics.Descendants(island).OfType<TextBlock>().Any(t=>t.Text=="1 open"));
         var draft=Diagnostics.Descendants(island).OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="New task");draft.Text="A draft stays here";draft.Select(2,5);app.PublishUpdate(RuntimeChange.Clock|RuntimeChange.Media);check("Task draft and selection survive unrelated updates",draft.Text=="A draft stays here" && draft.SelectionStart==2 && draft.SelectionLength==5);
         island.SelectPage("files",false);await Task.Delay(150);var more=Diagnostics.Descendants(island).OfType<Button>().Single(b=>AutomationProperties.GetName(b)=="File shelf actions");Click(more);check("Shelf secondary actions remain keyboard-accessible",more.ContextMenu?.Items.OfType<MenuItem>().Any(i=>Equals(i.Header,"Select all"))==true);check("Open tool menus retain ownership of the island",MinimalWidgets.MenuOpen(island));more.ContextMenu!.IsOpen=false;check("Closing tool menus releases their registry",!MinimalWidgets.MenuOpen(island));
@@ -80,7 +80,6 @@ internal static class MinimalWidgetsDiagnostics
         }
         island.SelectPage("calendar",false);var week=Diagnostics.Descendants(island).OfType<System.Windows.Controls.Primitives.UniformGrid>().Single(g=>AutomationProperties.GetName(g)=="Calendar week");check("Calendar provides seven accessible dates",week.Children.Count==7 && week.Children.OfType<Button>().All(b=>AutomationProperties.GetName(b).Length>10));
         Capture("calendar-150",1.5);Capture("calendar-200",2);
-        check("Fixtures do not start microphone or screen sharing",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
         File.WriteAllText(Path.Combine(directory,"capture-notes.txt"),"Actual WPF renders. Original drawn landscape/document images, local fixture files, tasks, events and clipboard items only. No system clipboard copy, real launch command, microphone, screen capture or provider request. 150/200% images are raster exports, not physical monitor DPI checks.");
     }
 }

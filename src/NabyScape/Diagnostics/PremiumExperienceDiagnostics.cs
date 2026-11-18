@@ -72,17 +72,13 @@ internal static class PremiumExperienceDiagnostics
             Navigate("Motion");await Task.Delay(60);check("Motion exposes interaction feedback",Diagnostics.Descendants(window).OfType<ComboBox>().Any(c=>AutomationProperties.GetName(c)=="Interaction feedback"));
             Navigate("Notifications");await Task.Delay(60);Capture(window,"settings-notifications");check("Notifications exposes presentation and quiet schedule",Diagnostics.Descendants(window).OfType<ComboBox>().Any(c=>AutomationProperties.GetName(c)=="Notification animation") && Diagnostics.Descendants(window).OfType<ComboBox>().Any(c=>AutomationProperties.GetName(c)=="Quiet hours start"));
             Navigate("AI");await Task.Delay(60);
-            var presets=Diagnostics.Descendants(window).OfType<ComboBox>().Single(c=>ReferenceEquals(c.ItemsSource,AssistantProviderCatalog.Presets));Diagnostics.Descendants(window).OfType<AssistantProviderSettings>().Single().RevealSetupTarget(presets);presets.SelectedItem="Hermes Agent";
-            Diagnostics.Descendants(window).OfType<Button>().Single(b=>AutomationProperties.GetName(b)=="Add provider").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));await Task.Delay(60);
-            check("Hermes preset fills its agent alias and local gateway",app.Assistant.Options.Providers.Any(p=>p.Backend=="Hermes" && p.Model=="hermes-agent" && p.BaseUrl.Contains(":8642/v1/")));
-            window.OpenAiHermesSettings();await Task.Delay(100);
-            check("Hermes connection UI distinguishes backend permissions",Diagnostics.Descendants(window).OfType<TextBlock>().Any(t=>t.IsVisible && t.Text.Contains("skills, memory, tools and permissions")));Capture(window,"settings-hermes");
+            check("Chat settings expose the LOPATA chat action", Diagnostics.Descendants(window).OfType<Button>().Any(b => UI.Identity(b) == "Open chat"));
         }
         finally{window.Close();}
 
         island.Collapse();await Task.Delay(50);app.Notifications.Clear();
         var fixture=new Settings{NotificationDelivery="Notch"};
-        foreach(string kind in new[]{"timer","focus","updates"})app.Notifications.Post(fixture,new(kind,kind=="timer"?"Timer finished":kind=="focus"?"Focus complete":"Update available","An original notification example."),false,_=>{},DateTimeOffset.UtcNow);
+        foreach(string kind in new[]{"timer","downloads","updates"})app.Notifications.Post(fixture,new(kind,kind=="timer"?"Timer finished":kind=="downloads"?"Download ready":"Update available","An original notification example."),false,_=>{},DateTimeOffset.UtcNow);
         island.OpenNotice(true);await Task.Delay(80);Capture(island,"notification-queue",true);
         var card=Field<Border>("noticeCard");check("Notification queue is visible and action names stay clear",Diagnostics.Descendants(card).OfType<TextBlock>().Any(t=>t.Text=="3 queued") && Diagnostics.Descendants(card).OfType<Button>().Any(b=>Equals(b.Content,"Clear all")));
         check("Notifications stay on a clean dark surface",!surface.AmbientVisible);
@@ -95,11 +91,10 @@ internal static class PremiumExperienceDiagnostics
         foreach(string animation in new[]{"Lift","Fade","Soft scale"})
         {
             island.Collapse();app.Notifications.Clear();s.NotificationAnimation=animation;s.ReduceMotion=false;app.ChangeSettings();
-            app.Notifications.Post(fixture,new("focus","Focus complete","Time for a short break."),false,_=>{},DateTimeOffset.UtcNow);island.OpenNotice(true);
+            app.Notifications.Post(fixture,new("timer","Timer finished","Your timer has finished."),false,_=>{},DateTimeOffset.UtcNow);island.OpenNotice(true);
             card=Field<Border>("noticeCard");check(animation+" starts a finite notification entrance",!Motion.Enabled || card.HasAnimatedProperties || card.RenderTransform.HasAnimatedProperties);await Task.Delay(420);Capture(island,"notification-"+animation.Replace(' ','-').ToLowerInvariant(),true);
         }
         s.ReduceMotion=true;app.ChangeSettings();island.Collapse();app.Notifications.Clear();
-        check("Fixtures keep microphone and screen sharing inactive",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
-        File.WriteAllText(Path.Combine(directory,"capture-notes.txt"),"Original drawn covers and synthetic messages only. No real Hermes gateway request, API key, microphone, clipboard or screen capture. Scaled WPF raster exports do not replace physical monitor DPI testing.");
+        File.WriteAllText(Path.Combine(directory,"capture-notes.txt"),"Original drawn covers and synthetic messages only. Media and settings checks use fixture data. Scaled WPF raster exports do not replace physical monitor DPI testing.");
     }
 }

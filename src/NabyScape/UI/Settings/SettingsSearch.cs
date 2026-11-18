@@ -19,10 +19,10 @@ public sealed partial class SettingsWindow
     private static string[] CategorySections(string id)=>Category(id).Sections??(id switch
     {
         "Layout"=>new[]{"Display","Dock placement","Move & resize","Closed island","Open panel","Hover preview","Layout profile"},
-        "Content"=>new[]{"Feature usage","Enabled widgets & order","Individual tools","Hover pages","Focus sessions","Stopwatch"},
+        "Content"=>new[]{"Feature usage","Enabled widgets & order","Individual tools","Hover pages","Stopwatch"},
         "Controls"=>new[]{"Hover & swipe","Panel navigation","Drag to Island","Detachable previews","Closed cover gestures","Notch gestures","Global hotkey"},
         "Audio"=>new[]{"Visualizer","Lyrics","Closed media display","Volume mixer","Waveform source","Live signal","Live feedback","Audio behavior","Header wheel"},
-        "System"=>new[]{"Clock","Monitor details"},"Launch"=>new[]{"Launch display","Shortcuts"},"AI"=>new[]{"AI companion","Naby in the dock"},
+        "System"=>new[]{"Clock","Monitor details"},"Launch"=>new[]{"Launch display","Shortcuts"},
         "Application"=>new[]{"Language & accessibility","Updates","Behavior","Local storage","Private diagnostics","Reset preferences","About NabyScape"},_=>Array.Empty<string>()
     });
     private static SettingsSearchItem[] BuildSettingsSearchIndex()
@@ -38,7 +38,6 @@ public sealed partial class SettingsWindow
         Add("Live lyrics on closed dock","Audio","Closed media display","Closed media content","lyrics lirik youtube apple song title none waveform");
         Add("Light or dark theme","Appearance","Theme","Theme","theme light dark white black mode windows follow system clair sombre blanc noir tema terang gelap");
         Add("Collapsed island color","Appearance","Color & material","Use same color for both states","closed collapsed compact island dock color background black visible wallpaper tertutup warna");
-        Add("Naby panel size in the dock","AI","Naby in the dock","Content size","naby ai chat voice panel size width height mode dock island companion");
         Add("Collapsed island opacity","Appearance","Color & material","Collapsed island opacity","closed collapsed transparency transparent opacity see-through tertutup");
         Add("Feature usage","Content","Feature usage","Connect to music apps","resource ram essentials background disable features music download");
         Add("Light on the closed dock","Ambience","Ambient light","Show ambience on closed dock","closed compact dock ambience tertutup hitam tuck glow");
@@ -68,29 +67,16 @@ public sealed partial class SettingsWindow
         Add("Speaker & volume","Audio","Volume mixer","","speaker volume suara mixer microphone output device spotify");
         Add("Follow the app that starts playing","Audio","Audio behavior","Switch to the app that starts playing","media source auto follow switch playing session telegram spotify sumber otomatis");
         Add("Exclude browser media","Audio","Audio behavior","Exclude browser media sessions","browser chrome edge firefox youtube ignore exclude media session source abaikan");
-        Add("Interrupt Naby while it speaks","AI","AI companion","Let me interrupt Naby while it speaks (use headphones)","barge in interrupt echo feedback loop speakers headphones microphone voice gemini live sela");
         Add("Clipboard capture","Clipboard","Clipboard history","Save text & image history locally","clipboard history salin copy paste riwayat gambar capture");
         Add("Weather city","Weather","","Weather city search","cuaca kota city location lokasi weather");
         Add("Weather temperature units","Weather","","Weather temperature units","suhu temperature celsius fahrenheit derajat");
-        Add("AI connection & API key","AI","AI companion","Chat provider","naby hermes gemini provider api key endpoint model voice chat");
-        Add("Choose a chat model","AI","AI companion","Chat model","discover models paste manual ai model");
-        Add("Voice setup & local models","AI","AI companion","Speech connection","asr tts microphone voice speech local hardware install model");
-        Add("Wake word · hands-free voice","AI","AI companion","Wake word settings","wake word hands free hey naby microphone paused resume listening");
-        Add("Uninstall ASR & TTS models","AI","AI companion","Installed speech models","uninstall remove model free space storage delete tts asr download cache");
-        Add("Uninstall NabyScape","Application","Local storage","Uninstall NabyScape…","uninstall remove application delete all data models cleanup fresh install hapus aplikasi");
-        Add("Image input & support test","AI","AI companion","Image input","image input vision send pictures photo support test");
-        Add("Test microphone and speech","AI","AI companion","Speech checks","microphone not working test transcription asr tts play sample speaker voice");
-        Add("Timer & focus duration","Content","Focus sessions","","focus timer pomodoro menit durasi break istirahat");
         Add("Notification sounds","Notifications","Completion sound","","notifikasi notif suara sound bunyi timer fokus");
         Add("Notifications from other apps","Notifications","Other apps","Show notifications from other apps","claude chatgpt telegram whatsapp discord windows toast notif aplikasi lain other apps");
         Add("Quiet hours","Notifications","Notification presentation","","quiet hours mute silent senyap diam jadwal malam");
         Add("Launch at Windows startup","Application","Behavior","Start automatically when signing in to Windows","startup autostart windows mulai otomatis login");
         if (EditionSettingsActive)
         {
-            items.RemoveAll(item => item.Section == "Focus sessions"
-                || item.Category == "AI" && item.Section is "AI companion" or "Naby in the dock"
-                || item.Title == "Uninstall NabyScape"
-                || item.Category == "Appearance" && item.Section is "Theme" or "Surface"
+            items.RemoveAll(item => item.Category == "Appearance" && item.Section is "Theme" or "Surface"
                 || item.Category == "Layout" && item.Section == "Hover preview"
                 || item.Category == "Visibility" && item.Section == "Manual tuck shortcut"
                 || item.Control is "Use same color for both states" or "Closed width" or "Panel width");
@@ -145,7 +131,6 @@ public sealed partial class SettingsWindow
             var target=SettingTree((DependencyObject?)section??page).OfType<Control>().FirstOrDefault(c=>item.Control.Length>0 && UI.Identity(c)==item.Control);
             if(target!=null)
             {
-                if(item.Category=="AI")aiSettings?.RevealSetupTarget(target);
                 for(DependencyObject? node=target;node!=null;node=node is Visual?VisualTreeHelper.GetParent(node):LogicalTreeHelper.GetParent(node))if(node is Expander expander)expander.IsExpanded=true;
                 // Collapsed Expander content is logical before it is realized visually.
                 foreach(var expander in SettingTree((DependencyObject?)section??page).OfType<Expander>().Where(x=>SettingTree(x).Contains(target)))expander.IsExpanded=true;

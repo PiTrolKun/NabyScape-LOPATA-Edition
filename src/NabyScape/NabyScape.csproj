@@ -33,7 +33,6 @@
               Link="Assets\lopata-mascot.png" />
     <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandLink.cs" Link="Application\IslandLink.cs" />
     <PackageReference Include="System.Management" Version="10.0.0" />
-    <PackageReference Include="System.Speech" Version="10.0.13" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00018" />
     <PackageReference Include="NTextCat" Version="0.3.65" />
@@ -44,12 +43,9 @@
     <Resource Include="Assets\Fonts\Manrope-SemiBold.ttf" />
     <Resource Include="Assets\Fonts\Manrope-Bold.ttf" />
     <EmbeddedResource Include="..\..\docs\presets\default-preferences.json" LogicalName="NabyScape.DefaultPreferences.json" />
-    <EmbeddedResource Include="..\..\tools\Uninstall-NabyScape.ps1" LogicalName="NabyScape.Uninstall.ps1" />
     <EmbeddedResource Include="..\..\docs\presets\default-layout.json" LogicalName="NabyScape.DefaultLayout.json" />
-    <EmbeddedResource Include="..\..\tools\local_voice_server.py" LogicalName="NabyScape.LocalAsrServer" />
     <EmbeddedResource Include="..\..\LICENSE" LogicalName="NabyScape.LICENSE" />
     <EmbeddedResource Include="..\..\licenses\NAudio-LICENSE.txt" LogicalName="NabyScape.NAudio-LICENSE.txt" />
-    <EmbeddedResource Include="..\..\licenses\System.Speech-LICENSE.txt" LogicalName="NabyScape.System.Speech-LICENSE.txt" />
     <EmbeddedResource Include="..\..\licenses\LUCIDE-LICENSE.txt" LogicalName="NabyScape.LUCIDE-LICENSE.txt" />
     <EmbeddedResource Include="..\..\licenses\MANROPE-OFL.txt" LogicalName="NabyScape.MANROPE-OFL.txt" />
     <EmbeddedResource Include="..\..\licenses\DOTNET-LICENSE.txt" LogicalName="NabyScape.DOTNET-LICENSE.txt" />

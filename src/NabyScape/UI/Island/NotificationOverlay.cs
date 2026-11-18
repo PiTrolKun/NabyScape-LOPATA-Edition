@@ -50,11 +50,11 @@ public sealed partial class OverlayWindow
         if(peeking && !noticeShowing)return;
         if(noticeCard!=null)visuals.Children.Remove(noticeCard);
         app.Notifications.MarkDisplayed();
-        StopHoverTimers();SetTucked(false);peeking=true;noticeShowing=true;RefreshNoticeEdge();peekPanel.Visibility=Visibility.Collapsed;SyncAssistantVisibility();
+        StopHoverTimers();SetTucked(false);peeking=true;noticeShowing=true;RefreshNoticeEdge();peekPanel.Visibility=Visibility.Collapsed;SyncLopataMascot();
         var content=new StackPanel();
         var header=new DockPanel{Margin=new(0,0,0,12)};
         noticeQueue=UI.Text(app.Notifications.Count>1?app.Notifications.Count+" queued":"",10,UI.Muted);DockPanel.SetDock(noticeQueue,Dock.Right);header.Children.Add(noticeQueue);
-        var kind=UI.Text(notice.Kind=="external"?(notice.Source??"App").ToUpperInvariant():notice.Kind switch{"timer"=>Localization.Text("TIMER"),"focus"=>Localization.Text("FOCUS"),"downloads"=>Localization.Text("DOWNLOADS"),"updates"=>Localization.Text("UPDATE"),_=>Localization.Text("NABYSCAPE")},10,UI.Muted);
+        var kind=UI.Text(notice.Kind=="external"?(notice.Source??"App").ToUpperInvariant():notice.Kind switch{"timer"=>Localization.Text("TIMER"),"downloads"=>Localization.Text("DOWNLOADS"),"updates"=>Localization.Text("UPDATE"),_=>Localization.Text("NABYSCAPE")},10,UI.Muted);
         var icon=NoticeAvatar.Create(notice,30);icon.Margin=new(0,0,10,0);icon.VerticalAlignment=VerticalAlignment.Center;
         header.Children.Add(icon);header.Children.Add(kind);content.Children.Add(header);
         var noticeTitle=UI.Heading(notice.DisplayTitle,18);noticeTitle.FontWeight=FontWeights.SemiBold;noticeTitle.Margin=new(0,0,0,6);content.Children.Add(noticeTitle);

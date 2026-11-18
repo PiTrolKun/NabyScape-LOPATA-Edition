@@ -46,14 +46,12 @@ internal static class MediaFooterDiagnostics
 
         controls=Field<MediaControls>("mediaControls");Click(controls.SourceButton);await Task.Delay(30);Click(Diagnostics.Descendants(controls.Popover).OfType<Button>().Single(button=>AutomationProperties.GetName(button)=="Use media source None"));app.PublishUpdate(RuntimeChange.Media);
         check("None clears selected media, artwork, title and timeline",app.Media.SourceDisabled && !app.Media.Available && !app.Media.Playing && app.Media.Artwork==null && app.Media.Title=="Nothing playing" && app.Media.Timeline()==(0d,0d));
-        var savedTimer=app.Session.Timer;var savedFocus=app.Session.Focus;app.Session.Timer=new();app.Session.Focus=new();island.Collapse();app.PublishUpdate(RuntimeChange.Media);
+        var savedTimer=app.Session.Timer;app.Session.Timer=new();island.Collapse();app.PublishUpdate(RuntimeChange.Media);
         check("None restores idle without a stale cover or media waveform",!island.ClosedCoverVisible && !island.ClosedTitleWaveVisible && (bool)typeof(OverlayWindow).GetProperty("IdleContent",flags)!.GetValue(island)! && !app.AmbientAudio.Running);
         foreach(var widget in s.Widgets)if(widget.Id is "focus" or "timer")widget.Enabled=true;app.ChangeSettings();
-        app.Session.Focus.Start(120,DateTimeOffset.UtcNow);app.PublishUpdate(RuntimeChange.Countdown);
-        check("None lets Focus occupy the primary island",ReferenceEquals(typeof(OverlayWindow).GetMethod("ActiveCountdown",flags)!.Invoke(island,null),app.Session.Focus));
-        app.Session.Focus=new();app.Session.Timer.Start(120,DateTimeOffset.UtcNow);app.PublishUpdate(RuntimeChange.Countdown);
+        app.Session.Timer.Start(120,DateTimeOffset.UtcNow);app.PublishUpdate(RuntimeChange.Countdown);
         check("None lets Timer occupy the primary island",ReferenceEquals(typeof(OverlayWindow).GetMethod("ActiveCountdown",flags)!.Invoke(island,null),app.Session.Timer));
-        app.Session.Timer=savedTimer;app.Session.Focus=savedFocus;island.Reveal(false);island.SelectPage("media",false);await Task.Delay(60);controls=Field<MediaControls>("mediaControls");Click(controls.SourceButton);await Task.Delay(30);
+        app.Session.Timer=savedTimer;island.Reveal(false);island.SelectPage("media",false);await Task.Delay(60);controls=Field<MediaControls>("mediaControls");Click(controls.SourceButton);await Task.Delay(30);
         check("None remains selected and source selection can be reopened",Diagnostics.Descendants(controls.Popover).OfType<Button>().Any(button=>AutomationProperties.GetName(button)=="Use media source None" && AutomationProperties.GetItemStatus(button)=="Selected"));
         Click(Diagnostics.Descendants(controls.Popover).OfType<Button>().Single(button=>AutomationProperties.GetName(button)=="Use media source Auto"));app.Media.DiagnosticPlayback(true);typeof(MediaService).GetProperty("Artwork")!.SetValue(app.Media,artwork);typeof(MediaService).GetProperty("Title")!.SetValue(app.Media,"Evening light");typeof(MediaService).GetProperty("Artist")!.SetValue(app.Media,"Original artwork · local demo");app.PublishUpdate(RuntimeChange.Media);
         check("Auto explicitly restores media availability",!app.Media.SourceDisabled && app.Media.Available && app.Media.SourceSelectionId==MediaSourceSelection.AutoId);
@@ -115,7 +113,6 @@ internal static class MediaFooterDiagnostics
         check("Volume-only mode keeps its popover within the surface",!controls.SourceButton.IsVisible && controls.VolumeButton.IsVisible && volumeBounds.Top>=0 && volumeBounds.Bottom<=controls.ActualHeight+.5);Capture("volume-only");controls.Close(false);
         foreach(var widget in s.Widgets)if(widget.Id=="media")widget.Enabled=true;s.CompactLayout=false;app.ChangeSettings();island.Reveal(false);await Task.Delay(80);
         check("Classic layout retains its inline volume slider",Field<Slider>("volume").IsVisible && Field<MediaControls?>("mediaControls")==null);
-        check("Fixture leaves voice and screen sharing off",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
         File.WriteAllText(Path.Combine(directory,"capture-notes.txt"),"Actual WPF renders with original artwork/title, injected Spotify/Chrome enumeration and a sample volume slider for screenshots. Actual Windows slider identity checked without modifying its value. No playback, volume/mute/device write, microphone, capture, API key or provider request.");
     }
 }

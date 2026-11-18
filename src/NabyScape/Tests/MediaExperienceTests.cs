@@ -84,7 +84,7 @@ internal static class MediaExperienceTests
         });
         test("Legacy tool order expands in place and keeps disabled choices",()=>
         {
-            var s=new Settings{Widgets=new(){new(){Id="media"},new(){Id="tools"},new(){Id="focus"}},Tools=new(){new(){Id="notes"},new(){Id="files",Enabled=false}}};s.Normalize();
+            var s=new Settings{Widgets=new(){new(){Id="media"},new(){Id="tools"},new(){Id="timer"}},Tools=new(){new(){Id="notes"},new(){Id="files",Enabled=false}}};s.Normalize();
             Assert(s.Widgets[1].Id=="notes" && s.Widgets[2].Id=="files" && !s.ToolEnabled("files") && s.ToolEnabled("notes") && s.Widgets.All(w=>w.Id!="tools"));
             var ids=s.Widgets.Select(w=>(w.Id,w.Enabled)).ToArray();s.Normalize();Assert(ids.SequenceEqual(s.Widgets.Select(w=>(w.Id,w.Enabled))));
         });
@@ -141,8 +141,8 @@ internal static class MediaExperienceTests
         {var s=new Settings{Width=228,Horizontal=0,Top=700,Preset="iPhone"};var bounds=new System.Drawing.Rectangle(0,0,1280,800);var point=MonitorFollowPolicy.Place(s,bounds,1,760,400,false,228);Assert(point.X+(760-228)/2==0 && point.Y==400);s.Horizontal=100;point=MonitorFollowPolicy.Place(s,bounds,1,760,400,false,228);Assert(point.X+(760+228)/2==1280);});
         test("Spectrum has fast independent attack, measured silence and bounded release",()=>
         {
-            var bands=new float[25];bands[3]=1;var wave=new ActivityVisual();wave.Sample(0,.016,0,false,false,true,0,true,true,bands);Assert(wave.WaveLevel(3)>.7 && wave.WaveLevel(9)==0);
-            Array.Clear(bands);for(int i=0;i<25;i++)wave.Sample(0,.016,0,false,false,true,i*.016,true,true,bands);Assert(wave.WaveLevel(3)<.02 && wave.WaveLevel(9)==0);
+            var bands=new float[25];bands[3]=1;var wave=new ActivityVisual();wave.Sample(0,.016,0,false,true,0,true,true,bands);Assert(wave.WaveLevel(3)>.7 && wave.WaveLevel(9)==0);
+            Array.Clear(bands);for(int i=0;i<25;i++)wave.Sample(0,.016,0,false,true,i*.016,true,true,bands);Assert(wave.WaveLevel(3)<.02 && wave.WaveLevel(9)==0);
         });
         test("New preference limits and sound generation stay valid",()=>
         {var s=new Settings{WaveformSensitivity=double.NaN,LyricsOffset=99,CountdownSoundVolume=-1,CountdownSound="bad",WaveformSource="bad",LyricsAnimation="bad",Top=2900};s.Normalize();Assert(s.WaveformSensitivity==1.35 && s.LyricsOffset==10 && s.CountdownSoundVolume==0 && s.CountdownSound=="Chime" && s.WaveformSource=="Spectrum" && s.LyricsAnimation=="Slide" && s.Top==2900);Assert(CountdownAudio.Tone("Chime").Length==88200 && CountdownAudio.Tone("Bell").Any(b=>b!=0));});

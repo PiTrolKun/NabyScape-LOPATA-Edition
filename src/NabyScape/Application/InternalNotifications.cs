@@ -52,7 +52,7 @@ internal sealed class InternalNotifications
     }
     internal event Action? Changed;
     private void Publish(){try{Changed?.Invoke();}catch{/* Never notify about notification-delivery failures. */}}
-    internal static bool Enabled(Settings s,string kind)=>kind switch{"test"=>true,"external"=>s.ExternalNotifications,"timer"=>s.NotifyTimer,"focus"=>s.NotifyFocus,"downloads"=>s.NotifyDownloads,"updates"=>s.NotifyUpdates,_=>s.NotifyFailures};
+    internal static bool Enabled(Settings s,string kind)=>kind switch{"test"=>true,"external"=>s.ExternalNotifications,"timer"=>s.NotifyTimer,"downloads"=>s.NotifyDownloads,_=>s.NotifyFailures};
     internal static (bool Notch,bool Windows) Route(string mode,bool hidden)=>mode switch{"Windows"=>(false,true),"Both"=>(!hidden,true),"Off"=>(false,false),_=>(!hidden,hidden)};
     internal void Post(Settings settings,InternalNotice notice,bool hidden,Action<InternalNotice> windows,DateTimeOffset now)
     {

@@ -25,8 +25,7 @@ public sealed partial class SettingsWindow
         Tile("Pick your widgets","Show only what you use.","nav-tools","Content");
         Tile("Music & lyrics","What plays on the dock.","nav-media","Audio");
         Tile("Notifications","Alerts and quiet hours.","bell","Notifications");
-        if (app.UsesLopataEdition) Tile("LOPATA chat", "Talk to LOPATA through its installed local core.", "chat", "AI");
-        else Tile("Talk to Naby AI","Chat or voice assistant.","chat","AI");
+        Tile("LOPATA chat", "Talk to LOPATA through its installed local core.", "chat", "AI");
         Tile("App & updates","Startup, language, updates.","nav-settings","Application");
         page.Children.Add(tiles);
         // Readiness of each feature follows the tasks, so newcomers see what to do first.

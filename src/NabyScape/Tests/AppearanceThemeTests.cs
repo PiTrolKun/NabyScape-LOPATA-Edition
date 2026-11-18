@@ -139,10 +139,5 @@ internal static class AppearanceThemeTests
             }
             finally{if(Directory.Exists(root))Directory.Delete(root,true);}
         });
-        test("Settings: Naby's dock panels keep their own size below the widget panel limits",()=>
-        {
-            var small=new Settings{PanelWidth=300,PanelMaxHeight=240};var mid=new Settings{PanelWidth=700,PanelMaxHeight=600,PanelScale=1.2,PanelPadding=40};var narrow=new Settings{PanelWidth=500,PanelMaxHeight=500};
-            Assert(AssistantView.PanelSize(small)==AssistantView.PanelSize(mid) && AssistantView.PanelSize(small,true)==AssistantView.PanelSize(narrow,true));
-        });
     }
 }

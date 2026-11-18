@@ -43,7 +43,6 @@
       "volume",
       "timer",
       "stopwatch",
-      "focus",
       "clock",
       "system",
       "battery",
@@ -55,8 +54,7 @@
       "calendar",
       "awake",
       "links",
-      "closed",
-      "ai"
+      "closed"
     ],
     "AmbientColorSource": "Album cover",
     "AmbientCustomColor": "#7AA8DC",
@@ -90,10 +88,6 @@
         "Enabled": true
       },
       {
-        "Id": "focus",
-        "Enabled": true
-      },
-      {
         "Id": "calendar",
         "Enabled": true
       },
@@ -147,10 +141,6 @@
       },
       {
         "Id": "links",
-        "Enabled": true
-      },
-      {
-        "Id": "voice",
         "Enabled": true
       }
     ],
@@ -168,10 +158,6 @@
         "Enabled": true
       },
       {
-        "Id": "focus",
-        "Enabled": true
-      },
-      {
         "Id": "clock",
         "Enabled": true
       },
@@ -222,10 +208,6 @@
       {
         "Id": "links",
         "Enabled": true
-      },
-      {
-        "Id": "voice",
-        "Enabled": false
       }
     ],
     "CompactLayout": true,

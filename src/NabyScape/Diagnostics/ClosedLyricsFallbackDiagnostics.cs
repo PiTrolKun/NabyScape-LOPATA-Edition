@@ -12,7 +12,7 @@ internal static class ClosedLyricsFallbackDiagnostics
         s.ClosedMediaContent="Lyrics";s.HideFullscreen=s.HideMaximized=s.AlwaysTucked=false;
         s.SmartActivities=false;s.ReduceMotion=false;s.LiveActivity=true;s.LyricsOffset=0;
         s.ClosedMediaIcon="None";s.CoverAmbient=false;s.ClosedAmbient=false;
-        app.Session.Timer.Reset();app.Session.Focus.Reset();
+        app.Session.Timer.Reset();
         foreach(var widget in s.Widgets)widget.Enabled=widget.Id is "media" or "clock";
         app.Audio.DiagnosticPeak=()=>.35f;app.Media.DiagnosticPlayback(true);
         // Import before enabling the dock consumer so every transition stays offline.

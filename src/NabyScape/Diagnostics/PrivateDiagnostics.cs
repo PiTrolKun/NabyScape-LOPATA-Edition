@@ -12,7 +12,7 @@ namespace NabyScape;
 internal enum DiagnosticStage { Application, StoreLoad, StoreSave, Updater, Recovery, DiagnosticsCopy, DiagnosticsExport }
 internal enum DiagnosticCode { UnknownFailure, InvalidJson, InvalidDocument, UnsupportedSchema, AccessDenied,
     IoFailure, LimitExceeded, Cancelled, VerificationFailed, MigrationFailed, Completed, SchemaFinalizationPending }
-internal enum DiagnosticService { Application, Media, Audio, Assistant, Updates, Recovery }
+internal enum DiagnosticService { Application, Media, Audio, Updates, Recovery }
 internal enum DiagnosticServiceState { Unknown, Disabled, Starting, Ready, Busy, Degraded, Failed }
 
 internal static class PrivateDiagnostics

@@ -69,7 +69,6 @@ internal sealed class ProgressRing : ProgressBar,IInkAware
         };
         Unloaded+=(_,_)=>{BeginAnimation(VisualValueProperty,null);SetValue(VisualValueProperty,Value);};
     }
-    internal void Accent(bool focus){var brush=focus?UI.Brush("#DCC7AE"):Brushes.White;if(active.Brush==brush)return;active=new(brush,2.3){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};InvalidateVisual();}
     protected override void OnRender(DrawingContext dc)
     {
         double radius=Math.Max(0,Math.Min(ActualWidth,ActualHeight)/2-3);if(radius<2)return;

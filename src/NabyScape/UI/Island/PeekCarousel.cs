@@ -16,7 +16,7 @@ public sealed partial class OverlayWindow
         ? Math.Min(portraitAvailableHeight,Math.Max(Math.Max(PeekSurfaceWidth+36,312),app.Settings.HoverHeight+128))
         : Math.Max(app.Settings.HoverHeight,PeekLayout.MinimumDetailedHeight);
     private double PeekPreviewHeight=>PortraitDock?Math.Min(portraitAvailableHeight,PeekSurfaceWidth+16):100;
-    private double CurrentPeekHeight=>assistantPeeking?AssistantPeekHeight:peekDetailed?PeekExpandedHeight:PeekPreviewHeight;
+    private double CurrentPeekHeight=>peekDetailed?PeekExpandedHeight:PeekPreviewHeight;
     private double PeekSurfaceWidth=>PortraitDock?portraitPeekWidth:Math.Min(app.Settings.HoverWidth,IslandScreen.WorkingArea.Width/Native.Scale(IslandScreen)-24);
     private double WindowHostWidth {get{double scale=Native.Scale(IslandScreen);return Math.Ceiling(Math.Max(Math.Max(expandedWidth,PortraitDock?ClosedSurfaceWidth:app.Settings.Width),PeekSurfaceWidth)*scale)/scale;}}
     private double PeekWidth=>PeekSurfaceWidth-(PortraitDock?32:64);
@@ -53,7 +53,7 @@ public sealed partial class OverlayWindow
     internal bool PeekTabSafe=>peekViews.Where(pair=>pair.Key!=peekId).All(pair=>KeyboardNavigation.GetTabNavigation(pair.Value)==KeyboardNavigationMode.None);
     internal bool PeekMoving=>peekMoves.Values.Any(move=>move.HasAnimatedProperties);
     private string[]? hoverDeckCache;
-    private void InvalidateHoverDeck(){hoverDeckCache=null;if(peekInitialized && peeking && !assistantPeeking){PreparePeekDeck();UpdatePeek();}}
+    private void InvalidateHoverDeck(){hoverDeckCache=null;if(peekInitialized && peeking){PreparePeekDeck();UpdatePeek();}}
     private string[] PeekPages()
     {
         var ids=hoverDeckCache??=HoverPagePolicy.Pages(app.Settings).Where(app.SupportsWidget).ToArray();
@@ -101,7 +101,7 @@ public sealed partial class OverlayWindow
         peekViewport.ManipulationDelta+=(_,e)=>{if(peekTouching){DragPeek(e.CumulativeManipulation.Translation.X);e.Handled=true;}};
         peekViewport.ManipulationCompleted+=(_,e)=>{if(peekTouching){peekTouching=false;FinishPeekSwipe(peekOffset);e.Handled=true;}};
         peekViewport.MouseLeftButtonUp+=(_,e)=>{if(peekSuppressClick){peekSuppressClick=false;e.Handled=true;return;}if(!PeekGestureBlocked(e.OriginalSource as DependencyObject)){OpenPeekPage();e.Handled=true;}};
-        PreviewKeyDown+=(_,e)=>{if(!peeking || assistantPeeking || Keyboard.FocusedElement is TextBox or Slider)return;if(e.Key is Key.Left or Key.Right){NavigatePeek(e.Key==Key.Right?1:-1);e.Handled=true;}};
+        PreviewKeyDown+=(_,e)=>{if(!peeking || Keyboard.FocusedElement is TextBox or Slider)return;if(e.Key is Key.Left or Key.Right){NavigatePeek(e.Key==Key.Right?1:-1);e.Handled=true;}};
     }
     internal static bool PeekGestureBlocked(DependencyObject? source)
     {
@@ -119,7 +119,7 @@ public sealed partial class OverlayWindow
     private void EnsurePeekView(string id)
     {
         if(peekViews.ContainsKey(id))return;
-        if(id is "timer" or "focus")AddPeekClock(id);
+        if(id=="timer")AddPeekClock(id);
         else
         {
             var view=id switch
@@ -144,9 +144,9 @@ public sealed partial class OverlayWindow
         outside?.Dispose();outside=DiagnosticRun?null:new OutsideClick(this,Collapse,p=>surface.Contour.FillContains(p) || audioMenu?.IsOpen==true);
     }
     private void PromotePeek()
-    {if(!peeking || assistantPeeking)return;detailDelay.Stop();peekDetailed=true;automaticPreview=false;activityDismiss.Stop();ApplyPeekGeometry();UpdateToolPeeks();motion.Go(surface,IslandSurface.SurfaceHeightProperty,PeekExpandedHeight,app.Settings.AnimationMs);}
+    {if(!peeking)return;detailDelay.Stop();peekDetailed=true;automaticPreview=false;activityDismiss.Stop();ApplyPeekGeometry();UpdateToolPeeks();motion.Go(surface,IslandSurface.SurfaceHeightProperty,PeekExpandedHeight,app.Settings.AnimationMs);}
     internal void SelectPeek(string id)
-    {if(noticeShowing || !peeking || assistantPeeking || !PeekPages().Contains(id))return;PromotePeek();var ids=PeekPages();int old=Array.IndexOf(ids,peekId),next=Array.IndexOf(ids,id);double start=(next-old)*PeekWidth;if(Math.Abs(next-old)>1){peekId=id;LayoutPeek(0,false);peekViews[id].Opacity=.65;Motion.Fade(peekViews[id],1,160);UpdatePeekDeck();return;}if(next==old){LayoutPeek(0,true);return;}peekId=id;LayoutPeek(start,false);UpdatePeekDeck();LayoutPeek(0,true);WakeLiveRendering();}
+    {if(noticeShowing || !peeking || !PeekPages().Contains(id))return;PromotePeek();var ids=PeekPages();int old=Array.IndexOf(ids,peekId),next=Array.IndexOf(ids,id);double start=(next-old)*PeekWidth;if(Math.Abs(next-old)>1){peekId=id;LayoutPeek(0,false);peekViews[id].Opacity=.65;Motion.Fade(peekViews[id],1,160);UpdatePeekDeck();return;}if(next==old){LayoutPeek(0,true);return;}peekId=id;LayoutPeek(start,false);UpdatePeekDeck();LayoutPeek(0,true);WakeLiveRendering();}
     internal void NavigatePeek(int direction)
     {var ids=PeekPages();int index=Array.IndexOf(ids,peekId);if(ids.Length>0)SelectPeek(ids[Math.Clamp(index+Math.Sign(direction),0,ids.Length-1)]);}
     private void LayoutPeek(double offset,bool animate)
@@ -169,7 +169,7 @@ public sealed partial class OverlayWindow
     private void EndPeekGesture(){peekDown=null;peekDragging=peekTouching=false;peekOffset=0;peekWheel.Reset();if(peekViewport.IsMouseCaptured)peekViewport.ReleaseMouseCapture();}
     internal bool RoutePeekWheel(int delta,bool horizontal,DependencyObject? source)
     {
-        if(!peeking || noticeShowing || assistantPeeking)return false;
+        if(!peeking || noticeShowing)return false;
         // Only the focused multiline editor keeps its native vertical scrolling.
         if(!VisibilityPolicy.CarouselOwnsWheel(peeking,horizontal,peekNote?.IsKeyboardFocusWithin==true,IsPeekNoteSource(source)))return false;
         int direction=peekWheel.Push(horizontal?delta:-delta,Environment.TickCount64);
@@ -180,7 +180,6 @@ public sealed partial class OverlayWindow
     {for(var node=source;node!=null;node=node is Visual?VisualTreeHelper.GetParent(node):LogicalTreeHelper.GetParent(node))if(node==peekNote)return true;return false;}
     private void ApplyPeekGeometry()
     {
-        if(assistantPeeking){LayoutAssistantPeek();return;}
         double height=CurrentPeekHeight;
         bool portrait=PortraitDock;
         ConfigurePeekMediaLayout();
@@ -194,7 +193,7 @@ public sealed partial class OverlayWindow
         peekPanel.Margin=new(0,top,0,0);
         if(portrait)peekPanel.Height=contentHeight+footerHeight;
         peekFooter.ColumnDefinitions[0].Width=new(peekDetailed && safe.Width>=270?50:0);peekPageName.Visibility=safe.Width>=270?Visibility.Visible:Visibility.Collapsed;
-        bool detachable=app.Settings.DetachablePreviews && peekId is "media" or "timer" or "focus" or "stopwatch" or "calendar" or "notes" or "files" or "system";
+        bool detachable=app.Settings.DetachablePreviews && peekId is "media" or "timer" or "stopwatch" or "calendar" or "notes" or "files" or "system";
         double detachWidth=detachable?(portrait?50:74):0;
         peekFooter.ColumnDefinitions[3].Width=new(detachWidth);foreach(FrameworkElement child in peekFooter.Children)if(child.Tag as string=="detach")child.Visibility=detachable?Visibility.Visible:Visibility.Collapsed;
         double footerInset=portrait?8:0;
@@ -206,10 +205,10 @@ public sealed partial class OverlayWindow
         foreach(var pair in peekViews)
         {
             pair.Value.Width=safe.Width;pair.Value.Height=contentHeight;
-            if(pair.Key is "timer" or "focus" && pair.Value is Grid clock){clock.RowDefinitions[0].Height=new(peekDetailed?24:18);clock.RowDefinitions[1].Height=new(peekDetailed?48:46);}
+            if(pair.Key=="timer" && pair.Value is Grid clock){clock.RowDefinitions[0].Height=new(peekDetailed?24:18);clock.RowDefinitions[1].Height=new(peekDetailed?48:46);}
             if(pair.Value is Panel page)foreach(FrameworkElement child in page.Children)
             {
-                bool primary=pair.Key=="media"?Grid.GetRow(child)<(portrait?3:1):pair.Key is "timer" or "focus"?Grid.GetRow(child)<2:page.Children.IndexOf(child)<(pair.Key=="notes"?1:2);
+                bool primary=pair.Key=="media"?Grid.GetRow(child)<(portrait?3:1):pair.Key=="timer"?Grid.GetRow(child)<2:page.Children.IndexOf(child)<(pair.Key=="notes"?1:2);
                 if(!primary){if(!peekDetailed)child.Visibility=Visibility.Hidden;else if(child.Visibility==Visibility.Hidden)child.Visibility=Visibility.Visible;}
             }
         }
@@ -222,7 +221,6 @@ public sealed partial class OverlayWindow
     }
     internal void OpenPeekPage()
     {
-        if(assistantPeeking){OpenAssistant();return;}
         if(!HoverPagePolicy.Available(app.Settings,peekId))return;
         if(HoverPagePolicy.IsTool(peekId)){ShowTools(peekId);return;}
         OpenHoverPanel(peekId);
@@ -236,11 +234,11 @@ public sealed partial class OverlayWindow
         var toggle=PeekIcon("play",id=="timer"?"Start or pause preview timer":"Start or pause preview focus",()=>TogglePeekClock(id));toggle.Background=Brushes.Transparent;actions.Children.Add(toggle);
         var more=PlainPeekButton(id=="timer"?"Add five minutes to preview timer":"Add five minutes to preview focus",()=>ExtendPeekClock(id));more.Content=Localization.Text("+5 min");more.FontSize=11;more.Margin=new(8,0,0,0);actions.Children.Add(more);var reset=PlainPeekButton(id=="timer"?"Reset preview timer":"Reset preview focus",()=>{PeekClock(id).Reset();app.SaveSession();});reset.Content=Localization.Text("Reset");reset.FontSize=11;reset.Foreground=UI.Muted;reset.Margin=new(10,0,0,0);actions.Children.Add(reset);Grid.SetRow(actions,3);page.Children.Add(actions);peekClocks[id]=(time,detail,toggle,bar);AddPeekView(id,page);
     }
-    private Countdown PeekClock(string id)=>id=="timer"?app.Session.Timer:app.Session.Focus;
+    private Countdown PeekClock(string id)=>app.Session.Timer;
     private void TogglePeekClock(string id)
-    {var clock=PeekClock(id);var now=DateTimeOffset.UtcNow;if(clock.Running)clock.Pause(now);else if(clock.Remaining(now)>0)clock.Resume(now);else clock.Start((id=="timer"?5:app.Settings.FocusMinutes)*60,now,id=="focus"?"work":"");app.SaveSession();}
+    {var clock=PeekClock(id);var now=DateTimeOffset.UtcNow;if(clock.Running)clock.Pause(now);else if(clock.Remaining(now)>0)clock.Resume(now);else clock.Start(300,now);app.SaveSession();}
     private void ExtendPeekClock(string id)
-    {var clock=PeekClock(id);var now=DateTimeOffset.UtcNow;double remaining=clock.Remaining(now);if(remaining<=0)clock.Start(300,now,id=="focus"?"work":"");else{clock.DurationSeconds+=300;clock.RemainingSeconds=remaining+300;if(clock.Running)clock.Deadline=now.AddSeconds(remaining+300);}app.SaveSession();}
+    {var clock=PeekClock(id);var now=DateTimeOffset.UtcNow;double remaining=clock.Remaining(now);if(remaining<=0)clock.Start(300,now);else{clock.DurationSeconds+=300;clock.RemainingSeconds=remaining+300;if(clock.Running)clock.Deadline=now.AddSeconds(remaining+300);}app.SaveSession();}
     private FrameworkElement BuildPeekSystem()
     {var page=new StackPanel();page.Children.Add(UI.Text(Localization.Text("System"),11,UI.Muted));peekSystem.Margin=new(0,9,0,0);page.Children.Add(peekSystem);return page;}
     private FrameworkElement BuildPeekCalendar()
@@ -274,7 +272,7 @@ public sealed partial class OverlayWindow
         if(peekVolume!=null && !peekVolume.IsMouseCaptureWithin && !peekVolume.IsKeyboardFocusWithin){bool previous=updating;updating=true;try{peekVolume.Value=app.Audio.Volume*100;}finally{updating=previous;}}
         peekMute.IsEnabled=peekOutput.IsEnabled=peekVolume!.IsEnabled=app.Audio.Available;Motion.Icon(peekMute,app.Audio.Muted?"muted":"volume",14);peekTrackPrevious.IsEnabled=app.Media.CanPrevious;peekTrackNext.IsEnabled=app.Media.CanNext;peekTrackPrevious.Opacity=peekTrackPrevious.IsEnabled?1:.3;peekTrackNext.Opacity=peekTrackNext.IsEnabled?1:.3;
         UpdateExtraPeek();UpdateToolPeeks();var now=DateTimeOffset.UtcNow;peekSystem.Text=$"CPU  {app.Usage.cpu:0}%\nRAM  {app.Usage.used:0.0} / {app.Usage.total:0.0} GB";
-        foreach(var pair in peekClocks.Where(pair=>pair.Key==peekId)){var c=PeekClock(pair.Key);var fields=pair.Value;double remaining=c.Remaining(now);fields.time.Text=remaining>0?c.Display(now):Countdown.FormatSeconds((pair.Key=="timer"?5:app.Settings.FocusMinutes)*60);fields.detail.Text=pair.Key=="focus"?(c.Phase=="break"?Localization.Text("Break"):Localization.Text("Focus")):(Localization.Text("Timer"));if(remaining>0 && !c.Running)fields.detail.Text+=Localization.Text(" · paused");if(automaticPreview && previewKind==pair.Key && activityTitle.Length>0){fields.detail.Text=activityTitle;fields.time.Text=remaining>0?c.Display(now):"00:00";}fields.progress.Value=remaining>0?c.Progress(now):0;Motion.Icon(fields.toggle,c.Running?"pause":"play",14);}
+        foreach(var pair in peekClocks.Where(pair=>pair.Key==peekId)){var c=PeekClock(pair.Key);var fields=pair.Value;double remaining=c.Remaining(now);fields.time.Text=remaining>0?c.Display(now):Countdown.FormatSeconds(300);fields.detail.Text=Localization.Text("Timer");if(remaining>0 && !c.Running)fields.detail.Text+=Localization.Text(" · paused");if(automaticPreview && previewKind==pair.Key && activityTitle.Length>0){fields.detail.Text=activityTitle;fields.time.Text=remaining>0?c.Display(now):"00:00";}fields.progress.Value=remaining>0?c.Progress(now):0;Motion.Icon(fields.toggle,c.Running?"pause":"play",14);}
         if(peekViews.ContainsKey("calendar") && peekId=="calendar"){peekEvent=app.Calendar.Events.Where(e=>e.End>now).OrderBy(e=>e.Start).FirstOrDefault();peekEventTitle.Text=peekEvent?.Title??Localization.Text("No upcoming events");peekEventTime.Text=peekEvent==null?DateTime.Now.ToString("ddd, d MMM", Localization.Culture):peekEvent.Start<=now?Localization.Format("Now · until {0}", peekEvent.End.ToLocalTime().ToString("HH:mm")):peekEvent.Start.ToLocalTime().ToString("ddd, d MMM · HH:mm", Localization.Culture);peekJoin.Visibility=peekEvent?.MeetingUrl.Length>0?Visibility.Visible:Visibility.Collapsed;}
         if(peekViews.ContainsKey("files") && peekId=="files"){var file=app.Productivity.Shelf.LastOrDefault();peekFilePath=file?.Exists==true?file.Path:null;if(peekShelfArtPath!=peekFilePath){peekShelfArtPath=peekFilePath;peekShelfArt.Source=null;peekShelfArt.Visibility=peekFilePath==null?Visibility.Collapsed:Visibility.Visible;if(peekFilePath!=null)_=LoadPeekShelfArtwork(peekFilePath);}peekShelfName.Text=file?.Name??Localization.Text("Drop files onto the notch");peekShelfCount.Text=app.Productivity.Shelf.Count==0?Localization.Text("File shelf"):$"{app.Productivity.Shelf.Count} staged · drag a file out";peekShelfFile.IsEnabled=peekFilePath!=null;}
     }

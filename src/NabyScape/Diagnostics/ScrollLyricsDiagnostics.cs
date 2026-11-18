@@ -64,7 +64,6 @@ internal static class ScrollLyricsDiagnostics
         lyrics.Visibility=Visibility.Collapsed;Call("ResizeToolPanel");await Task.Delay(80);check("Hiding lyrics restores the original panel width",Math.Abs(island.PaintedWidth-526)<1);
         s.PanelWidth=300;s.PanelScale=1.25;s.PanelMaxHeight=650;app.ChangeSettings();await Task.Delay(60);lyrics.Visibility=Visibility.Visible;Call("ResizeToolPanel");await Task.Delay(100);island.UpdateLayout();
         check("Small lyric layouts remain readable with a stacked fallback",island.PaintedWidth>=300 && (Grid.GetColumn(aside)==1?Bounds(controls).Width>=240:Grid.GetRow(aside)==1));Capture("lyrics-compact");
-        check("Fixture checks never start microphone or screen sharing",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
         File.WriteAllText(Path.Combine(directory,"capture-notes.txt"),"Synthetic clipboard and original lyric text. WPF PreviewMouseWheel routed-event checks and offscreen captures at 100/150/200% raster scale. No system clipboard read/write, provider request, microphone, screen capture or playback transport command. Physical mixed-DPI monitors and GPU presentation were not measured.");
     }
 }

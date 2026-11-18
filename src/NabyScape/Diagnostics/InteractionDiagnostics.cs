@@ -23,7 +23,7 @@ internal static class InteractionDiagnostics
         const BindingFlags privateInstance=BindingFlags.Instance|BindingFlags.NonPublic;
         var kinds=new[]{"media","timer","focus","calendar","notes","files","system"};
         var output=Path.Combine(directory,"interactions");Directory.CreateDirectory(output);
-        var notes=app.Productivity.Note;var timer=Snapshot(app.Session.Timer);var focus=Snapshot(app.Session.Focus);
+        var notes=app.Productivity.Note;var timer=Snapshot(app.Session.Timer);
         var settings=JsonSerializer.Serialize(app.Settings);bool hidden=overlay.UserHidden;
         bool clipboardEnabled=app.Productivity.ClipboardEnabled,clipboardPaused=app.Productivity.ClipboardPaused;
         var clips=app.Productivity.Clips.ToArray();var originalShelf=app.Productivity.Shelf.ToArray();
@@ -187,7 +187,7 @@ internal static class InteractionDiagnostics
         {
             foreach(var window in created.Distinct().Where(w=>Application.Current.Windows.Cast<Window>().Contains(w)).ToArray())window.Close();
             if(calendarId!=null)app.Calendar.Remove(calendarId);
-            Restore(app.Session.Timer,timer);Restore(app.Session.Focus,focus);app.SaveSession();
+            Restore(app.Session.Timer,timer);app.SaveSession();
             app.Productivity.Note=notes;app.Productivity.SetClipboardEnabled(clipboardEnabled);app.Productivity.ClipboardPaused=clipboardPaused;app.Productivity.Clips.Clear();
             if(images.Count>0)Directory.CreateDirectory(cache);foreach(var image in images)File.WriteAllBytes(image.Key,image.Value);app.Productivity.Clips.AddRange(clips);app.Productivity.Shelf.Clear();app.Productivity.Shelf.AddRange(originalShelf);app.Productivity.Save();
             var original=JsonSerializer.Deserialize<Settings>(settings)!;foreach(var property in typeof(Settings).GetProperties().Where(p=>p.CanRead && p.CanWrite))property.SetValue(app.Settings,property.GetValue(original));app.ChangeSettings();
@@ -198,7 +198,7 @@ internal static class InteractionDiagnostics
     internal static async Task RunReviewRegressions(App app,OverlayWindow overlay,string directory,Action<string,bool> check)
     {
         const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
-        var saved=JsonSerializer.Serialize(app.Settings);var timer=Snapshot(app.Session.Timer);var focus=Snapshot(app.Session.Focus);
+        var saved=JsonSerializer.Serialize(app.Settings);var timer=Snapshot(app.Session.Timer);
         bool hidden=overlay.UserHidden;bool diagnostic=overlay.DiagnosticRun;
         object? Field(string name)=>typeof(OverlayWindow).GetField(name,flags)!.GetValue(overlay);
         void Invoke(string name,params object[] args)=>typeof(OverlayWindow).GetMethod(name,flags)!.Invoke(overlay,args);
@@ -240,7 +240,7 @@ internal static class InteractionDiagnostics
         finally
         {
             Cancel();overlay.DiagnosticPointerPresent=false;overlay.Collapse();
-            Restore(app.Session.Timer,timer);Restore(app.Session.Focus,focus);
+            Restore(app.Session.Timer,timer);
             var original=JsonSerializer.Deserialize<Settings>(saved)!;foreach(var property in typeof(Settings).GetProperties().Where(p=>p.CanRead && p.CanWrite))property.SetValue(app.Settings,property.GetValue(original));app.ChangeSettings();
             if(hidden!=overlay.UserHidden)overlay.ToggleVisibility();overlay.DiagnosticRun=diagnostic;
         }

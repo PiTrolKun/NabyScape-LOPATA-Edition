@@ -13,7 +13,7 @@ public sealed partial class OverlayWindow
     private bool panelSwiped;
     private static bool PanelGestureBlocked(DependencyObject? source)
     {for(var node=source;node!=null;node=node is Visual?VisualTreeHelper.GetParent(node):LogicalTreeHelper.GetParent(node))if(node is ButtonBase or TextBoxBase or Slider or Thumb or ScrollBar or ComboBox || node is FrameworkElement f && f.Tag as string is "file-drag" or "media-popover")return true;return false;}
-    private bool CanPanelSwipe=>expanded && app.Settings.CompactLayout && app.Settings.PanelSwipe && !commandOpen && !assistantOpen;
+    private bool CanPanelSwipe=>expanded && app.Settings.CompactLayout && app.Settings.PanelSwipe && !commandOpen;
     internal bool RoutePanelWheel(int delta,bool horizontal,DependencyObject? source)
     {
         if(!CanPanelSwipe)return false;
@@ -25,7 +25,7 @@ public sealed partial class OverlayWindow
             // The outer panel viewport must not steal wheel gestures from its navigation.
             // An inner content viewport (even at its end) owns vertical wheel input.
             if(!horizontal && node is FrameworkElement region && region.Tag as string=="panel-navigation")break;
-            if(!horizontal && node is ScrollViewer viewer && (viewer.Tag as string=="panel-content-scroll" || viewer.ScrollableHeight>1 && !(viewer==scroll && activePage=="focus" && bodyWidth>=310 && viewer.ScrollableHeight<48)))return false;
+            if(!horizontal && node is ScrollViewer viewer && (viewer.Tag as string=="panel-content-scroll" || viewer.ScrollableHeight>1 && !(viewer==scroll && activePage=="timer" && bodyWidth>=310 && viewer.ScrollableHeight<48)))return false;
         }
         int direction=panelWheel.Push(horizontal?delta:-delta,Environment.TickCount64);
         if(direction!=0)CyclePage(direction);return true;

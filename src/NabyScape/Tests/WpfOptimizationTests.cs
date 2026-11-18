@@ -15,17 +15,18 @@ internal static class WpfOptimizationTests
             if(assembly.GetManifestResourceNames().Any(name=>name is "NabyScape.NativeHost.exe" or "NabyScape.CoreHost.exe" or "NabyScape.Native.dll") || typeof(Settings).GetProperty("RendererMode")!=null)
                 throw new Exception("An alternate renderer is still present.");
         });
-        test("WPF: retired host cleanup preserves the main executable and unrelated files",()=>
+        test("LOPATA Edition contains only its local chat and excludes retired features", () =>
         {
-            string root=Path.Combine(Path.GetTempPath(),"NabyScape-wpf-migration-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
-            try
+            var assembly = typeof(App).Assembly;
+            foreach (string type in new[] { "AssistantRuntime", "AssistantTransport", "AssistantProviderSettings",
+                "AssistantSpeechWorker", "OfficialUpdates", "Installer" })
             {
-                string main=Path.Combine(root,"NabyScape.exe"),personal=Path.Combine(root,"personal.txt");File.WriteAllText(main,"main");File.WriteAllText(personal,"keep");
-                foreach(string name in Installer.RetiredHostFiles)File.WriteAllText(Path.Combine(root,name),"retired");
-                Installer.RemoveRetiredHostFiles(root,main);
-                if(File.ReadAllText(main)!="main" || File.ReadAllText(personal)!="keep" || Installer.RetiredHostFiles.Any(name=>File.Exists(Path.Combine(root,name))))throw new Exception("Owned-file migration failed.");
+                if (assembly.GetType("NabyScape." + type) != null)
+                    throw new Exception("Retired type is still compiled: " + type);
             }
-            finally{Directory.Delete(root,true);}
+
+            if (assembly.GetType("NabyScape.LopataChatWindow") == null || typeof(SessionState).GetProperty("Focus") != null)
+                throw new Exception("The edition must retain its local chat and only the supported countdown.");
         });
         test("Removed features: routines and satellite have no runtime type or setting",()=>
         {

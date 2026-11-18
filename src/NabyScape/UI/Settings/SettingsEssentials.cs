@@ -18,7 +18,7 @@ public sealed partial class SettingsWindow
         ["Layout"]=new[]{"Display","Dock placement","Move & resize","Closed island"},
         ["Visibility"]=new[]{"Automatic tucking","Hide or show the island"},
         ["Controls"]=new[]{"Notch gestures","Global hotkey"},
-        ["Content"]=new[]{"Enabled widgets & order","Focus sessions","Clipboard history"},
+        ["Content"]=new[]{"Enabled widgets & order","Clipboard history"},
         ["Audio"]=new[]{"Closed media display","Lyrics"},
         ["Notifications"]=new[]{"Notifications","Other apps"},
         ["Application"]=new[]{"Language & accessibility","Behavior","Updates","Local storage","About NabyScape"},

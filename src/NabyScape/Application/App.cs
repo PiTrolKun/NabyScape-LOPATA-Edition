@@ -62,7 +62,6 @@ public sealed partial class App : Application
         Notifications.Post(Settings,notice,overlay?.ManuallyHidden==true,n=>tray?.ShowBalloonTip(4500,n.DisplayTitle,n.DisplayDetail,Forms.ToolTipIcon.Info),DateTimeOffset.UtcNow);
     }
     public Store Store { get; private set; }=null!;
-    internal OfficialUpdates Updates {get;private set;}=null!;
     public Settings Settings { get; private set; }=null!;
     public SessionState Session { get; private set; }=null!;
     public MediaService Media { get; private set; }=null!;
@@ -79,9 +78,8 @@ public sealed partial class App : Application
     public string TuckHotkeyStatus=>!Settings.TuckHotkeyEnabled?"Tuck shortcut off":overlay?.TuckHotkeyError.Length>0?overlay.TuckHotkeyError:$"Tuck / return to automatic · {Settings.TuckHotkeyModifiers}+{Settings.TuckHotkeyKey}";
     internal void FlushPreferenceEditors()=>overlay?.FlushPreferenceEditors();
     // Countdown completions route through the shared notification manager.
-    internal void OpenVoice(){if(!UsesLopataEdition)overlay?.OpenFeaturePage("voice");}
     internal bool UsesLopataEdition { get; private set; }
-    internal bool SupportsWidget(string id) => !UsesLopataEdition || id is not ("voice" or "focus");
+    internal bool SupportsWidget(string id) => id is not ("voice" or "focus");
     public event Action? SettingsChanged;
     public event Action? Updated;
     internal RuntimeChange CurrentUpdate {get;private set;}=RuntimeChange.All;
@@ -91,7 +89,6 @@ public sealed partial class App : Application
     [STAThread] public static void Main(string[] args)
     {
         if(args.Length==1 && args[0]=="--lyrics-romaji-worker"){LyricsRomajiWorker.Run();return;}
-        if(args.Length==2 && args[0]=="--speech-worker"){AssistantSpeechWorker.Run(args[1]).GetAwaiter().GetResult();return;}
         var culture=System.Globalization.CultureInfo.GetCultureInfo("en-US");
         System.Globalization.CultureInfo.DefaultThreadCurrentCulture=culture;
         System.Globalization.CultureInfo.DefaultThreadCurrentUICulture=culture;
@@ -107,10 +104,9 @@ public sealed partial class App : Application
         var startupClock=System.Diagnostics.Stopwatch.StartNew();
         PrivateDiagnostics.SetServiceState(DiagnosticService.Application,DiagnosticServiceState.Starting);
         base.OnStartup(e);
-        bool assistantFixture=Array.Exists(e.Args,a=>a=="--assistant-only") && Array.Exists(e.Args,a=>a=="--diagnostics");
         bool showcaseFixture=Array.Exists(e.Args,a=>a=="--showcase") && Array.Exists(e.Args,a=>a=="--diagnostics");
         bool isolatedFixture=Array.Exists(e.Args,a=>a=="--isolated-diagnostics") && Array.IndexOf(e.Args,"--diagnostics") is int diagnosticAt && diagnosticAt>=0 && diagnosticAt+1<e.Args.Length;
-        string instance = LopataEdition.Instance + (isolatedFixture ? ".IsolatedDiagnostics" : showcaseFixture ? ".Showcase" : assistantFixture ? ".AssistantDiagnostics" : "");
+        string instance = LopataEdition.Instance + (isolatedFixture ? ".IsolatedDiagnostics" : showcaseFixture ? ".Showcase" : "");
         mutex=new Mutex(true,instance+".Desktop",out var created);
         if(!created) {try {using var signal=EventWaitHandle.OpenExisting(instance+".OpenSettings");signal.Set();}catch(WaitHandleCannotBeOpenedException){}Shutdown();return; }
         openEvent=new EventWaitHandle(false,EventResetMode.AutoReset,instance+".OpenSettings");
@@ -141,8 +137,7 @@ public sealed partial class App : Application
         if (UsesLopataEdition) PrepareLopataSettings();
         if (musicFixture || languageFixture || lopataFixture || updatesFixture) Settings.MediaIntegrationEnabled = false;
         if (musicFixture) Settings.LyricsEnabled = false;
-        if(assistantFixture || isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
-        Updates=new(Store,Array.Exists(e.Args,a=>a=="--stage3-only")?new Stage3Diagnostics.Network():null,stagingDirectory:diagnosticPath!=null?Path.Combine(Store.DirectoryPath,"updates"):null);
+        if(isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
         InitializeLopataUpdates();
         var updateDiagnostics = updatesFixture ? new LopataUpdateDiagnostics() : null;
         if (updateDiagnostics is not null)
@@ -152,14 +147,12 @@ public sealed partial class App : Application
         }
         ApplyAppearance();
         Motion.Configure(Settings);
-        Session=diagnosticPath==null?Store.Load<SessionState>("session"):new SessionState();Session.Timer??=new();Session.Focus??=new();Session.Stopwatch??=new();Session.Stopwatch.Recover();
+        Session=diagnosticPath==null?Store.Load<SessionState>("session"):new SessionState();Session.Timer??=new();Session.Stopwatch??=new();Session.Stopwatch.Recover();
         DispatcherUnhandledException+=(_,args)=> { Store.Log(args.Exception);args.Handled=true;Notify("Something went wrong", "The operation failed. Details were saved to errors.log."); };
         Audio=new(Store.Log){SpectrumEnabled=Settings.WaveformSource=="Spectrum"};Media=new(Store.Log,musicFixture ? Path.Combine(diagnosticPath!,"collection") : null);Media.Configure(Settings);Productivity=new(Store,Store.Log,diagnosticPath==null);Productivity.SetClipboardEnabled(Settings.ClipboardHistory);
         AmbientAudio=new(this);Weather=new(Store);
         Brightness=new();Brightness.Start(diagnosticPath==null && Settings.ReactiveFeedback && Settings.BrightnessFeedback);
         Calendar=new(Store);Awake=new();
-        Assistant=new(this,diagnosticPath!=null?new AssistantMemoryKeys():null);
-        if (UsesLopataEdition) Assistant.Options.Enabled = false;
         tray=new Forms.NotifyIcon{Text=LopataEdition.Name,Visible=diagnosticPath==null};
         using(var stream=GetResourceStream(new Uri("pack://application:,,,/Assets/lopata-island.ico")).Stream) tray.Icon=new System.Drawing.Icon(stream);
         var menu=new Forms.ContextMenuStrip();
@@ -177,12 +170,6 @@ public sealed partial class App : Application
         AddTray(UsesLopataEdition ? "Move island" : "Move & resize island", () => overlay?.ToggleDockEditing());
         AddTray("LOPATA chat", ShowLopataChat);
         AddTray("LOPATA updates", ShowLopataUpdates);
-        if (!UsesLopataEdition)
-        {
-            var wakeMenu = AddTray("Resume wake word", () => Assistant.ToggleWakeListening());
-            AddTray("Stop all microphones", () => Assistant.StopSession());
-            menu.Opening+=(_,_)=>{wakeMenu.Text=Localization.Text(Assistant.WakeArmed?"Pause wake word":"Resume wake word");wakeMenu.Enabled=Assistant.Options.Enabled && Assistant.Options.WakeWord.Enabled;};
-        }
         AddTray("Tuck / Return to automatic", () => overlay?.ToggleTuck());
         AddTray("Hide / show", () => overlay?.ToggleVisibility());
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -196,10 +183,7 @@ public sealed partial class App : Application
         tray.ContextMenuStrip=menu;tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowSettings);
         overlay=new OverlayWindow(this);MainWindow=overlay;StartupTrace.Attach(overlay,e.Args,Store.Log);overlay.Show();Previews=new(this,overlay.OpenFeaturePage);
         if (!diagnosticMode) LopataUpdates.Start();
-        Assistant.Changed+=RefreshAssistantTray;
         Notifications.Changed+=()=>overlay.RefreshNotice();
-        Updates.UpdateAvailable+=release=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates","Update available",Localization.Format("{0} · Open Settings > Application to review.", release.Version))));
-        Updates.DownloadReady+=()=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates",Localization.Text("Update ready to install"),Localization.Text("Open Settings > Application to install and restart when ready."))));
         Downloads=new(DownloadReady,DownloadFailed);
         ExternalNotifications=new(ex=>Store.Log(ex));
         ExternalNotifications.Arrived+=toast=>{if(ExternalNotificationPolicy.Allowed(Settings,toast.App))PostNotice(new("external",toast.Title,toast.Body,null,toast.App,toast.AppId));};
@@ -210,7 +194,7 @@ public sealed partial class App : Application
         Audio.Changed+=()=>{PrivateDiagnostics.SetServiceState(DiagnosticService.Audio,Audio.Available?DiagnosticServiceState.Ready:DiagnosticServiceState.Degraded);PublishUpdate(RuntimeChange.Audio);};
         Productivity.Changed+=()=>PublishUpdate(RuntimeChange.Productivity);Calendar.Changed+=()=>PublishUpdate(RuntimeChange.Calendar);
         if (lopataFixture || musicFixture) Media.SetEnabled(false);
-        else if(assistantFixture || isolatedFixture || Array.Exists(e.Args,a=>a is "--performance-benchmark" or "--performance-checks-only" or "--stage1-only" or "--stage2-only" or "--stage3-only" or "--stage4-only" or "--stage5-only" or "--stage6-only" or "--integration-settings-only" or "--interaction-hotfix-only" or "--interaction-tuck-hide-only" or "--interaction-classic-mixer-only") || diagnosticPath!=null && Array.Exists(e.Args,a=>a=="--showcase"))Media.DiagnosticFixture=true;else Media.SetEnabled(MediaFeaturesWanted);
+        else if(isolatedFixture || Array.Exists(e.Args,a=>a is "--performance-benchmark" or "--performance-checks-only" or "--stage1-only" or "--stage2-only" or "--stage4-only" or "--stage5-only" or "--stage6-only" or "--integration-settings-only" or "--interaction-hotfix-only" or "--interaction-tuck-hide-only" or "--interaction-classic-mixer-only") || diagnosticPath!=null && Array.Exists(e.Args,a=>a=="--showcase"))Media.DiagnosticFixture=true;else Media.SetEnabled(MediaFeaturesWanted);
         Audio.Read();Usage=Native.SystemUsage();
         int counter=0;
         tick=new DispatcherTimer{Interval=TimeSpan.FromSeconds(1)};
@@ -219,7 +203,7 @@ public sealed partial class App : Application
             CheckCountdowns();if(NotificationPolicy.Quiet(Settings,DateTimeOffset.UtcNow) && Notifications.Count>0 && Notifications.Current?.Kind!="preview" && !(Notifications.Current?.Kind=="external" && Settings.ExternalNotificationQuietHours))Notifications.Clear();else Notifications.Tick(DateTimeOffset.UtcNow,overlay.NotificationBusy,Settings.NotificationSeconds);
             try{Awake.Tick(DateTimeOffset.UtcNow);}catch(Exception ex){Store.Log(ex);Notify("Could not update keep awake",ex.Message);}
             var changed=RuntimeChange.Clock;
-            if(Session.Timer.Running || SupportsWidget("focus") && Session.Focus.Running || Session.Stopwatch.Running)changed|=RuntimeChange.Countdown;
+            if(Session.Timer.Running || Session.Stopwatch.Running)changed|=RuntimeChange.Countdown;
             if(++counter%2==0)
             {
                 Audio.Poll();Audio.TrimIdleMedia();bool system=overlay.SystemSummaryVisible || Previews.AnyVisible("system") || settingsWindow?.NeedsSystemSample==true;
@@ -227,7 +211,7 @@ public sealed partial class App : Application
                 if(system)changed|=RuntimeChange.System;
                 overlay.CheckEnvironment();
             }
-            if(counter%10==0){Productivity.DisplayThumbnails.TrimIdle();AssistantPreviewCache.TrimIdle(Assistant);}
+            if(counter%10==0)Productivity.DisplayThumbnails.TrimIdle();
             WeatherTick();
             PublishUpdate(changed);
         };
@@ -237,7 +221,6 @@ public sealed partial class App : Application
         InitializeRuntimeRecovery();
         PrivateDiagnostics.SetServiceState(DiagnosticService.Application,DiagnosticServiceState.Ready);
         PrivateDiagnostics.Record(DiagnosticStage.Application,DiagnosticCode.Completed,startupClock.Elapsed);
-        if(diagnosticPath==null)UpdateHandoff.SignalStarted(e.Args);
         if (!diagnosticMode || lopataFixture || languageFixture || musicFixture) ObserveLopataSettings();
         if(musicFixture) _=LopataMusicDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(lopataFixture) _=LopataEditionDiagnostics.Run(this,overlay,diagnosticPath!);
@@ -252,26 +235,10 @@ public sealed partial class App : Application
             else if(Array.Exists(e.Args,a=>a=="--settings"))ShowSettings();
         }
     }
-    private void RefreshAssistantTray(){PrivateDiagnostics.SetServiceState(DiagnosticService.Assistant,!Assistant.Options.Enabled?DiagnosticServiceState.Disabled:Assistant.State==AssistantState.Error?DiagnosticServiceState.Failed:Assistant.Busy?DiagnosticServiceState.Busy:DiagnosticServiceState.Ready);if(tray!=null)tray.Text=LopataEdition.Name;}
     public void CheckCountdowns()
     {
         var now=DateTimeOffset.UtcNow;bool changed=false;
         if(Session.Timer.Complete(now)) { changed=true;PostNotice(new("timer","Timer finished","Your timer has finished."));if(Settings.NotifyTimer && !NotificationPolicy.Quiet(Settings,now))CountdownAudio.Play(Settings); }
-        var focusDeadline=Session.Focus.Deadline;
-        if(SupportsWidget("focus") && Session.Focus.Complete(now))
-        {
-            changed=true;
-
-            if(Session.Focus.Phase=="work")
-            {
-                // The break starts at the actual work deadline, even across sleep, so a long sleep never starts a fresh break.
-                var end=focusDeadline!.Value.AddMinutes(Settings.BreakMinutes);
-                if(end>now) { Session.Focus.Start((end-now).TotalSeconds,now,"break",preserveRunId:true);Session.Focus.DurationSeconds=Settings.BreakMinutes*60; PostNotice(new("focus","Focus complete","Time for a short break.")); }
-                else { Session.Focus.Reset();PostNotice(new("focus","Focus session complete","Your focus session and break have finished.")); }
-            }
-            else { Session.Focus.Reset();PostNotice(new("focus","Break finished","Ready for your next focus session.")); }
-            if(Settings.NotifyFocus && !NotificationPolicy.Quiet(Settings,now))CountdownAudio.Play(Settings);
-        }
         if(changed) SaveSession();
     }
     internal void OpenMixer()=>overlay?.OpenMixer();
@@ -303,8 +270,7 @@ public sealed partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         DisposeRuntimeRecovery();
-        if(Assistant!=null)Assistant.Changed-=RefreshAssistantTray;Assistant?.Dispose();assistantWindow?.Close();
-        welcomeWindow?.Close();tick?.Stop();Weather?.Dispose();AmbientAudio?.Dispose();Lyrics.Dispose();CountdownAudio.Dispose();Downloads?.Dispose();ExternalNotifications?.Dispose();Updates?.Dispose();
+        welcomeWindow?.Close();tick?.Stop();Weather?.Dispose();AmbientAudio?.Dispose();Lyrics.Dispose();CountdownAudio.Dispose();Downloads?.Dispose();ExternalNotifications?.Dispose();
         if(Session!=null) SaveSession();
         Previews?.Dispose();overlay?.Cleanup();try{Awake?.Dispose();}catch(Exception ex){Store?.Log(ex);}Productivity?.Dispose();Media?.Dispose();Audio?.Dispose();Brightness?.Dispose();
         if(tray!=null) { tray.Visible=false;tray.Dispose(); }

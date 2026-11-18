@@ -95,8 +95,8 @@ public sealed partial class OverlayWindow
     {
         header.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
         // The animated character is a separate visual over the rightmost header slot.
-        Grid.SetColumn(lopataUpdateBadge, Grid.GetColumn(assistantHeaderSpace));
-        Grid.SetColumn(assistantHeaderSpace, header.ColumnDefinitions.Count - 1);
+        Grid.SetColumn(lopataUpdateBadge, Grid.GetColumn(mascotHeaderSpace));
+        Grid.SetColumn(mascotHeaderSpace, header.ColumnDefinitions.Count - 1);
         lopataUpdateBadge.Margin = new(7, 0, 0, 0);
         lopataUpdateBadge.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
         lopataUpdateBadge.ToolTip = Localization.Text("LOPATA updates");

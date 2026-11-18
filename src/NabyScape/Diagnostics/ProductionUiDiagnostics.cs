@@ -104,7 +104,6 @@ internal static class ProductionUiDiagnostics
             }
         }
         check("Production UI weather uses only synthetic cached data",app.Weather.LastAttempt==default);
-        check("Production UI never starts voice or desktop sharing",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
 
         void Capture(FrameworkElement element,string name)
         {

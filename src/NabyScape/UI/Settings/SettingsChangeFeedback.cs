@@ -14,8 +14,8 @@ internal static class SettingsChangeFeedback
     {
         ["CoverAmbient"]="Ambient light",["ClosedAmbient"]="Closed dock ambience",
         ["ExcludeBrowserMedia"]="Exclude browser media sessions",["MediaFollowsPlayback"]="Switch to the app that starts playing",
-        ["AmbientStrength"]="Ambient intensity",["AutoCheckUpdates"]="Automatic update checks",
-        ["AutoDownloadUpdates"]="Automatic update downloads",["Width"]="Closed dock width",
+        ["AmbientStrength"]="Ambient intensity",
+        ["Width"]="Closed dock width",
         ["Height"]="Closed dock height",["TuckEdge"]="Tucked edge height",["Widgets"]="Widgets & order",
         ["HoverViews"]="Hover pages",["Tools"]="Tools & order",["Shortcuts"]="Shortcuts",
         ["HomeWidget"]=LopataHomeWidget.Caption,

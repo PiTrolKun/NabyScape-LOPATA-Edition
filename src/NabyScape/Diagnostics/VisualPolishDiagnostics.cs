@@ -29,7 +29,7 @@ internal static class VisualPolishDiagnostics
         var s=app.Settings;s.CompactLayout=true;s.CategoryStyle="Dots";s.PanelWidth=526;s.PanelMaxHeight=417;s.PanelPadding=32;s.PanelScale=1.04;s.Preset="Mac";
         s.HideFullscreen=s.HideMaximized=s.AlwaysTucked=false;s.SmartActivities=false;s.ReduceMotion=true;s.ClipboardHistory=true;
         foreach(var widget in s.Widgets)widget.Enabled=true;
-        app.Assistant.Options.Enabled=true;app.ChangeSettings();app.Media.DiagnosticPlayback(true);app.Audio.DiagnosticPeak=()=>.28f;
+        app.ChangeSettings();app.Media.DiagnosticPlayback(true);app.Audio.DiagnosticPeak=()=>.28f;
         typeof(MediaService).GetProperty(nameof(MediaService.Title))!.SetValue(app.Media,"After the rain");
         typeof(MediaService).GetProperty(nameof(MediaService.Artist))!.SetValue(app.Media,"Original interface sample");
         var picture=new DrawingGroup();using(var draw=picture.Open()){draw.DrawRectangle(new LinearGradientBrush(Color.FromRgb(49,76,83),Color.FromRgb(160,173,163),45),null,new Rect(0,0,80,80));draw.DrawEllipse(UI.Brush("#E2D8BE"),null,new Point(49,29),19,19);draw.DrawRectangle(UI.Brush("#31464A"),null,new Rect(0,57,80,23));}
@@ -38,7 +38,7 @@ internal static class VisualPolishDiagnostics
         app.Productivity.AddTask("Review the cover artwork");app.Productivity.AddTask("Keep the next step clear");
         for(int i=0;i<12;i++)app.Productivity.Clips.Add(new ClipItem{Text=i==0?"https://example.com/design-notes":"Local design note "+(i+1),Timestamp=new DateTimeOffset(2026,10,20,12,0,0,TimeSpan.Zero).AddMinutes(-i)});
         app.Productivity.Save();island.Reveal(false);await Task.Delay(100);
-        var tabs=Field<Dictionary<string,Button>>("compactTabs");string[] originalPages={"voice","media","focus","stopwatch","status","access","files","notes","tasks","clips","calendar","awake","links","weather"};
+        var tabs=Field<Dictionary<string,Button>>("compactTabs");string[] originalPages={"media","timer","stopwatch","status","access","files","notes","tasks","clips","calendar","awake","links","weather"};
         check("Existing page groups and dot navigation are retained",tabs.Keys.SequenceEqual(originalPages) && tabs.Values.All(b=>b.Content is System.Windows.Shapes.Rectangle));
         foreach(double width in new[]{526d,300d})
         {
@@ -59,8 +59,6 @@ internal static class VisualPolishDiagnostics
         var original=note;s.Accent="#E8E8E8";app.ChangeSettings();await Task.Delay(50);
         check("Visual updates preserve the Notes editor and selection",ReferenceEquals(original,Diagnostics.Descendants(island).OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="Quick notes")) && note.SelectionStart==3 && note.SelectionLength==7);
         Capture(island,"notes-focused",true);Capture(island,"notes-focused-150",true,1.5);Capture(island,"notes-focused-200",true,2);
-        app.Assistant.Conversation.Record("user","Help me keep this interface simple.");app.Assistant.Conversation.Record("assistant","Keep the familiar controls where they are. Refine the spacing, contrast and feedback so each interaction feels clear.");
-        island.OpenAssistant(false);await Task.Delay(80);Capture(island,"naby",true);island.CloseAssistant();
         var window=new SettingsWindow(app){ShowActivated=false};window.Show();await Task.Delay(80);
         try
         {
@@ -75,6 +73,5 @@ internal static class VisualPolishDiagnostics
         finally{window.Close();}
         File.WriteAllText(Path.Combine(directory,"control-layout.json"),JsonSerializer.Serialize(geometry,new JsonSerializerOptions{WriteIndented=true}));
         File.WriteAllText(Path.Combine(directory,"capture-notes.txt"),"Synthetic local content and original abstract cover drawing. WPF offscreen captures; scaled raster exports do not substitute for physical DPI tests. No provider request, microphone, screen sharing or personal clipboard read/write was initiated.");
-        check("Visual fixtures keep voice and screen sharing off",!app.Assistant.VoiceConnected && !app.Assistant.Desktop.Sharing);
     }
 }

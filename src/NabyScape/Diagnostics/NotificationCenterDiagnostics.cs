@@ -30,7 +30,7 @@ internal static class NotificationCenterDiagnostics
         var fixture=new Settings{NotificationDelivery="Notch"};var now=DateTimeOffset.UtcNow;
         app.Notifications.Post(fixture,new("updates","Update ready to install","Open Settings > Application to install and restart when ready."),false,_=>{},now.AddHours(-3));
         app.Notifications.Post(fixture,new("failure","Weather unavailable","The forecast service did not respond. NabyScape will try again later."),false,_=>{},now.AddMinutes(-42));
-        app.Notifications.Post(fixture,new("focus","Focus complete","Time for a short break."),false,_=>{},now.AddMinutes(-6));
+        app.Notifications.Post(fixture,new("downloads","Download ready","Downloads"),false,_=>{},now.AddMinutes(-6));
         app.Notifications.Post(fixture,new("timer","Timer finished","Your timer has finished."),false,_=>{},now.AddSeconds(-10));
         app.Notifications.MarkDisplayed();app.Notifications.Clear();
         check("Center keeps alerts after the popup queue is cleared",app.Notifications.History.Count==4 && app.Notifications.Unread==3);
@@ -43,7 +43,7 @@ internal static class NotificationCenterDiagnostics
         Capture("notification-center");
         check("Opening the center marks everything read",app.Notifications.Unread==0);
         var card=Field<Border>("noticeCard");
-        check("Center lists every alert newest first",Diagnostics.Descendants(card).OfType<Border>().Where(b=>AutomationProperties.GetName(b).Length>0).Select(b=>AutomationProperties.GetName(b)).Take(4).SequenceEqual(new[]{"Timer finished","Focus complete","Weather unavailable","Update ready to install"}));
+        check("Center lists every alert newest first",Diagnostics.Descendants(card).OfType<Border>().Where(b=>AutomationProperties.GetName(b).Length>0).Select(b=>AutomationProperties.GetName(b)).Take(4).SequenceEqual(new[]{"Timer finished","Download ready","Weather unavailable","Update ready to install"}));
         app.Notifications.Post(fixture,new("timer","Second timer","Another one."),false,_=>{},DateTimeOffset.UtcNow);await Task.Delay(100);
         check("New alerts join the open center instead of replacing it",island.NotificationCenterOpen && Diagnostics.Descendants(Field<Border>("noticeCard")).OfType<Border>().Any(b=>AutomationProperties.GetName(b)=="Second timer"));
         Diagnostics.Descendants(Field<Border>("noticeCard")).OfType<Button>().First(b=>AutomationProperties.GetAutomationId(b)=="Remove notification").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));await Task.Delay(100);

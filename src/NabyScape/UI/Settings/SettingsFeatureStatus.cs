@@ -9,8 +9,8 @@ public sealed partial class SettingsWindow
     private readonly List<Action> homeStatusUpdates=new();
     private void InitializeHomeStatuses()
     {
-        app.Updated+=HomeStatusChanged;app.Assistant.Changed+=RefreshHomeStatuses;app.Assistant.Speech.Changed+=RefreshHomeStatuses;app.Lyrics.Changed+=RefreshHomeStatuses;
-        Closed+=(_,_)=>{app.Updated-=HomeStatusChanged;app.Assistant.Changed-=RefreshHomeStatuses;app.Assistant.Speech.Changed-=RefreshHomeStatuses;app.Lyrics.Changed-=RefreshHomeStatuses;homeStatusUpdates.Clear();};
+        app.Updated+=HomeStatusChanged;app.Lyrics.Changed+=RefreshHomeStatuses;
+        Closed+=(_,_)=>{app.Updated-=HomeStatusChanged;app.Lyrics.Changed-=RefreshHomeStatuses;homeStatusUpdates.Clear();};
     }
     private void HomeStatusChanged(){if((app.CurrentUpdate&(RuntimeChange.Media|RuntimeChange.Settings))!=0)RefreshHomeStatuses();}
     private void RefreshHomeStatuses()
@@ -32,30 +32,7 @@ public sealed partial class SettingsWindow
             !app.Settings.Widgets.Any(w=>w.Enabled && w.Id=="media")?("Hidden","Enable the music widget to show playback controls.","Choose widgets"):
             !app.Media.Available?("Waiting for music","Play a song in your music app, then select its media session.","Music settings"):("Ready","Playback controls use the selected music session.","Music settings"),()=>
             {if(!app.Settings.MediaIntegrationEnabled){app.Settings.MediaIntegrationEnabled=true;app.ChangeSettings();}else Navigate(app.Settings.Widgets.Any(w=>w.Enabled && w.Id=="media")?"Audio":"Content");});
-        if (app.UsesLopataEdition)
-            Row("LOPATA chat", () => ("Local core", "Talk to LOPATA through its installed local core.", "Open chat"), app.ShowLopataChat);
-        else
-        {
-        Row("AI chat",()=>!app.Assistant.Options.Enabled?("Off","AI is optional. Connect a provider when you are ready.","Set up AI"):
-            !app.Assistant.Setup.Chat.Configured?("Needs setup","Choose a provider or connect Hermes, then save your connection.","Connect AI"):
-            app.Assistant.Setup.Chat.Title.Contains("attention",StringComparison.OrdinalIgnoreCase)?("Needs attention","The last connection check failed. Review the connection and try again.","Review connection"):
-            !app.Assistant.Setup.Chat.Verified?("Saved · unchecked","Your connection is saved. Check it before starting a conversation.","Review connection"):("Ready","The selected chat connection has completed a reply.","Open chat"),()=>{if(app.Assistant.Options.Enabled && app.Assistant.Setup.Chat.Verified)app.ShowAssistant();else if(!app.Assistant.Options.Enabled)OpenAiSettings();else{Navigate("AI");aiSettings?.OpenChatSetup();}});
-        Row("Voice",()=>app.Assistant.VoiceConnected?("Microphone on","An active voice conversation is using your microphone.","Voice settings"):
-            !app.Assistant.Options.Enabled?("Off","Voice starts only after you choose to enable and configure AI.","Set up voice"):
-            app.Assistant.Speech.Busy?("Downloading","Speech components are being prepared. Progress is in Voice settings.","View progress"):
-            app.Assistant.Options.LocalVoice is {Enabled:true,Managed:true,OwnModels:false} && app.Assistant.Setup.Chat.Configured && !app.Assistant.Setup.Voice.Configured?("Model download required","Install the selected listening and speaking pack in Voice setup.","Install models"):
-            !app.Assistant.Setup.Voice.Configured?("Needs setup","Choose a voice connection or install your listening and speaking models.","Set up voice"):
-            ("Configured · unchecked","Your setup is saved. Check audio or start a conversation to verify it.",app.Assistant.Options.LocalVoice.Enabled?"Check audio":"Open voice"),()=>
-            {
-                if(!app.Assistant.Options.Enabled){OpenAiSettings();return;}
-                if(app.Assistant.Setup.Voice.Configured && !app.Assistant.VoiceConnected && !app.Assistant.Speech.Busy)
-                {
-                    if(!app.Assistant.Options.LocalVoice.Enabled){app.OpenVoice();return;}
-                    OpenAiVoiceSettings();Dispatcher.BeginInvoke(new Action(()=>aiSettings?.OpenVoiceChecks()));
-                }
-                else OpenAiVoiceSettings();
-            });
-        }
+        Row("LOPATA chat", () => ("Local core", "Talk to LOPATA through its installed local core.", "Open chat"), app.ShowLopataChat);
         Row("Lyrics",()=>!app.Settings.LyricsEnabled && app.Settings.ClosedMediaContent!="Lyrics"?("Off","Enable panel lyrics or choose Live lyrics for the closed dock.","Choose lyrics"):
             !app.Media.Available?("Waiting for music","Play a song to look up timed lyrics.","Music settings"):
             !LyricTiming.CanUse(app.Media)?("Unavailable","This player has not provided enough track details or playback timing.","Music settings"):

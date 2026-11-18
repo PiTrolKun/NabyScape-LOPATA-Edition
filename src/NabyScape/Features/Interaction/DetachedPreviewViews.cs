@@ -39,7 +39,7 @@ internal sealed class DetachedPreviewView : IDisposable
     {
         this.app=app;this.kind=kind;this.openMain=openMain;
         Content=new ScrollViewer{Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};
-        switch(kind){case "stopwatch":Add(new StopwatchView(app));break;case "media":BuildMusic();break;case "timer":case "focus":BuildClock();break;case "notes":BuildNotes();break;case "files":BuildShelf();break;case "calendar":BuildCalendar();break;case "system":BuildSystem();break;}
+        switch(kind){case "stopwatch":Add(new StopwatchView(app));break;case "media":BuildMusic();break;case "timer":BuildClock();break;case "notes":BuildNotes();break;case "files":BuildShelf();break;case "calendar":BuildCalendar();break;case "system":BuildSystem();break;}
         var open=UI.Button("Open "+DetachedPreviewWindow.NameFor(kind),openMain);open.Margin=new(0,12,0,0);panel.Children.Add(open);
         noteSave.Tick+=(_,_)=>Flush();
     }
@@ -65,13 +65,13 @@ internal sealed class DetachedPreviewView : IDisposable
         volume=new Slider{Minimum=0,Maximum=100};UI.Named(volume,Localization.Text("Output volume"));volume.ValueChanged+=(_,_)=>{if(!updating)app.Audio.SetVolume(volume.Value/100);};var volumeRow=new Grid();volumeRow.ColumnDefinitions.Add(new(){Width=new GridLength(52)});volumeRow.ColumnDefinitions.Add(new());volumeRow.Children.Add(UI.Text(Localization.Text("Volume"),11,UI.Muted));Grid.SetColumn(volume,1);volumeRow.Children.Add(volume);Add(volumeRow);
         var mute=Action("Mute / unmute",()=>app.Audio.ToggleMute());mute.FontSize=11;mute.Padding=new(8,4,8,4);mute.MinHeight=28;Add(mute);
     }
-    private Countdown Clock=>kind=="timer"?app.Session.Timer:app.Session.Focus;
+    private Countdown Clock=>app.Session.Timer;
     private void BuildClock()
     {
-        detail=UI.Text(kind=="focus"?Localization.Text("Focus session"):Localization.Text("Countdown"),12,UI.Muted);Add(detail);
+        detail=UI.Text(Localization.Text("Countdown"),12,UI.Muted);Add(detail);
         time=UI.Text("00:00",38);time.FontWeight=FontWeights.Medium;Typography.SetNumeralAlignment(time,FontNumeralAlignment.Tabular);Add(time);
         progress=new ProgressBar{Minimum=0,Maximum=1,Height=4,Background=UI.Brush("#34363C"),Foreground=Brushes.White};Add(progress);
-        minutes=UI.Input(kind=="timer"?Localization.Text("Timer minutes"):Localization.Text("Focus minutes"),(kind=="timer"?5:app.Settings.FocusMinutes).ToString());minutes.MaxLength=4;Add(UI.Row(UI.Text(Localization.Text("Minutes  "),12,UI.Muted),minutes));minutes.Width=80;
+        minutes=UI.Input(Localization.Text("Timer minutes"),"5");minutes.MaxLength=4;Add(UI.Row(UI.Text(Localization.Text("Minutes  "),12,UI.Muted),minutes));minutes.Width=80;
         toggle=Action("Start",ToggleClock);Add(UI.Row(toggle,Action("Reset",()=>{Clock.Reset();app.SaveSession();})));
         status=UI.Text("",11,UI.Muted);Add(status);
     }
@@ -83,7 +83,7 @@ internal sealed class DetachedPreviewView : IDisposable
         else
         {
             if(!int.TryParse(minutes!.Text,out var value) || value<1 || value>1440){status!.Text=Localization.Text("Enter 1–1440 minutes.");return;}
-            status!.Text="";Clock.Start(value*60,now,kind=="focus"?"work":"");
+            status!.Text="";Clock.Start(value*60,now);
         }
         app.SaveSession();Refresh();
     }
@@ -180,7 +180,7 @@ internal sealed class DetachedPreviewView : IDisposable
     private void Refresh(RuntimeChange change)
     {
         if(!visible)return;
-        var relevant=RuntimeChange.Settings | (kind switch{"media"=>RuntimeChange.Media|RuntimeChange.Audio|RuntimeChange.Clock,"timer" or "focus"=>RuntimeChange.Countdown,"notes" or "files"=>RuntimeChange.Productivity,"calendar"=>RuntimeChange.Calendar|RuntimeChange.Clock,"system"=>RuntimeChange.System,_=>RuntimeChange.All});
+        var relevant=RuntimeChange.Settings | (kind switch{"media"=>RuntimeChange.Media|RuntimeChange.Audio|RuntimeChange.Clock,"timer"=>RuntimeChange.Countdown,"notes" or "files"=>RuntimeChange.Productivity,"calendar"=>RuntimeChange.Calendar|RuntimeChange.Clock,"system"=>RuntimeChange.System,_=>RuntimeChange.All});
         if((change&relevant)==0)return;updating=true;
         try
         {
@@ -195,9 +195,9 @@ internal sealed class DetachedPreviewView : IDisposable
                 var timeline=media.Timeline();var timelineState=media.Available?MediaTimelinePolicy.State(timeline.duration,media.CanSeek):MediaTimelineState.None;
                 seek!.Visibility=timelineState==MediaTimelineState.None?Visibility.Collapsed:Visibility.Visible;seek.IsEnabled=timelineState==MediaTimelineState.Seekable;seek.ToolTip=timelineState==MediaTimelineState.ReadOnly?Localization.Text("This player doesn't allow seeking"):null;ToolTipService.SetShowOnDisabled(seek,true);if(!seek.IsMouseCaptureWithin && !seek.IsKeyboardFocusWithin)seek.Value=timeline.duration>0?timeline.elapsed/timeline.duration:0;
             }
-            else if(kind is "timer" or "focus")
+            else if(kind is "timer")
             {
-                var now=DateTimeOffset.UtcNow;double remaining=Clock.Remaining(now);time!.Text=remaining>0?Clock.Display(now):int.TryParse(minutes!.Text,out int ready) && ready>=1 && ready<=1440?Countdown.FormatSeconds(ready*60):"—";progress!.Value=remaining>0?Clock.Progress(now):0;toggle!.Content=Clock.Running?Localization.Text("Pause"):Clock.Remaining(now)>0?Localization.Text("Resume"):Localization.Text("Start");minutes!.IsEnabled=!Clock.Running && Clock.Remaining(now)<=0;detail!.Text=kind=="focus"?(Clock.Phase=="break"?Localization.Text("Break"):Localization.Text("Focus session")):Localization.Text("Countdown");
+                var now=DateTimeOffset.UtcNow;double remaining=Clock.Remaining(now);time!.Text=remaining>0?Clock.Display(now):int.TryParse(minutes!.Text,out int ready) && ready>=1 && ready<=1440?Countdown.FormatSeconds(ready*60):"—";progress!.Value=remaining>0?Clock.Progress(now):0;toggle!.Content=Clock.Running?Localization.Text("Pause"):Clock.Remaining(now)>0?Localization.Text("Resume"):Localization.Text("Start");minutes!.IsEnabled=!Clock.Running && Clock.Remaining(now)<=0;detail!.Text=Localization.Text("Countdown");
             }
             else if(kind=="notes")SyncNotes();else if(kind=="files")RefreshShelf();else if(kind=="calendar")RenderEvents();
             else if(kind=="system")

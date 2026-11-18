@@ -21,8 +21,8 @@ internal static class NotificationCenterTests
         test("Windows-only alerts still appear in the center",windows==1 && queue.History[0].Notice.Title=="Update ready" && queue.Count==0);
         queue.Post(new Settings{NotificationDelivery="Notch",NotifyTimer=false},new("timer","Muted","Off"),false,_=>{},now.AddSeconds(6));
         test("Turned-off alert kinds are not recorded",queue.History.All(e=>e.Notice.Title!="Muted"));
-        queue.Post(new Settings{NotificationDelivery="Notch",NotificationsSnoozedUntil=now.AddHours(1)},new("focus","Focus complete","Break"),false,_=>{},now.AddSeconds(7));
-        test("Snoozed alerts are kept for later without a popup",queue.History[0].Notice.Title=="Focus complete" && !queue.History[0].Read && queue.Count==0);
+        queue.Post(new Settings{NotificationDelivery="Notch",NotificationsSnoozedUntil=now.AddHours(1)},new("timer","Second timer finished","Countdown"),false,_=>{},now.AddSeconds(7));
+        test("Snoozed alerts are kept for later without a popup",queue.History[0].Notice.Title=="Second timer finished" && !queue.History[0].Read && queue.Count==0);
         queue.Post(notch,new("preview","Preview","Sample"),false,_=>{},now.AddSeconds(8));
         test("Settings previews never fill the center",queue.History.All(e=>e.Notice.Kind!="preview"));
         queue.Post(notch,new("downloads","Download ready","Downloads",new[]{"a.txt"}),false,_=>{},now.AddSeconds(20));

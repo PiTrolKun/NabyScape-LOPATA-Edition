@@ -50,13 +50,13 @@ internal static class LyricsAutomaticTests
                 if(request.RequestUri.Host=="lyrics-api.binimum.org"){await Task.Delay(50,token);return Json("{\"results\":[{\"track_name\":\"Song\",\"artist_name\":\"Artist\",\"duration\":180,\"lyricsUrl\":\"https://lrc.red/s/FIXTURE.ttml\"}]}");}
                 return Json("<tt><p begin='1s'>君の声が聞こえる</p></tt>");
             });
-            using var service=new LyricsService(fake,new AssistantMemoryKeys());await service.Load("Song","Artist",180,true,true);
+            using var service=new LyricsService(fake,new LyricsMemoryKeys());await service.Load("Song","Artist",180,true,true);
             Assert(service.Result.Status.Contains("BiniLyrics",StringComparison.Ordinal) && service.Result.Lines[0].Text=="君の声が聞こえる");
         }).GetAwaiter().GetResult());
         test("Automatic public-provider access failures produce an empty result without escaping the fallback",()=>Task.Run(async()=>
         {
             var fake=new Fake((request,token)=>Task.FromResult(new HttpResponseMessage(HttpStatusCode.Forbidden)));
-            using var service=new LyricsService(fake,new AssistantMemoryKeys());await service.Load("Song","Artist",180,true,true);
+            using var service=new LyricsService(fake,new LyricsMemoryKeys());await service.Load("Song","Artist",180,true,true);
             Assert(service.Result.Lines.Length==0 && service.Result.Status.Contains("English, Japanese or Korean",StringComparison.Ordinal));
         }).GetAwaiter().GetResult());
         test("Browser lyric queries remove presentation labels but preserve real song versions",()=>
@@ -87,14 +87,14 @@ internal static class LyricsAutomaticTests
                     default:try{await Task.Delay(5000,token);}catch(OperationCanceledException){cancelled.TrySetResult();throw;}return Json("{}");
                 }
             });
-            using var service=new LyricsService(fake,new AssistantMemoryKeys());await service.Load("Song (Official Video)","Artist - Topic",180,true,true);
+            using var service=new LyricsService(fake,new LyricsMemoryKeys());await service.Load("Song (Official Video)","Artist - Topic",180,true,true);
             await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(5));Assert(service.Result.Lines.Length==1 && service.Result.Status.Contains("BetterLyrics") && fake.Maximum<=2);
             Assert(fake.Requests.All(r=>!r.Contains("youtube",StringComparison.OrdinalIgnoreCase) && !r.Contains("apikey",StringComparison.OrdinalIgnoreCase)));
         }).GetAwaiter().GetResult());
         test("Automatic uses cleaned browser metadata and reuses successful lyrics after dock collapse",()=>Task.Run(async()=>
         {
             var fake=new Fake((request,token)=>Task.FromResult(Json(request.RequestUri!.Host=="lrclib.net"?Hits("Song","Artist"):"{\"results\":[]}")));
-            using var service=new LyricsService(fake,new AssistantMemoryKeys());var owner=new object();service.Acquire(owner);
+            using var service=new LyricsService(fake,new LyricsMemoryKeys());var owner=new object();service.Acquire(owner);
             await service.Load("Artist - Song [Official Video]","Artist - Topic",180,true,true);Assert(service.Result.Lines.Length==1);
             Assert(fake.Requests.Any(r=>r.Contains("track_name=Song&artist_name=Artist",StringComparison.Ordinal)));
             int calls=fake.Requests.Count;service.Release(owner);Assert(service.Result.Lines.Length==0);
@@ -104,7 +104,7 @@ internal static class LyricsAutomaticTests
         test("Automatic metadata lookup respects consent and extracts missing artist only from explicit title structure",()=>Task.Run(async()=>
         {
             var fake=new Fake((request,token)=>Task.FromResult(Json(request.RequestUri!.Host=="lrclib.net"?Hits("Song","Artist"):"{\"results\":[]}")));
-            using var service=new LyricsService(fake,new AssistantMemoryKeys());await service.Load("Artist - Song","",180,false,true);Assert(fake.Requests.Count==0);
+            using var service=new LyricsService(fake,new LyricsMemoryKeys());await service.Load("Artist - Song","",180,false,true);Assert(fake.Requests.Count==0);
             await service.Load("Artist - Song","",180,true,true);Assert(service.Result.Lines.Length==1);
             service.Retry();await service.Load("Artist - Song","chrome.exe",180,true,true,"chrome.exe");Assert(service.Result.Lines.Length==1);
             Assert(fake.Requests.All(r=>!r.Contains("chrome.exe",StringComparison.OrdinalIgnoreCase)));
@@ -116,7 +116,7 @@ internal static class LyricsAutomaticTests
         {
             var oldResponse=new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
             var fake=new Fake((request,token)=>request.RequestUri!.Host!="lrclib.net"?Task.FromResult(Json("{\"results\":[]}")):request.RequestUri.Query.Contains("Old",StringComparison.Ordinal)?oldResponse.Task:Task.FromResult(Json(Hits("New","Artist"))));
-            using var service=new LyricsService(fake,new AssistantMemoryKeys());var old=service.Load("Old","Artist",180,true,true);
+            using var service=new LyricsService(fake,new LyricsMemoryKeys());var old=service.Load("Old","Artist",180,true,true);
             await service.Load("New","Artist",180,true,true);var current=service.Result;Assert(current.Lines.Length==1);
             oldResponse.SetResult(Json(Hits("Old","Artist")));await old;Assert(ReferenceEquals(current,service.Result));
         }).GetAwaiter().GetResult());

@@ -36,7 +36,6 @@ public sealed partial class OverlayWindow
             "power"=>"Open to choose a Windows power plan",
             "awake"=>"Keep your computer awake while you work",
             "links"=>"Remove tracking parameters from a link",
-            "voice"=>app.Assistant.VoiceConnected?"Voice session active":"A dedicated space to talk with Naby",
             _=>""
         };
         Motion.Text(label,text);

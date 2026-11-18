@@ -15,12 +15,12 @@ internal static class DetachedPreviewTests
         check("Manual hide hides all open previews",!state.Visible("media") && !state.Visible("notes"));
         state.Close("notes");state.SetHidden(false);
         check("Manual show restores only previews still open",state.Visible("media") && !state.Visible("notes") && !state.Visible("timer"));
-        state.SetHidden(true);state.Open("focus");
-        check("Open while manually hidden respects hide",!state.Visible("focus"));
+        state.SetHidden(true);state.Open("timer");
+        check("Open while manually hidden respects hide",!state.Visible("timer"));
         state.SetHidden(false);
-        check("Explicitly opened hidden preview restores on show",state.Visible("focus"));
+        check("Explicitly opened hidden preview restores on show",state.Visible("timer"));
         state.Close("media");
-        check("Close removes only its UI state",!state.Visible("media") && state.Visible("focus"));
+        check("Close removes only its UI state",!state.Visible("media") && state.Visible("timer"));
         check("Preview aliases use canonical singleton keys",DetachedPreviewManager.NormalizeKind("Music")=="media" && DetachedPreviewManager.NormalizeKind("Shelf")=="files" && DetachedPreviewManager.NormalizeKind("note")=="notes");
         var work=new Rect(-1600,40,1600,860);
         var offscreen=DetachedPreviewGeometry.Clamp(new Rect(5000,-800,350,330),work);

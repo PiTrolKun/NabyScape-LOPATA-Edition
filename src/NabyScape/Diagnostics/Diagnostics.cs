@@ -129,24 +129,19 @@ internal static class Diagnostics
             if(Environment.GetCommandLineArgs().Contains("--lyrics-power-ui-only")){await LyricsPowerDiagnostics.Run(app,overlay,Check);return;}
             if(Environment.GetCommandLineArgs().Contains("--closed-lyrics-fallback-only")){await ClosedLyricsFallbackDiagnostics.Run(app,overlay,Check);return;}
             if(Environment.GetCommandLineArgs().Contains("--removed-activities-only")){await RemovedActivitiesDiagnostics.Run(app,overlay,Check);return;}
-            if(Environment.GetCommandLineArgs().Contains("--assistant-transform-only")){await AssistantTransformDiagnostics.Run(app,overlay,directory,Check);return;}
             if(Environment.GetCommandLineArgs().Contains("--hover-responsiveness-only")){await HoverResponsivenessDiagnostics.Run(app,overlay,directory,Check);return;}
             if(Environment.GetCommandLineArgs().Contains("--recent-ux-only")){await RecentUxDiagnostics.Run(app,overlay,directory,Check);return;}
             if(Environment.GetCommandLineArgs().Contains("--welcome-only")){await WelcomeDiagnostics.Run(app,directory,Check);return;}
 
             if(Environment.GetCommandLineArgs().Contains("--quiet-ambient-only")){await QuietAmbientDiagnostics.Run(app,overlay,directory,Check);return;}
 
-            if(Environment.GetCommandLineArgs().Contains("--ux-completion-only")){await UxCompletionDiagnostics.Run(app,overlay,directory,Check);return;}
 
-            if(Environment.GetCommandLineArgs().Contains("--speech-storage-only")){await SpeechStorageDiagnostics.Run(app,overlay,directory,Check);return;}
 
-            if(Environment.GetCommandLineArgs().Contains("--voice-layout-only")){await VoiceLayoutDiagnostics.Run(app,overlay,directory,Check);return;}
 
             if(Environment.GetCommandLineArgs().Contains("--stability-only")){await StabilityDiagnostics.Run(app,overlay,directory,Check);return;}
 
             if(Environment.GetCommandLineArgs().Contains("--production-ui-only")){await ProductionUiDiagnostics.Run(app,overlay,directory,Check);return;}
 
-            if(Environment.GetCommandLineArgs().Contains("--assistant-presentation-only")){await AssistantPresentationDiagnostics.Run(app,overlay,directory,Check);return;}
 
             if(Environment.GetCommandLineArgs().Contains("--media-footer-only")){await MediaFooterDiagnostics.Run(app,overlay,directory,Check);return;}
 
@@ -171,9 +166,7 @@ internal static class Diagnostics
 
             if(Environment.GetCommandLineArgs().Contains("--media-ux-only")){await MediaExperienceDiagnostics.Run(app,overlay,directory,Check);return;}
 
-            if(Environment.GetCommandLineArgs().Contains("--assistant-character-only")){await AssistantCharacterDiagnostics.Run(app,overlay,directory,Check);return;}
 
-            if(Environment.GetCommandLineArgs().Contains("--assistant-island-only")){await AssistantIslandDiagnostics.Run(app,overlay,directory,Check);return;}
 
             if(Environment.GetCommandLineArgs().Contains("--interaction-classic-mixer-only")){await InteractionHotfixDiagnostics.RunClassicMixer(app,overlay,Check);return;}
 
@@ -197,7 +190,6 @@ internal static class Diagnostics
 
             if(Environment.GetCommandLineArgs().Contains("--stage4-only")){await Task.Delay(500);await Stage4Diagnostics.Run(app,overlay,directory,Check);return;}
 
-            if(Environment.GetCommandLineArgs().Contains("--stage3-only")){await Task.Delay(500);await Stage3Diagnostics.Run(app,directory,Check);return;}
 
             if(Environment.GetCommandLineArgs().Contains("--stage2-only")){await Task.Delay(500);await Stage2Diagnostics.Run(app,overlay,directory,Check);return;}
 
@@ -287,9 +279,7 @@ internal static class Diagnostics
 
             {await Task.Delay(500);await InteractionDiagnostics.RunReviewRegressions(app,overlay,directory,Check);return;}
 
-            // The assistant isolation flag must not shadow a targeted suite.
 
-            if(Environment.GetCommandLineArgs().Contains("--assistant-only")){await AssistantDiagnostics.Run(app,overlay,directory,Check);return;}
 
             await Task.Delay(2500);
 
@@ -317,11 +307,11 @@ internal static class Diagnostics
 
             Motion.Text(overlay.HeaderLabel,originalHeader);
 
-            var signal=new ActivityVisual();signal.Sample(.5,.033,0,false,false,true,0);double attack=signal.Envelope;signal.Sample(0,.033,0,false,false,true,0);
+            var signal=new ActivityVisual();signal.Sample(.5,.033,0,false,true,0);double attack=signal.Envelope;signal.Sample(0,.033,0,false,true,0);
 
             Check("Output envelope responds to amplitude and decays smoothly",attack>0 && signal.Envelope>0 && signal.Envelope<attack);
 
-            signal.Sample(.8,.033,0,false,false,false,0);Check("Reduced motion immediately silences the waveform",signal.Envelope==0);
+            signal.Sample(.8,.033,0,false,false,0);Check("Reduced motion immediately silences the waveform",signal.Envelope==0);
 
             Check("CoreAudio output meter returns a bounded sample",app.Audio.Peak() is >=0 and <=1);
 
@@ -383,7 +373,6 @@ internal static class Diagnostics
 
             Click("Reset preview timer");Check("Preview timer reset clears its saved deadline",app.Session.Timer.Remaining(DateTimeOffset.UtcNow)==0 && app.Store.Load<SessionState>("session").Timer.RemainingSeconds==0);
 
-            overlay.NavigatePeek(1);await Task.Delay(350);Check("Preview arrow advances to Focus",overlay.PeekPage=="focus");Click("Start or pause preview focus");Check("Preview focus uses the configured work duration",app.Session.Focus.Running && app.Session.Focus.Phase=="work" && app.Session.Focus.Remaining(DateTimeOffset.UtcNow)>app.Settings.FocusMinutes*60-5);Click("Reset preview focus");CaptureContour("hover-focus");
 
             var previewEvent=app.Calendar.Add("Design review",DateTimeOffset.UtcNow.AddMinutes(15),DateTimeOffset.UtcNow.AddMinutes(45),"https://example.com/meeting");overlay.SelectPeek("calendar");await Task.Delay(350);Check("Calendar preview shows the upcoming local event and meeting action",Descendants(overlay).OfType<TextBlock>().Any(t=>t.Text=="Design review") && ActionButton("Join preview meeting").IsVisible);CaptureContour("hover-calendar");app.Calendar.Remove(previewEvent.Id);
 
@@ -737,17 +726,11 @@ internal static class Diagnostics
 
             Check("Timer completes with panel closed",await WaitUntil(()=>!app.Session.Timer.Running && app.Session.Timer.RemainingSeconds==0));
 
-            app.Session.Focus.Start(1,DateTimeOffset.UtcNow.AddSeconds(-2),"work");app.CheckCountdowns();
 
-            Check("Work automatically enters remaining break",app.Session.Focus.Running && app.Session.Focus.Phase=="break");
 
-            app.Session.Focus.Start(1,DateTimeOffset.UtcNow.AddHours(-2),"work");app.CheckCountdowns();
 
-            Check("Sleep beyond work and break completes focus",!app.Session.Focus.Running && app.Session.Focus.Phase=="");
 
-            app.Session.Focus.Start(1,DateTimeOffset.UtcNow.AddSeconds(-2),"break");app.CheckCountdowns();
 
-            Check("Break completion returns to ready state",!app.Session.Focus.Running && app.Session.Focus.Phase=="");
 
             app.Settings.DisplayMode="Selected";app.Settings.Monitor="nonexistent-monitor";app.ChangeSettings();
 
@@ -1161,13 +1144,13 @@ internal static class Diagnostics
 
             {
 
-                string originalIcon=app.Settings.ClosedMediaIcon,originalContent=app.Settings.ClosedMediaContent;var originalTimer=app.Session.Timer;var originalFocus=app.Session.Focus;var selected=app.Media.Selected;
+                string originalIcon=app.Settings.ClosedMediaIcon,originalContent=app.Settings.ClosedMediaContent;var originalTimer=app.Session.Timer;var selected=app.Media.Selected;
 
                 try
 
                 {
 
-                    app.Session.Timer=new();app.Session.Focus=new();app.Settings.ClosedMediaIcon="Artwork";app.ChangeSettings();overlay.Collapse();await Task.Delay(700);
+                    app.Session.Timer=new();app.Settings.ClosedMediaIcon="Artwork";app.ChangeSettings();overlay.Collapse();await Task.Delay(700);
 
                     Check("Closed island shows native session artwork without opening",overlay.ClosedCoverVisible && !overlay.IsExpanded && !overlay.IsPeeking);CaptureContour("closed-album-cover");
 
@@ -1187,7 +1170,7 @@ internal static class Diagnostics
 
                 }
 
-                finally{app.Session.Timer=originalTimer;app.Session.Focus=originalFocus;app.Media.Select(selected);await app.Media.Refresh();app.Settings.ClosedMediaIcon=originalIcon;app.Settings.ClosedMediaContent=originalContent;app.ChangeSettings();}
+                finally{app.Session.Timer=originalTimer;app.Media.Select(selected);await app.Media.Refresh();app.Settings.ClosedMediaIcon=originalIcon;app.Settings.ClosedMediaContent=originalContent;app.ChangeSettings();}
 
             });
 

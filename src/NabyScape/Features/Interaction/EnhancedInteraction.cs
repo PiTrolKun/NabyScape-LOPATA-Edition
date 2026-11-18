@@ -37,7 +37,7 @@ public sealed partial class OverlayWindow
     private readonly DispatcherTimer detailDelay=new(){Interval=TimeSpan.FromMilliseconds(550)},activityDismiss=new(){Interval=TimeSpan.FromSeconds(3.8)};
     private bool peekDetailed,automaticPreview,hotkeyRegistered,visibilityHotkeyRegistered,tuckHotkeyRegistered;
     private string previewKind="",activityTitle="",activityDetail="",lastActivityTrack="";
-    private DateTimeOffset? warnedTimer,warnedFocus;
+    private DateTimeOffset? warnedTimer;
     private readonly Dictionary<Image,Image> previousArtwork=new();
     private readonly Dictionary<TextBlock,TextBlock> previousText=new();
     private readonly Dictionary<TextBlock,MarqueeLabel> marqueeLabels=new();
@@ -97,13 +97,12 @@ public sealed partial class OverlayWindow
     {
         string track=app.Media.Available?(app.Media.Selected?.SourceAppUserModelId+"|"+app.Media.Title):"";
         if(track!=lastActivityTrack){bool primed=lastActivityTrack!="";lastActivityTrack=track;if(primed && track!="" && app.Media.Playing)AutomaticActivity("media","","");}
-        var now=DateTimeOffset.UtcNow;
-        foreach(var (id,c) in new[]{("timer",app.Session.Timer),("focus",app.Session.Focus)})
-        {
-            if(!WidgetOn(id) || !c.Running || c.Remaining(now)>30 || c.Remaining(now)<=0)continue;
-            if(id=="timer"){if(warnedTimer==c.Deadline)continue;warnedTimer=c.Deadline;}else{if(warnedFocus==c.Deadline)continue;warnedFocus=c.Deadline;}
-            AutomaticActivity(id,(id=="timer"?"Timer":"Focus")+" · "+c.Display(now),"Ending soon");
-        }
+        var now = DateTimeOffset.UtcNow;
+        var timer = app.Session.Timer;
+        if (!WidgetOn("timer") || !timer.Running || warnedTimer == timer.Deadline ||
+            timer.Remaining(now) is <= 0 or > 30) return;
+        warnedTimer = timer.Deadline;
+        AutomaticActivity("timer", Localization.Format("Timer · {0}", timer.Display(now)), "Ending soon");
     }
     private FrameworkElement WrapArtwork(Image current)
     {
@@ -131,7 +130,7 @@ public sealed partial class OverlayWindow
     {
         var s=app.Settings;
         bool Includes(string id)=>AmbientPolicy.Includes(s,id,app.Media.SourceDisabled);
-        bool allowed=!noticeShowing && (assistantOpen || assistantPeeking?Includes("ai"):commandOpen?Includes("shortcuts"):expanded?
+        bool allowed=!noticeShowing && (commandOpen?Includes("shortcuts"):expanded?
             PanelWidgets.Any(w=>(!s.CompactLayout || PageFor(w.Id)==activePage) && Includes(w.Id)):
             peeking?Includes(peekId):Includes("closed"));
         allowed &= (expanded || peeking || s.ClosedAmbient && !IdleContent) && !IsTucked && !userHidden;

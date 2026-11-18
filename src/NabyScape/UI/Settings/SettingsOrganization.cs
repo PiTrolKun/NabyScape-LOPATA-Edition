@@ -43,10 +43,8 @@ public sealed partial class SettingsWindow
         {
             "Enabled widgets & order" or "Text and navigation" =>("Panel","Navigation"),
             "Hover pages" or "Hover & swipe" or "Hover preview" =>("Hover","Music"),
-            "AI companion" =>("Panel","AI"),
             "Individual tools" =>("Panel","Tools"),
             "Clipboard history" =>("Panel","Smart clipboard"),
-            "Focus sessions" =>("Panel","Focus"),
             "Stopwatch" =>("Panel","Stopwatch"),
             "Automatic tucking" or "Hide or show the island" =>("Panel","Visibility"),
             "Drag to Island" =>("Hover","Drop zone"),

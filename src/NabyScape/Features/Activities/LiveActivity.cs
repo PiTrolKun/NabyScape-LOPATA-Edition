@@ -12,10 +12,10 @@ internal sealed class ActivityVisual : FrameworkElement,IInkAware
     private readonly double[] history=new double[25];
     private readonly double[] levels=new double[25];
     internal double WaveLevel(int index)=>levels[index];
-    private double envelope,progress,pulse=1,levelFloor,levelCeiling=.15;
-    private bool countdown,focus;
-    private static readonly Brush focusColor=UI.Brush("#30D158"),timerColor=UI.Brush("#FF9F0A");
-    private static readonly Pen trackPen=new(UI.Brush("#353537"),1.8),focusPen=new(focusColor,1.8){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round},timerPen=new(timerColor,1.8){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};
+    private double envelope,progress,levelFloor,levelCeiling=.15;
+    private bool countdown;
+    private static readonly Brush timerColor=UI.Brush("#FF9F0A");
+    private static readonly Pen trackPen=new(UI.Brush("#353537"),1.8),timerPen=new(timerColor,1.8){StartLineCap=PenLineCap.Round,EndLineCap=PenLineCap.Round};
     internal bool WaveOnly {get;init;}
     internal bool Slender {get;init;}
     internal double Envelope=>envelope;
@@ -28,7 +28,7 @@ internal sealed class ActivityVisual : FrameworkElement,IInkAware
         return baseline+Math.Max(0,height-(Slender?baseline:2))*level;
     }
     internal ActivityVisual(){Width=18;Height=18;VerticalAlignment=VerticalAlignment.Center;IsHitTestVisible=false;}
-    internal void Sample(double peak,double dt,double fraction,bool session,bool focused,bool animate,double seconds,bool advanceHistory=true,bool decorative=false,System.Collections.Generic.IReadOnlyList<float>? spectrum=null,double sensitivity=1)
+    internal void Sample(double peak,double dt,double fraction,bool session,bool animate,double seconds,bool advanceHistory=true,bool decorative=false,System.Collections.Generic.IReadOnlyList<float>? spectrum=null,double sensitivity=1)
     {
         peak=double.IsFinite(peak)?Math.Clamp(peak,0,1):0;dt=Math.Clamp(dt,.001,.5);
         double target=0;
@@ -46,7 +46,7 @@ internal sealed class ActivityVisual : FrameworkElement,IInkAware
         double before=envelope;envelope=animate?target+(envelope-target)*Math.Exp(-dt/(target>envelope?.018:.09)):0;
         if(!animate)Array.Clear(history);
         if(envelope<.001)envelope=0;
-        bool changed=Math.Abs(before-envelope)>.0003 || Math.Abs(progress-fraction)>.00001 || session!=countdown || focused!=focus;
+        bool changed=Math.Abs(before-envelope)>.0003 || Math.Abs(progress-fraction)>.00001 || session!=countdown;
         if(advanceHistory){for(int i=history.Length-1;i>0;i--){if(Math.Abs(history[i]-history[i-1])>.001)changed=true;history[i]=history[i-1];}history[0]=envelope;}
         for(int i=0;i<levels.Length;i++)
         {
@@ -61,9 +61,7 @@ internal sealed class ActivityVisual : FrameworkElement,IInkAware
             if(levels[i]<.0001)levels[i]=0;
             if(Math.Abs(old-levels[i])>.0002)changed=true;
         }
-        progress=fraction;countdown=session;focus=focused;
-        double breathing=animate && session && focused?.76+.24*Math.Sin(seconds*Math.PI/1.9):1;
-        if(Math.Abs(breathing-pulse)>.002)changed=true;pulse=breathing;
+        progress=fraction;countdown=session;
         if(changed)InvalidateVisual();
     }
     protected override void OnRender(DrawingContext dc)
@@ -74,15 +72,14 @@ internal sealed class ActivityVisual : FrameworkElement,IInkAware
         {
             var c=new Point(w/2,h/2);double r=Math.Min(w,h)/2-1.5;
             dc.DrawEllipse(null,trackPen,c,r,r);
-            var brush=focus?focusColor:timerColor;
-            dc.PushOpacity(pulse);dc.DrawEllipse(brush,null,c,2.2,2.2);
+            dc.DrawEllipse(timerColor,null,c,2.2,2.2);
             double angle=Math.Clamp(progress,0,.99999)*Math.PI*2;
             if(angle>.001)
             {
                 var path=new StreamGeometry();using(var s=path.Open()){s.BeginFigure(new Point(c.X,c.Y-r),false,false);s.ArcTo(new Point(c.X+r*Math.Sin(angle),c.Y-r*Math.Cos(angle)),new Size(r,r),0,angle>Math.PI,SweepDirection.Clockwise,true,false);}path.Freeze();
-                dc.DrawGeometry(null,focus?focusPen:timerPen,path);
+                dc.DrawGeometry(null,timerPen,path);
             }
-            dc.Pop();return;
+            return;
         }
         int count=WaveOnly?Math.Min(25,Math.Max(5,(int)(w/3))):5;double gap=WaveOnly?1.5:1.4,bw=Math.Max(.4,(w-gap*(count-1))/count);
         if(Slender){bw=Math.Min(2,Math.Max(.4,(w-(count-1)*2.25)/count));gap=Math.Min(2.25,Math.Max(.8,(w-count*bw)/Math.Max(1,count-1)));}
@@ -123,7 +120,7 @@ public sealed partial class OverlayWindow
         IsVisibleChanged+=(_,_)=>{ConfigureLiveActivity();if(!IsVisible)ClearFeedback();};
     }
     private bool AudioVisualDemand=>IsVisible && !IsTucked && app.Settings.LiveActivity && app.Media.Playing && WidgetOn("media") &&
-        ((!expanded && !peeking && !FeedbackVisible && (activity.IsVisible || closedTitleWave.IsVisible)) || (expanded && musicWave.IsVisible) || (peeking && !assistantPeeking && peekId=="media" && peekWave.IsVisible));
+        ((!expanded && !peeking && !FeedbackVisible && (activity.IsVisible || closedTitleWave.IsVisible)) || (expanded && musicWave.IsVisible) || (peeking && peekId=="media" && peekWave.IsVisible));
     private bool ReflectionMoving
     {
         get
@@ -135,13 +132,13 @@ public sealed partial class OverlayWindow
         }
     }
     private bool HasLiveWork=>AudioVisualDemand || MascotVisualDemand || motion.Active || ReflectionMoving ||
-        (app.Media.Playing && timelineDuration>0 && ((peeking && !assistantPeeking && peekId=="media") || (expanded && musicWave.IsVisible))) ||
-        (ActiveCountdown()?.Running==true && ((!expanded && !peeking && activity.IsVisible) || (peeking && !assistantPeeking && peekId is "timer" or "focus")));
+        (app.Media.Playing && timelineDuration>0 && ((peeking && peekId=="media") || (expanded && musicWave.IsVisible))) ||
+        (ActiveCountdown()?.Running==true && ((!expanded && !peeking && activity.IsVisible) || (peeking && peekId=="timer")));
     private void ConfigureLiveActivity()
     {
         StopLiveRendering();liveTick.Stop();lastLive=DateTimeOffset.UtcNow;quietSince=lastLive;
         if(IsVisible && !IsTucked && app.Settings.LiveActivity && Motion.Enabled){if(HasLiveWork)WakeLiveRendering();}
-        else{activity.Sample(0,1,ActiveCountdown()?.Progress(lastLive)??0,ActiveCountdown()!=null,app.Session.Focus.Remaining(lastLive)>0,false,0);closedTitleWave.Sample(0,1,0,false,false,false,0);musicWave.Sample(0,1,0,false,false,false,0);peekWave.Sample(0,1,0,false,false,false,0);}
+        else{activity.Sample(0,1,ActiveCountdown()?.Progress(lastLive)??0,ActiveCountdown()!=null,false,0);closedTitleWave.Sample(0,1,0,false,false,0);musicWave.Sample(0,1,0,false,false,0);peekWave.Sample(0,1,0,false,false,0);}
     }
     private void WakeLiveRendering()
     {
@@ -156,7 +153,7 @@ public sealed partial class OverlayWindow
     private Countdown? ActiveCountdown()
     {
         var now=DateTimeOffset.UtcNow;
-        return WidgetOn("focus") && app.Session.Focus.Remaining(now)>0?app.Session.Focus:WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?app.Session.Timer:null;
+        return WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?app.Session.Timer:null;
     }
     private void LiveFrame(TimeSpan stamp)
     {
@@ -171,18 +168,18 @@ public sealed partial class OverlayWindow
         if((now-quietSince).TotalSeconds>1.2){StopLiveRendering();return;}
         bool decorative=app.Settings.WaveformIdleMotion && app.Media.Playing && !app.Audio.MediaMeterMuted;
         double seconds=now.ToUnixTimeMilliseconds()/1000d;
-        if(!expanded && !peeking && activity.IsVisible)activity.Sample(peak,dt,session?.Progress(now)??0,session!=null,session==app.Session.Focus,running || session==null,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
-        if(!expanded && !peeking && closedTitleWave.IsVisible)closedTitleWave.Sample(peak,dt,0,false,false,app.Media.Playing && !app.Audio.MediaMeterMuted,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
-        if(expanded && musicWave.IsVisible)musicWave.Sample(peak,dt,0,false,false,app.Media.Playing && !app.Audio.MediaMeterMuted,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
-        if(peeking && !assistantPeeking && peekId=="media" && peekWave.IsVisible)peekWave.Sample(peak,dt,0,false,false,app.Media.Playing && !app.Audio.MediaMeterMuted,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
+        if(!expanded && !peeking && activity.IsVisible)activity.Sample(peak,dt,session?.Progress(now)??0,session!=null,running || session==null,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
+        if(!expanded && !peeking && closedTitleWave.IsVisible)closedTitleWave.Sample(peak,dt,0,false,app.Media.Playing && !app.Audio.MediaMeterMuted,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
+        if(expanded && musicWave.IsVisible)musicWave.Sample(peak,dt,0,false,app.Media.Playing && !app.Audio.MediaMeterMuted,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
+        if(peeking && peekId=="media" && peekWave.IsVisible)peekWave.Sample(peak,dt,0,false,app.Media.Playing && !app.Audio.MediaMeterMuted,seconds,sample,decorative,app.Audio.MediaSpectrum,app.Settings.WaveformSensitivity);
         if(app.Settings.GlassStyle && (peeking || expanded || motion.Active))
         {
             var p=Mouse.GetPosition(this);double x=Math.Clamp((p.X-(ActualWidth-surface.SurfaceWidth)/2)/surface.SurfaceWidth,0,1),y=Math.Clamp(p.Y/surface.SurfaceHeight,0,1);
             double follow=1-Math.Exp(-dt/ .14);reflectionX+=(x-reflectionX)*follow;reflectionY+=(y-reflectionY)*follow;
             surface.Light(reflectionX,reflectionY);peekArtSlide.X=(reflectionX-.5)*2.5;peekArtSlide.Y=(reflectionY-.5)*1.5;
         }
-        if(peeking && !assistantPeeking && timelineDuration>0 && app.Media.Playing && !peekSeeking)peekProgress.Value=Math.Clamp((timelineElapsed+(now-timelineAt).TotalSeconds)/timelineDuration,0,1);
-        else if(peeking && !assistantPeeking && session!=null)peekProgress.Value=session.Progress(now);
+        if(peeking && timelineDuration>0 && app.Media.Playing && !peekSeeking)peekProgress.Value=Math.Clamp((timelineElapsed+(now-timelineAt).TotalSeconds)/timelineDuration,0,1);
+        else if(peeking && session!=null)peekProgress.Value=session.Progress(now);
         if(expanded && activePage=="media" && timelineDuration>0 && app.Media.Playing && !seekSlider.IsMouseCaptureWithin && !seekSlider.IsKeyboardFocusWithin && !seekDelay.IsEnabled)
         {
             updating=true;try{seekSlider.Value=Math.Clamp((timelineElapsed+(now-timelineAt).TotalSeconds)/timelineDuration,0,1);}finally{updating=false;}

@@ -5,7 +5,7 @@ internal enum ClosedClockSlot {Leading,Center,Trailing}
 // Pure placement rules for the closed-dock clock, shared by IdleDock and the self-tests.
 internal static class ClosedClockLayout
 {
-    // Live content (music title, waveform, lyrics, timers, voice, notices) owns the middle of the
+    // Live content (music title, waveform, lyrics, timers and notices) owns the middle of the
     // closed dock. A centered clock steps to the right edge while it plays and returns when idle.
     internal static ClosedClockSlot Slot(string position,bool idle)=>position switch
     {

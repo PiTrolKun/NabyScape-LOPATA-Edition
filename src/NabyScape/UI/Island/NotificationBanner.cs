@@ -18,7 +18,7 @@ public sealed partial class OverlayWindow
     private Border? bannerProgress;
     internal bool NoticeBannerOpen=>bannerShowing && noticeShowing;
     internal static double BannerSeconds(Settings s)=>Math.Clamp(s.NotificationSeconds,4,12);
-    private bool BannerBlocked=>userHidden || expanded || peeking || fileDragActive || dockEditing || PeekInteractionActive || FeedbackVisible || assistantOpen || commandOpen;
+    private bool BannerBlocked=>userHidden || expanded || peeking || fileDragActive || dockEditing || PeekInteractionActive || FeedbackVisible || commandOpen;
     private void QueueNoticeBanner()
     {
         if(DiagnosticRun && !DiagnosticBanners)return;
@@ -33,7 +33,7 @@ public sealed partial class OverlayWindow
         if(!bannerTimerReady){bannerTimerReady=true;bannerTimer.Tick+=(_,_)=>BannerTimeout();}
         if(noticeCard!=null)visuals.Children.Remove(noticeCard);
         app.Notifications.MarkDisplayed();
-        StopHoverTimers();SetTucked(false);peeking=true;noticeShowing=true;bannerShowing=true;peekPanel.Visibility=Visibility.Collapsed;SyncAssistantVisibility();RefreshNoticeEdge();
+        StopHoverTimers();SetTucked(false);peeking=true;noticeShowing=true;bannerShowing=true;peekPanel.Visibility=Visibility.Collapsed;SyncLopataMascot();RefreshNoticeEdge();
         bool hideText=notice.Kind=="external" && !app.Settings.ExternalNotificationText;
         var grid=new Grid();grid.ColumnDefinitions.Add(new(){Width=GridLength.Auto});grid.ColumnDefinitions.Add(new());grid.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         var glyph=NoticeAvatar.Create(notice,40);glyph.Margin=new(0,0,12,0);glyph.VerticalAlignment=VerticalAlignment.Center;

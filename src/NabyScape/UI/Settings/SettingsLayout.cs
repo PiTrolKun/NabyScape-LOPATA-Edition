@@ -32,7 +32,6 @@ public sealed partial class SettingsWindow
         ["Automatic tucking"]="Slide the dock away so it doesn't cover your apps.",
         ["Hide or show the island"]="A shortcut to hide the dock completely.",
         ["Enabled widgets & order"]="Turn widgets on or off and drag to reorder them.",
-        ["Focus sessions"]="Default lengths for focus and break timers.",
         ["Clipboard history"]="Remember things you copy so you can paste them again.",
         ["Closed media display"]="What the closed dock shows while music plays.",
         ["Lyrics"]="Synced song lyrics from online sources.",
