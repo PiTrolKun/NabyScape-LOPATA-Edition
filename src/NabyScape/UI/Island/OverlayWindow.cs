@@ -155,7 +155,7 @@ public sealed partial class OverlayWindow : Window
         surface.Refresh();ApplyEnvironmentTuck();Position();Update();ConfigureLiveActivity();RestoreEditorState(editorState);
     }
     private void BuildBody()
-    {mediaControls?.Close(false);mediaControls=null;fullMascot=null;bodyInitialized=true;bodyDirty=false;bodyReflow.Clear();pendingCompactPages.Clear();BodyBuilds++;BuildBodyContent();ApplyHeadingTypography(body);}
+    {mediaControls?.Close(false);mediaControls=null;fullMascot=null;homeWidgetStar=null;bodyInitialized=true;bodyDirty=false;bodyReflow.Clear();pendingCompactPages.Clear();BodyBuilds++;BuildBodyContent();ApplyHeadingTypography(body);}
     private void BuildBodyContent()
     {
         if(assistantOpen){MountAssistantView();return;}
@@ -172,7 +172,7 @@ public sealed partial class OverlayWindow : Window
             if (app.UsesLopataEdition)
             {
                 var widgetHeader = new DockPanel();
-                AddFullMascot(widgetHeader);
+                AddFullMascot(widgetHeader, PageFor(hoverPanelWidget));
                 body.Children.Add(widgetHeader);
             }
             if(Settings.ToolNames.ContainsKey(hoverPanelWidget)){toolsMode=hoverPanelWidget;body.Children.Add(UI.Button(Localization.Text("Back to widgets"),()=>{hoverPanelWidget=null;BuildBody();ResizeToolPanel();}));body.Children.Add(BuildToolsPage());}else body.Children.Add(BuildCompactPage(PageFor(hoverPanelWidget)));
@@ -181,7 +181,12 @@ public sealed partial class OverlayWindow : Window
         var heading=new DockPanel{Margin=new(2,0,4,12)};var settings=Icons.Button("settings","Settings",app.ShowSettings,false,32);settings.Margin=new(0);settings.Background=UI.Brush("#1C1C1E");
         DockPanel.SetDock(settings,Dock.Right);heading.Children.Add(settings);var bell=NotificationBell(32);bell.Margin=new(0,0,6,0);DockPanel.SetDock(bell,Dock.Right);heading.Children.Add(bell);var name=UI.Heading(Localization.Text("Activity"),18);name.FontWeight=FontWeights.SemiBold;heading.Children.Add(name);if(app.UsesLopataEdition)AddFullMascot(heading);body.Children.Add(heading);body.Children.Add(widgets);
         double full=bodyWidth,half=(full-10)/2;widgets.Width=full+10;
-        foreach(var widget in app.Settings.Widgets.Where(w=>w.Enabled && app.SupportsWidget(w.Id)))
+        var enabledWidgets = app.Settings.Widgets.Where(w => w.Enabled && app.SupportsWidget(w.Id));
+        var homePage = app.UsesLopataEdition ? LopataHomeWidget.Current(app) : null;
+        if (homePage is not null)
+            enabledWidgets = enabledWidgets.OrderByDescending(w => PageFor(w.Id) == homePage);
+        var pagesWithStar = new System.Collections.Generic.HashSet<string>();
+        foreach(var widget in enabledWidgets)
         {
             Border card;bool small=false;
             switch(widget.Id)
@@ -218,18 +223,27 @@ public sealed partial class OverlayWindow : Window
             }
             card.Width=small && !PortraitDock?half:full;card.Margin=new(0,0,small && !PortraitDock?10:0,10);
             if(small)card.MinHeight=widget.Id is "timer" or "focus"?184:120;
+            if (app.UsesLopataEdition && pagesWithStar.Add(PageFor(widget.Id)))
+                AddClassicHomeWidgetStar(card, PageFor(widget.Id));
             widgets.Children.Add(card);bodyReflow.Add(()=>{bool paired=small && !PortraitDock;card.Width=paired?(bodyWidth-10)/2:bodyWidth;card.Margin=new(0,0,paired?10:0,10);widgets.Width=bodyWidth+10;});
         }
     }
-    public void Reveal(bool activate=true)
+    public void Reveal(bool activate=true, bool useHomeWidget=true)
     {
         portraitHoverPointer=null;
         mediaControls?.Close(false);assistantPendingReply=null;HideAssistantPeek();
-        EnsureBody();Dimensions();
+        EnsureBody();
+        bool openingHome = app.UsesLopataEdition && useHomeWidget && !expanded && !assistantOpen && !commandOpen && !classicMixerOpen;
+        if (openingHome && app.Settings.CompactLayout)
+        {
+            if (showLopataJobs) lopataWork?.ShowDetails(false);
+            if (LopataHomeWidget.Current(app) is { } home && home != activePage) SelectPage(home, false);
+        }
+        Dimensions();
         HideNotice();EndPeekGesture();StopHoverTimers();automaticPreview=false;activityDismiss.Stop();previewKind=activityTitle=activityDetail="";userHidden=false;app.Previews?.SetHidden(false);RememberExternalForeground();visibilityOverride=lastExternalForeground;revealOverride=visibilityOverride!=IntPtr.Zero;environmentHidden=false;SetTucked(false);Show();Position();if(expanded){if(activate)Activate();return;}expanded=true;peeking=false;RefreshNoticeEdge();peekPanel.Visibility=Visibility.Collapsed;compact.IsHitTestVisible=true;Motion.Fade(compact,1,120);Dimensions();
         // The layered HWND stays fixed across all three states; only its alpha contour changes.
         scroll.Visibility=Visibility.Visible;scroll.IsHitTestVisible=true;
-        if (app.UsesLopataEdition && (!app.Settings.CompactLayout || activePage == "media")) scroll.ScrollToTop();
+        if (app.UsesLopataEdition && (openingHome || !app.Settings.CompactLayout || activePage == "media")) scroll.ScrollToTop();
         ConfigurePerformance();motion.Go(surface,IslandSurface.SurfaceWidthProperty,expandedWidth,app.Settings.AnimationMs);motion.Go(surface,IslandSurface.SurfaceHeightProperty,expandedHeight,app.Settings.AnimationMs);motion.OnComplete(()=>{});
         motion.Go(surface,IslandSurface.GlassLiftProperty,1,app.Settings.AnimationMs);WakeLiveRendering();
         Motion.Fade(scroll,1,Math.Min(260,app.Settings.AnimationMs));Motion.To(bodySlide,TranslateTransform.YProperty,0,320);

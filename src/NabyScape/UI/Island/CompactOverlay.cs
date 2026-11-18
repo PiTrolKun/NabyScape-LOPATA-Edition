@@ -44,8 +44,9 @@ public sealed partial class OverlayWindow
     }
     internal bool IsPeeking=>peeking;
     internal string ActivePage=>activePage;
-    private static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer" or "focus"=>"focus","stopwatch"=>"stopwatch","voice"=>"voice","shortcuts"=>"access","tools"=>"tools",_=>"status"};
-    private string PageName(string page)=>Localization.Text(Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","focus"=>app.SupportsWidget("focus")?"Focus":"Timer","stopwatch"=>"Stopwatch","voice"=>"Naby voice","status"=>"Status","tools"=>"Tools",_=>"Launch"});
+    internal static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer" or "focus"=>"focus","stopwatch"=>"stopwatch","voice"=>"voice","shortcuts"=>"access","tools"=>"tools",_=>"status"};
+    private string PageName(string page)=>PageName(app,page);
+    internal static string PageName(App app,string page)=>Localization.Text(Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","focus"=>app.SupportsWidget("focus")?"Focus":"Timer","stopwatch"=>"Stopwatch","voice"=>"Naby voice","status"=>"Status","tools"=>"Tools",_=>"Launch"});
     private string? hoverPanelWidget;
     private bool WidgetOn(string id)=>app.SupportsWidget(id) && (id==hoverPanelWidget || app.Settings.Widgets.Any(w=>w.Enabled && w.Id==id));
     private IEnumerable<WidgetSetting> PanelWidgets=>app.Settings.Widgets.Where(w=>app.SupportsWidget(w.Id) && (w.Enabled || w.Id==hoverPanelWidget));
@@ -57,7 +58,7 @@ public sealed partial class OverlayWindow
         bool leavingMixer=classicMixerOpen;classicMixerOpen=false;
         if(leavingMixer || hoverPanelWidget!=(hidden?widget:null))
         {FlushNotes();hoverPanelWidget=hidden?widget:null;activePage=page;BuildBody();}
-        Reveal(activate);
+        Reveal(activate, useHomeWidget: false);
         if(app.Settings.CompactLayout)SelectPage(page,false);
         scroll.ScrollToTop();UpdateSystemMonitor();
     }
@@ -158,7 +159,9 @@ public sealed partial class OverlayWindow
     {
         if(timelinePanel.Parent is Panel old)old.Children.Remove(timelinePanel);
         title.FontSize=18;artist.FontSize=12;artwork.Width=artwork.Height=88;clock.FontSize=26;
-        var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,app.Settings.SectionGap)};
+        double NavigationGap() => app.UsesLopataEdition
+            ? Math.Max(4, app.Settings.SectionGap - HomeWidgetHeaderGrowth) : app.Settings.SectionGap;
+        var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,NavigationGap())};
         // Equal side columns keep the page dots centered between the two ends.
         navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});navigation.ColumnDefinitions.Add(new());navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});
         if (!app.UsesLopataEdition)
@@ -179,7 +182,7 @@ public sealed partial class OverlayWindow
         body.Children.Add(compactPageHost);
         bodyReflow.Add(()=>
         {
-            navigation.Margin=new(0,0,0,app.Settings.SectionGap);tabRow.Width=categoryCount*18;
+            navigation.Margin=new(0,0,0,NavigationGap());tabRow.Width=categoryCount*18;
         });
         foreach(string page in PanelWidgets.Select(w=>PageFor(w.Id)).Distinct())
         {
@@ -201,6 +204,7 @@ public sealed partial class OverlayWindow
         if(animate && activePage==page && compactPages[page].Visibility==Visibility.Visible)return;
         if (app.UsesLopataEdition && page == "media" && page != activePage) scroll.ScrollToTop();
         FlushNotes();EnsureCompactPage(page);InvalidateSystemMonitor();activePage=page;
+        RefreshHomeWidgetStar();
         if(Settings.ToolNames.ContainsKey(page))
         {
             toolsMode=page;calendarEditing=false;

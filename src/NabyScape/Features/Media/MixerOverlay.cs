@@ -26,7 +26,7 @@ public sealed partial class OverlayWindow
         if(commandOpen)CloseCommands();
         if(app.Settings.CompactLayout)SelectPage("mixer");
         else{FlushNotes();classicMixerOpen=true;activePage="mixer";BuildBody();ResizeToolPanel();UpdateSystemMonitor();}
-        mixerReadAt=DateTime.MinValue;Reveal();UpdateMixer();scroll.ScrollToTop();
+        mixerReadAt=DateTime.MinValue;Reveal(useHomeWidget:false);UpdateMixer();scroll.ScrollToTop();
     }
 
     private void CloseMixer()

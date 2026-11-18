@@ -43,11 +43,12 @@ public sealed partial class OverlayWindow
     {
         compactPageHost.Visibility = showLopataJobs ? Visibility.Collapsed : Visibility.Visible;
         var toolbar = new DockPanel();
-        if (app.UsesLopataEdition) AddFullMascot(toolbar);
+        if (app.UsesLopataEdition) AddFullMascot(toolbar, followActivePage: true);
         lopataWork = new LopataWorkPanel(app, toolbar, showLopataJobs, open =>
         {
             showLopataJobs = open;
             compactPageHost.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+            RefreshHomeWidgetStar();
             if (expanded) ResizeToolPanel();
         });
         panel.Children.Add(lopataWork);
@@ -98,6 +99,7 @@ internal sealed class LopataWorkPanel : StackPanel
         };
         var actions = UI.Row(launch, layer, toggle, chat, updates, vk, youtube);
         actions.VerticalAlignment = VerticalAlignment.Center;
+        if (app.UsesLopataEdition) actions.Margin = new(0, 0, 0, OverlayWindow.HomeWidgetStarHeight);
         toolbar.Children.Add(actions);
         Children.Add(new Viewbox
         {

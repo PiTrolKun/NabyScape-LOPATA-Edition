@@ -157,7 +157,7 @@ public sealed partial class SettingsWindow : Window
         ThemeInk.Reapply(status);Accessibility.Announce(status,Localization.Text(text));status.ToolTip=text;
     }
     private void Save() {previewRevision++;InvalidateExamples(System.Windows.Input.Keyboard.FocusedElement as DependencyObject??System.Windows.Input.Mouse.DirectlyOver as DependencyObject);RefreshPreview();Accessibility.Announce(status,Localization.Text("Saving changes…"));saveTimer.Stop();saveTimer.Start();}
-    private void SettingsApplied(){ApplyMaterial();if(applyingSettings)return;if(app.SettingsSaveSucceeded){CaptureSettingsUndo(savedSettings);SetSaveFeedback(SettingsChangeFeedback.Describe(savedSettings,app.Settings));savedSettings=System.Text.Json.JsonSerializer.SerializeToElement(app.Settings);}else SetSaveFeedback("Not saved · changes are active for this session only. Choose Retry save.",true);previewRevision++;InvalidateExamples(null);RefreshPreview();}
+    private void SettingsApplied(){ApplyMaterial();if(current=="Appearance")RefreshHomeWidgetChoice();if(applyingSettings)return;if(app.SettingsSaveSucceeded){CaptureSettingsUndo(savedSettings);SetSaveFeedback(SettingsChangeFeedback.Describe(savedSettings,app.Settings));savedSettings=System.Text.Json.JsonSerializer.SerializeToElement(app.Settings);}else SetSaveFeedback("Not saved · changes are active for this session only. Choose Retry save.",true);previewRevision++;InvalidateExamples(null);RefreshPreview();}
     private void InvalidateExamples(DependencyObject? source)
     {
         for(var node=source;node!=null;node=node is Visual?VisualTreeHelper.GetParent(node):LogicalTreeHelper.GetParent(node))
@@ -223,6 +223,8 @@ public sealed partial class SettingsWindow : Window
     private void Appearance()
     {
         var s=app.Settings;
+        if (app.UsesLopataEdition && current == "Appearance")
+            page.Children.Add(Section(LopataHomeWidget.Caption, BuildHomeWidgetChoice()));
         void Preset(string name){s.Preset=name;s.Top=name=="Mac"?0:Math.Max(8,s.Top);Save();Navigate(current);}
         if (!app.UsesLopataEdition) ThemeControls();
         page.Children.Add(Section("Shape",ShapeChoices(Preset)));

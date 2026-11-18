@@ -55,6 +55,7 @@ public sealed partial class Settings
     public bool AlbumAccent { get; set; } = true;
     public bool TwoStageHover { get; set; } = true;
     public double PanelWidth { get; set; }=384;
+    public string HomeWidget { get; set; } = "media";
     public double PanelMaxHeight { get; set; }=408;
     public double PanelPadding { get; set; }=32;
     public double PanelScale { get; set; }=1;

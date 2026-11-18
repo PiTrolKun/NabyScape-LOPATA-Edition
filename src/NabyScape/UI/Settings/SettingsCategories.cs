@@ -35,6 +35,9 @@ public sealed partial class SettingsWindow
         {
             Description = "Choose which widgets to show and arrange them.",
             Terms = "widget tools notes tasks timer stopwatch clipboard"
+        } : category.Id == "Appearance" ? category with
+        {
+            Sections = new[] { LopataHomeWidget.Caption }.Concat(category.Sections!).ToArray()
         } : category).ToArray();
     private static bool EditionSettingsActive => Application.Current is App { UsesLopataEdition: true };
     private static SettingsCategory[] SettingsCategories => EditionSettingsActive ? LopataSettingsCategories : OriginalSettingsCategories;

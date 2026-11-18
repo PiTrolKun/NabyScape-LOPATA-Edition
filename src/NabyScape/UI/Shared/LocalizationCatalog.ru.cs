@@ -9,6 +9,9 @@ internal static partial class LocalizationCatalog
 {
     private static readonly Dictionary<string, string> Russian = new(StringComparer.Ordinal)
     {
+        ["Main widget"] = "Главный виджет",
+        ["Make this the main widget"] = "Сделать главным виджетом",
+        ["Opens first when you expand the island. You can also choose it with the star on a widget."] = "Этот виджет открывается первым при раскрытии острова. Выбрать его можно и звёздочкой на самом виджете.",
         ["Choose which widgets to show and arrange them."] = "Выберите, какие виджеты показывать, и настройте их порядок.",
         ["Timer sound"] = "Звук таймера",
         ["The timer plays this sound through the current Windows output when timer alerts are enabled. Choose Off for silence. Custom WAV files may be up to 15 seconds and must be under 10 MB."] = "Таймер воспроизводит этот звук через текущий аудиовыход Windows, если включены уведомления таймера. Чтобы отключить звук, выберите «Выкл.». Пользовательский WAV должен занимать меньше 10 МБ и длиться до 15 секунд.",
