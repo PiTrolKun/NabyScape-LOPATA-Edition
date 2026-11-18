@@ -59,7 +59,7 @@ public sealed partial class OverlayWindow
         header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});Grid.SetColumn(assistantHeaderSpace,5);header.Children.Add(assistantHeaderSpace);
         assistantCharacterHost.HorizontalAlignment=HorizontalAlignment.Center;assistantCharacterHost.VerticalAlignment=VerticalAlignment.Top;
         assistantCharacterButton=AssistantOrb.Launcher("AI character on island",()=>OpenAssistant(),closedAssistant);assistantCharacterButton.MinHeight=24;assistantCharacterButton.Margin=new(0,0,9,0);assistantCharacterButton.HorizontalAlignment=HorizontalAlignment.Right;assistantCharacterButton.VerticalAlignment=VerticalAlignment.Center;assistantCharacterButton.ToolTip=Localization.Text("AI companion · hover to meet · click to chat");
-        assistantCharacterButton.MouseEnter+=(_,_)=>{hoverDelay.Stop();assistantHover.Interval=TimeSpan.FromMilliseconds(app.Settings.HoverDelayMs);assistantHover.Start();};
+        assistantCharacterButton.MouseEnter+=(_,_)=>{if(app.UsesLopataEdition)return;hoverDelay.Stop();assistantHover.Interval=TimeSpan.FromMilliseconds(app.Settings.HoverDelayMs);assistantHover.Start();};
         assistantCharacterButton.MouseLeave+=(_,_)=>assistantHover.Stop();
         assistantCharacterButton.PreviewMouseLeftButtonDown+=(_,_)=>assistantHover.Stop();
         assistantCharacterButton.MouseEnter+=(_,_)=>closedAssistant.SetHover(true);
@@ -111,7 +111,8 @@ public sealed partial class OverlayWindow
     {
         if(assistantCharacterButton==null)return;
         bool enabled=AssistantCharacterAvailable;
-        assistantCharacterButton.ToolTip=app.Assistant.VoiceConnected?Localization.Text("Microphone on · click for voice controls"):app.Assistant.WakeListening?app.Assistant.WakeStatus:app.Assistant.Desktop.Sharing?Localization.Text("Screen sharing on · click for controls"):Localization.Text("AI companion · hover to meet · click to chat");
+        assistantCharacterButton.ToolTip=app.UsesLopataEdition?Localization.Text("LOPATA chat"):app.Assistant.VoiceConnected?Localization.Text("Microphone on · click for voice controls"):app.Assistant.WakeListening?app.Assistant.WakeStatus:app.Assistant.Desktop.Sharing?Localization.Text("Screen sharing on · click for controls"):Localization.Text("AI companion · hover to meet · click to chat");
+        if(app.UsesLopataEdition)UI.LocalizedName(assistantCharacterButton,"LOPATA chat");
         double size=Math.Clamp(app.Settings.Height-4,24,32);assistantCharacterButton.MinHeight=size;assistantCharacterButton.Width=assistantCharacterButton.Height=size;closedAssistant.Width=closedAssistant.Height=size;
         assistantHeaderSpace.Width=size+9;assistantHeaderSpace.Visibility=enabled && !FeedbackVisible?Visibility.Visible:Visibility.Collapsed;
         assistantCharacterHost.Width=ClosedContentWidth;assistantCharacterHost.Height=app.Settings.Height;
@@ -138,6 +139,7 @@ public sealed partial class OverlayWindow
     }
     internal void OpenAssistant(bool activate=true)
     {
+        if(app.UsesLopataEdition){app.ShowLopataChat();return;}
         activate&=!DiagnosticRun;
         FlushNotes();commandOpen=false;hoverPanelWidget=null;
         if(!assistantOpen){assistantOpen=true;bodyDirty=true;}

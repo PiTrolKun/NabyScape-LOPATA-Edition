@@ -65,6 +65,17 @@ public sealed partial class SettingsWindow
     private static void AddSectionHint(StackPanel content,string title)
     {
         if(!SectionHints.TryGetValue(title,out var hint))return;
+        if (EditionSettingsActive)
+            hint = title switch
+            {
+                "Other apps" => "Show Windows notifications from your apps.",
+                "Closed island" => "Clock and horizontal position of the closed island.",
+                "Color & material" => "Set opacity and album artwork tint.",
+                "Updates" => "Check for LOPATA updates from the island.",
+                "Local storage" => "Find the island profile and close the island.",
+                "Lyrics" => "Use saved LOPATA lyrics or search for lyrics for other tracks.",
+                _ => hint
+            };
         var text=UI.Caption(hint,12,UI.Muted);text.Margin=new(0,-9,0,12);text.Tag="section-hint";
         content.Children.Insert(1,text);
     }

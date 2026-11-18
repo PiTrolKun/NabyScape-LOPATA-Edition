@@ -34,7 +34,13 @@ public sealed partial class SettingsWindow : Window
     internal void OpenAiSettings(){Navigate("AI");aiSettings?.OpenSetupOverview();}
     internal void OpenAiHermesSettings(){Navigate("AI");Dispatcher.BeginInvoke(()=>aiSettings?.OpenHermesSetup());}
     internal void OpenAiVoiceSettings(){Navigate("AI");Dispatcher.BeginInvoke(()=>aiSettings?.OpenVoiceSetup());}
-    private void AiSettings(){if(aiSettings==null){aiSettings=new(app);aiSettings.FeedbackChanged+=SetSaveFeedback;}page.Children.Add(aiSettings);}
+    private void AiSettings()
+    {
+        if (app.UsesLopataEdition) { LopataChatSettings(); return; }
+        if (aiSettings == null) { aiSettings = new(app); aiSettings.FeedbackChanged += SetSaveFeedback; }
+        page.Children.Add(aiSettings);
+        NabyDockSettings();
+    }
 
     private readonly TextBlock frameStatus=UI.Caption("",11,UI.Muted);
     private readonly TextBlock hotkeyState=UI.Caption("",11,UI.Muted);
@@ -73,7 +79,7 @@ public sealed partial class SettingsWindow : Window
         var previewColumn=new StackPanel{Margin=new(18,18,18,16)};var previewTitle=UI.Caption("Preview",11);previewTitle.FontFamily=SettingsTheme.Display;previewTitle.FontWeight=FontWeights.Bold;previewTitle.Foreground=SettingsTheme.Quiet;previewColumn.Children.Add(previewTitle);previewFocus.Margin=new(0,4,0,0);previewFocus.Foreground=SettingsTheme.Bone;previewColumn.Children.Add(previewFocus);
         var modes=new Grid{Margin=new(0,12,0,12)};for(int i=0;i<3;i++)modes.ColumnDefinitions.Add(new());int modeColumn=0;foreach(string mode in new[]{"Closed","Hover","Panel"}){var button=UI.CaptionButton(mode,()=>{previewMode=mode;RefreshPreview();});button.FontSize=11;button.Padding=new(3,6,3,6);button.Margin=new(0,0,4,0);button.MinHeight=30;button.Tag=new CornerRadius(15);UI.Named(button,"Preview "+mode);Grid.SetColumn(button,modeColumn++);modes.Children.Add(button);previewModeButtons[mode]=button;}previewColumn.Children.Add(modes);
         previewStage=new Border{Height=StageHeight,Background=Brushes.Transparent,ClipToBounds=true,Child=new System.Windows.Controls.Viewbox{Stretch=Stretch.Uniform,StretchDirection=StretchDirection.DownOnly,Child=preview,VerticalAlignment=VerticalAlignment.Top,Margin=new(16,3,16,10)}};
-        previewDimensions.Margin=new(0,0,0,12);previewColumn.Children.Add(previewDimensions);var sample=UI.Caption("Preview content",11,UI.Muted);sample.Margin=new(0,0,0,5);previewColumn.Children.Add(sample);var examples=new ComboBox{SelectedValuePath=nameof(FrameworkElement.Tag)};previewExamples=examples;foreach(string item in new[]{"Music","Timer","Focus","Stopwatch","Calendar","Note","Shelf","Tools","System","Launch","Navigation","Volume feedback","Drop zone","Detached preview","Cover gestures","Smart clipboard","Control colors","Typography","Panel navigation","Visibility","Tasks","Startup","AI"})examples.Items.Add(new ComboBoxItem{Content=Localization.Text(item),Tag=item});examples.SelectedIndex=0;UI.LocalizedName(examples,"Preview content");examples.SelectionChanged+=(_,_)=>{previewContent=examples.SelectedValue as string??"Music";RefreshPreview();};previewColumn.Children.Add(examples);var hint=previewHelp;hint.Margin=new(0,10,0,0);previewColumn.Children.Add(hint);
+        previewDimensions.Margin=new(0,0,0,12);previewColumn.Children.Add(previewDimensions);var sample=UI.Caption("Preview content",11,UI.Muted);sample.Margin=new(0,0,0,5);previewColumn.Children.Add(sample);var examples=new ComboBox{SelectedValuePath=nameof(FrameworkElement.Tag)};previewExamples=examples;foreach(string item in new[]{"Music","Timer","Focus","Stopwatch","Calendar","Note","Shelf","Tools","System","Launch","Navigation","Volume feedback","Drop zone","Detached preview","Cover gestures","Smart clipboard","Control colors","Typography","Panel navigation","Visibility","Tasks","Startup","AI"})examples.Items.Add(new ComboBoxItem{Content=Localization.Text(app.UsesLopataEdition && item=="AI"?"LOPATA chat":item),Tag=item});examples.SelectedIndex=0;UI.LocalizedName(examples,"Preview content");examples.SelectionChanged+=(_,_)=>{previewContent=examples.SelectedValue as string??"Music";RefreshPreview();};previewColumn.Children.Add(examples);var hint=previewHelp;hint.Margin=new(0,10,0,0);previewColumn.Children.Add(hint);
         var stage=StageFrame(previewStage,previewColumn);
         var previewExpander=new Expander{Header=UI.Caption("Live preview",12,UI.Muted),Foreground=UI.Muted,Margin=new(0,0,0,20),Content=stage,IsExpanded=true};
         var rail=new Border{Child=previewExpander};column.Children.Add(rail);
@@ -162,13 +168,13 @@ public sealed partial class SettingsWindow : Window
     private void Navigate(string name)
     {
         if(searchResultsHost!=null)searchResultsHost.Visibility=Visibility.Collapsed;
-        Accessibility.Announce(status,Localization.Text(name=="AI"?"Connection fields use Save provider. Voice and wake word changes use their Save buttons.":"Changes save automatically on this device."));previewHelp.Text=Localization.Text(name=="AI"?"Preview only. Apply connection edits with Save provider.":"Changes apply automatically. The preview uses your current shape, size and colors.");
+        Accessibility.Announce(status,Localization.Text(name=="AI" && !app.UsesLopataEdition?"Connection fields use Save provider. Voice and wake word changes use their Save buttons.":"Changes save automatically on this device."));previewHelp.Text=Localization.Text(name=="AI" && !app.UsesLopataEdition?"Preview only. Apply connection edits with Save provider.":"Changes apply automatically. The preview uses your current shape, size and colors.");
         bool same=name==current && page.Children.Count>0;previewDefaultPending|=!same;revealAllSettings=revealAllNext || same && revealAllSettings;revealAllNext=false;double offset=settingsScroll.VerticalOffset;int revision=++navigationRevision;
         var expanded=SettingTree(page).OfType<Expander>().Where(e=>e.IsExpanded).Select(e=>e.Header?.ToString()).ToHashSet();
         string focused=System.Windows.Input.Keyboard.FocusedElement is DependencyObject oldFocus?UI.Identity(oldFocus):"";
         previewRevision++;settingExamples.Clear();HidePinnedAmbientPreview();current=name;categoryHeading.Text=CategoryTitle(name);categoryEyebrow.Text=CategoryEyebrow(name);categoryDescription.Text=Localization.Text(Category(name).Description);if(categorySelector!=null && categorySelector.SelectedItem?.ToString()!=CategoryTitle(name))categorySelector.SelectedItem=CategoryTitle(name);previewFocus.Text=Localization.Format("{0} overview",CategoryTitle(name));previewContent="Music";previewMode="Closed";if(name=="Launch"){previewContent="Launch";previewMode="Panel";}if(name=="Content"){previewContent="Navigation";previewMode="Panel";}if(name=="Controls"){previewContent="Music";previewMode="Hover";}if(name=="System"){previewContent="System";previewMode="Panel";}if(name=="Audio"){previewContent="Music";previewMode="Panel";}if(name=="AI"){previewContent="AI";previewMode="Panel";}if(name=="Application"){previewContent="Startup";previewMode="Panel";}if(!same)settingsScroll.ScrollToTop();page.Children.Clear();
         StyleNavigationSelection(name);
-        switch(SettingsRoot(name)){case "Home":SettingsHome();break;case "Weather":WeatherSettingsPage();break;case "Appearance":Appearance();break;case "Layout":LayoutSettings();break;case "Content":ContentSettings();break;case "Launch":LaunchSettings();break;case "Controls":Interactions();break;case "Audio":AudioSettings();break;case "System":SystemSettings();break;case "AI":AiSettings();NabyDockSettings();break;default:General();break;}FilterSettingsCategory(name);if(PreferenceReset.Categories.TryGetValue(current,out var resetKeys) && resetKeys.Length>0)page.Children.Add(UI.CaptionButton("Reset this category",()=>ResetPreferences(current)));ApplyEssentialsFilter();RefreshNavigationMode();OrganizeSettings();if(same){foreach(var group in SettingTree(page).OfType<Expander>())group.IsExpanded=expanded.Contains(group.Header?.ToString());page.UpdateLayout();settingsScroll.ScrollToVerticalOffset(offset);Dispatcher.BeginInvoke(DispatcherPriority.Loaded,()=>{if(revision!=navigationRevision)return;var replacement=SettingTree(page).OfType<Control>().FirstOrDefault(c=>focused.Length>0 && UI.Identity(c)==focused);replacement?.Focus();settingsScroll.ScrollToVerticalOffset(offset);});}refreshSettingsLayout?.Invoke();RefreshPreview();
+        switch(SettingsRoot(name)){case "Home":SettingsHome();break;case "Weather":WeatherSettingsPage();break;case "Appearance":Appearance();break;case "Layout":LayoutSettings();break;case "Content":ContentSettings();break;case "Launch":LaunchSettings();break;case "Controls":Interactions();break;case "Audio":AudioSettings();break;case "System":SystemSettings();break;case "AI":AiSettings();break;default:General();break;}FilterSettingsCategory(name);if(PreferenceReset.Categories.TryGetValue(current,out var resetKeys) && resetKeys.Length>0)page.Children.Add(UI.CaptionButton("Reset this category",()=>ResetPreferences(current)));ApplyEssentialsFilter();RefreshNavigationMode();OrganizeSettings();if(same){foreach(var group in SettingTree(page).OfType<Expander>())group.IsExpanded=expanded.Contains(group.Header?.ToString());page.UpdateLayout();settingsScroll.ScrollToVerticalOffset(offset);Dispatcher.BeginInvoke(DispatcherPriority.Loaded,()=>{if(revision!=navigationRevision)return;var replacement=SettingTree(page).OfType<Control>().FirstOrDefault(c=>focused.Length>0 && UI.Identity(c)==focused);replacement?.Focus();settingsScroll.ScrollToVerticalOffset(offset);});}refreshSettingsLayout?.Invoke();RefreshPreview();
     }
     private Border Section(string title,params UIElement[] children)
     {
@@ -212,10 +218,26 @@ public sealed partial class SettingsWindow : Window
     {
         var s=app.Settings;
         void Preset(string name){s.Preset=name;s.Top=name=="Mac"?0:Math.Max(8,s.Top);Save();Navigate(current);}
-        ThemeControls();page.Children.Add(Section("Shape",ShapeChoices(Preset)));
-        MaterialControls();var colors=new StackPanel();IslandColorControls(colors);ColorControl(colors,"Accent color",s.Accent,v=>s.Accent=v,new[]{"#FFFFFF","#E3D2AF","#A8C6F2","#B7D6BC"});AddSlider(colors,"Opacity",s.Opacity*100,65,100,v=>s.Opacity=v/100,"%",1);page.Children.Add(Section("Color & material",colors,Check("Black glass",s.GlassStyle,v=>s.GlassStyle=v),Check("Color from album artwork",s.AlbumAccent,v=>s.AlbumAccent=v)));
+        if (!app.UsesLopataEdition) ThemeControls();
+        page.Children.Add(Section("Shape",ShapeChoices(Preset)));
+        MaterialControls();
+        var colors = new StackPanel();
+        if (app.UsesLopataEdition)
+        {
+            colors.Children.Add(SharedAppearanceControls());
+            AddSlider(colors, "Collapsed island opacity", IslandPalette.CollapsedOpacity(s) * 100, IslandPalette.MinimumCollapsedOpacity * 100, 100, v => s.CollapsedOpacity = v / 100, "%");
+        }
+        else
+        {
+            IslandColorControls(colors);
+            ColorControl(colors, "Accent color", s.Accent, v => s.Accent = v, new[]{"#FFFFFF","#E3D2AF","#A8C6F2","#B7D6BC"});
+            colors.Children.Add(Check("Black glass", s.GlassStyle, v => s.GlassStyle = v));
+        }
+        AddSlider(colors, "Opacity", s.Opacity * 100, 65, 100, v => s.Opacity = v / 100, "%");
+        colors.Children.Add(Check("Color from album artwork", s.AlbumAccent, v => s.AlbumAccent = v));
+        page.Children.Add(Section("Color & material", colors));
         AmbientSettings();ControlColorSettings();
-        var material=new StackPanel();AddSlider(material,"Glass intensity",s.GlassStrength*100,0,100,v=>s.GlassStrength=v/100,"%");page.Children.Add(Section("Surface",material));
+        if (!app.UsesLopataEdition) { var material=new StackPanel();AddSlider(material,"Glass intensity",s.GlassStrength*100,0,100,v=>s.GlassStrength=v/100,"%");page.Children.Add(Section("Surface",material)); }
         page.Children.Add(Section("Text and navigation",UI.Caption("Dots keep your panels easy to reach. Hover over a dot to see its name.",11,UI.Muted)));
         page.Children.Add(Section("Typography",Check("Bold media titles",s.BoldMediaTitle,v=>s.BoldMediaTitle=v),Check("Bold panel and tool headings",s.BoldHeadings,v=>s.BoldHeadings=v),UI.Caption("Use stronger titles without changing body text, timestamps or counters. Each option is independent; the adjacent preview shows both weights.",11,UI.Muted)));
         var motion=new StackPanel();motion.Children.Add(PremiumChoice("Interaction feedback",s.InteractionMotion,new[]{"Off","Subtle","Expressive"},v=>s.InteractionMotion=v));AddSlider(motion,"Animation duration",s.AnimationMs,0,600,v=>s.AnimationMs=v," ms",10);
@@ -223,12 +245,12 @@ public sealed partial class SettingsWindow : Window
         motion.Children.Add(Check("Live activity · audio, progress & focus breathing",s.LiveActivity,v=>s.LiveActivity=v));
 
 
-        motion.Children.Add(Check("Reduce motion",s.ReduceMotion,v=>s.ReduceMotion=v));page.Children.Add(Section("Motion",motion));
+        if(app.UsesLopataEdition)motion.Children.Add(UI.Caption("Motion reduction is managed in LOPATA island settings.",11,UI.Muted));else motion.Children.Add(Check("Reduce motion",s.ReduceMotion,v=>s.ReduceMotion=v));page.Children.Add(Section("Motion",motion));
         // Keep saved profile IDs compatible while showing English labels.
         var profiles=new[]{("Auto (recommended)","Auto"),("Save power","Hemat"),("Smoother motion","Maksimal")};
         var performance=new ComboBox();foreach(var profile in profiles)performance.Items.Add(Localization.Text(profile.Item1));performance.SelectedIndex=Math.Max(0,Array.FindIndex(profiles,p=>p.Item2==s.Performance));UI.LocalizedName(performance,"Performance profile");performance.SelectionChanged+=(_,_)=>{if(performance.SelectedIndex>=0){s.Performance=profiles[performance.SelectedIndex].Item2;Save();}};UpdateFrameStatus();page.Children.Add(Section("Animation performance",UI.Caption("Auto follows your display. Save power reduces update frequency; Smoother motion allows more frequent frames.",11,UI.Muted),performance,Advanced("Render statistics",frameStatus)));
     }
-    private void UpdateFrameStatus(){if(!IsVisible || WindowState==WindowState.Minimized)return;if(frameStatus.IsVisible)Motion.Text(frameStatus,FrameTelemetry.Status);if((app.CurrentUpdate&RuntimeChange.Settings)!=0){Motion.Text(hotkeyState,Localization.Text(app.HotkeyStatus)+"\n"+Localization.Text(app.VisibilityHotkeyStatus)+"\n"+Localization.Text(app.TuckHotkeyStatus));Motion.Text(brightnessState,Localization.Text(app.BrightnessStatus));}if((app.CurrentUpdate&(RuntimeChange.Media|RuntimeChange.Audio))!=0)RefreshLivePreviewData();if(IsVisible && WindowState!=WindowState.Minimized && (app.CurrentUpdate&(RuntimeChange.Clock|RuntimeChange.Audio|RuntimeChange.System|RuntimeChange.Countdown))!=0)foreach(var frame in previewFrames)frame(previewClock.Elapsed.TotalSeconds);SyncPreviewRendering();}
+    private void UpdateFrameStatus(){if(!IsVisible || WindowState==WindowState.Minimized)return;if(frameStatus.IsVisible)Motion.Text(frameStatus,FrameTelemetry.Status);if((app.CurrentUpdate&RuntimeChange.Settings)!=0){Motion.Text(hotkeyState,Localization.Text(app.HotkeyStatus)+"\n"+Localization.Text(app.VisibilityHotkeyStatus)+(app.UsesLopataEdition?"":"\n"+Localization.Text(app.TuckHotkeyStatus)));Motion.Text(brightnessState,Localization.Text(app.BrightnessStatus));}if((app.CurrentUpdate&(RuntimeChange.Media|RuntimeChange.Audio))!=0)RefreshLivePreviewData();if(IsVisible && WindowState!=WindowState.Minimized && (app.CurrentUpdate&(RuntimeChange.Clock|RuntimeChange.Audio|RuntimeChange.System|RuntimeChange.Countdown))!=0)foreach(var frame in previewFrames)frame(previewClock.Elapsed.TotalSeconds);SyncPreviewRendering();}
     private void Interactions()
     {
         var s=app.Settings;
@@ -239,7 +261,7 @@ public sealed partial class SettingsWindow : Window
         var wheelStep=new StackPanel();AddSlider(wheelStep,"Volume step",s.VolumeStep,1,10,v=>s.VolumeStep=(int)v,"%");
         page.Children.Add(Section("Notch gestures",UI.Caption("Mouse wheel",12,UI.Muted),Choice("Wheel action",new[]{"Volume","Switch tabs","Off"},new[]{"volume","pages","none"},s.WheelAction,v=>s.WheelAction=v),UI.Caption("Middle click",12,UI.Muted),Choice("Middle-click action",new[]{"Play / pause","Mute microphone","Off"},new[]{"toggle","microphone","none"},s.MiddleAction,v=>s.MiddleAction=v),wheelStep));
         var modifier=Choice("Hotkey modifiers",new[]{"Ctrl+Alt","Ctrl+Shift","Alt+Shift"},new[]{"Ctrl+Alt","Ctrl+Shift","Alt+Shift"},s.HotkeyModifiers,v=>s.HotkeyModifiers=v);var keys=Enumerable.Range('A',26).Select(c=>((char)c).ToString()).ToArray();
-        UpdateFrameStatus();page.Children.Add(Section("Global hotkey",Check("Enable open / close hotkey",s.HotkeyEnabled,v=>s.HotkeyEnabled=v),modifier,Choice("Hotkey key",keys,keys,s.HotkeyKey,v=>s.HotkeyKey=v),hotkeyState,UI.Caption("Default: Ctrl+Alt+I. Use Ctrl+K for commands, Ctrl+Tab to switch tabs, and Esc to go back or close. Choose another hotkey if an app already uses it.",12,UI.Muted)));
+        UpdateFrameStatus();page.Children.Add(Section("Global hotkey",app.UsesLopataEdition?UI.Caption("Enable island shortcuts in LOPATA settings. Choose their keys here.",11,UI.Muted):Check("Enable open / close hotkey",s.HotkeyEnabled,v=>s.HotkeyEnabled=v),modifier,Choice("Hotkey key",keys,keys,s.HotkeyKey,v=>s.HotkeyKey=v),hotkeyState,UI.Caption("Default: Ctrl+Alt+I. Use Ctrl+K for commands, Ctrl+Tab to switch tabs, and Esc to go back or close. Choose another hotkey if an app already uses it.",12,UI.Muted)));
         VisibilityControls();
 
     }
@@ -302,18 +324,19 @@ public sealed partial class SettingsWindow : Window
             var button=UI.CaptionButton(labels[i],()=>{s.ClosedMediaContent=ids[index];RefreshChoices();previewMode="Closed";previewContent="Music";Save();});button.Content=content;button.HorizontalContentAlignment=HorizontalAlignment.Left;button.Padding=new(14);button.Margin=new(0,0,8,8);button.MinHeight=76;choices.Children.Add(button);buttons.Add(button);
         }
         RefreshChoices();UI.LocalizedName(choices,"Closed media content");
-        page.Children.Add(Section("Closed media display",choices,UI.Caption("Live lyrics switches to a waveform when lyrics are unavailable or during marked instrumental breaks. Track details are sent to LRCLIB while visible. None shows idle or your timer without stopping music.",12,UI.Muted),UI.Caption("Media icon",12,UI.Muted),mediaIcon));
+        page.Children.Add(Section("Closed media display",choices,UI.Caption(app.UsesLopataEdition?"Live lyrics shows the saved track text. The island shows a waveform when timing is unavailable or during instrumental breaks.": "Live lyrics switches to a waveform when lyrics are unavailable or during marked instrumental breaks. Track details are sent to LRCLIB while visible. None shows idle or your timer without stopping music.",12,UI.Muted),UI.Caption("Media icon",12,UI.Muted),mediaIcon));
     }
     private void DisplaySettings()
     {
         var s=app.Settings;
+        var follow=new StackPanel();follow.Children.Add(Check("Slide smoothly between monitors",s.FollowMonitorAnimation,v=>s.FollowMonitorAnimation=v));AddSlider(follow,"Monitor slide duration",s.FollowMonitorDuration,180,700,v=>s.FollowMonitorDuration=v,"ms",10);
+        if (app.UsesLopataEdition) { page.Children.Add(Section("Display", SharedAppearanceControls(), follow)); return; }
         var mode=new ComboBox{ItemsSource=new[]{"Primary","Selected","Follow cursor"}.Select(Localization.Text).ToArray(),SelectedIndex=s.DisplayMode=="Follow"?2:s.DisplayMode=="Selected"?1:0};UI.LocalizedName(mode,"Display mode");
         mode.SelectionChanged+=(_,_)=>{s.DisplayMode=mode.SelectedIndex==2?"Follow":mode.SelectedIndex==1?"Selected":"Primary";Save();};
         var monitors=new ComboBox();var screens=Forms.Screen.AllScreens;
         monitors.Items.Add(Localization.Text("Primary display (automatic)"));foreach(var screen in screens) monitors.Items.Add(screen.DeviceName+" · "+screen.Bounds.Width+" × "+screen.Bounds.Height);
         monitors.SelectedIndex=Array.FindIndex(screens,m=>m.DeviceName==s.Monitor)+1;UI.LocalizedName(monitors,"Island display");
         monitors.SelectionChanged+=(_,_)=> {s.Monitor=monitors.SelectedIndex>0?screens[monitors.SelectedIndex-1].DeviceName:"";s.DisplayMode=monitors.SelectedIndex>0?"Selected":"Primary";mode.SelectedIndex=s.DisplayMode=="Selected"?1:0;Save();};
-        var follow=new StackPanel();follow.Children.Add(Check("Slide smoothly between monitors",s.FollowMonitorAnimation,v=>s.FollowMonitorAnimation=v));AddSlider(follow,"Monitor slide duration",s.FollowMonitorDuration,180,700,v=>s.FollowMonitorDuration=v,"ms",10);
         page.Children.Add(Section("Display",mode,monitors,follow,UI.Text(s.Monitor.Length>0 && !screens.Any(screen=>screen.DeviceName==s.Monitor)?Localization.Format("Saved display unavailable: {0} · using Primary fallback",s.Monitor):Localization.Text("Selected display is saved; cursor moves never rewrite this preference."),11,UI.Muted),UI.Caption("Primary uses the main display. Selected uses the display below, falling back to Primary if disconnected. Follow cursor slides after 250 ms on another display; it waits during interaction and manual hide. Detached previews stay where placed. Example: move to a second display, pause, then continue working.",11,UI.Muted)));
     }
     private void General()

@@ -9,7 +9,7 @@ namespace NabyScape;
 internal sealed record SettingsCategory(string Id,string Title,string Group,string Description,string Terms,string[]? Sections=null);
 public sealed partial class SettingsWindow
 {
-    private static readonly SettingsCategory[] SettingsCategories=
+    private static readonly SettingsCategory[] OriginalSettingsCategories=
     {
         new("Home","Start here","Settings","Make NabyScape work the way you want.","home start setup help beginner"),
         new("Appearance","Look & colors","Personalize","Choose the dock's shape, colors and text style.","appearance theme warna tampilan font shape glass light dark terang gelap mode",new[]{"Theme","Shape","Settings material","Color & material","Surface","Controls & outlines","Typography","Text and navigation"}),
@@ -28,12 +28,19 @@ public sealed partial class SettingsWindow
         new("Notifications","Notifications","App","Choose which alerts appear, their sounds and quiet hours.","notifications notif pemberitahuan alert sound bunyi quiet hours downloads other apps claude telegram windows",new[]{"Notifications","Other apps","Notification presentation","Downloads","Completion sound"}),
         new("Application","General","App","Manage startup, updates, local data and app preferences.","general startup update version install storage data reset backup mulai windows")
     };
+    private static readonly SettingsCategory[] LopataSettingsCategories = OriginalSettingsCategories.Select(category => category.Id == "AI"
+        ? new SettingsCategory("AI", "LOPATA chat", "Features", "Talk to LOPATA through its installed local core.",
+            "chat local core lopata чат локальное ядро если накипело", new[] { "LOPATA chat" })
+        : category).ToArray();
+    private static bool EditionSettingsActive => Application.Current is App { UsesLopataEdition: true };
+    private static SettingsCategory[] SettingsCategories => EditionSettingsActive ? LopataSettingsCategories : OriginalSettingsCategories;
     private static SettingsCategory Category(string id)=>SettingsCategories.FirstOrDefault(c=>c.Id==id)??SettingsCategories[0];
     internal static string CategoryTitle(string id)=>Localization.Text(Category(id).Title);
     private static string CategoryId(string title)=>SettingsCategories.FirstOrDefault(c=>c.Title==title || Localization.Text(c.Title)==title)?.Id??title;
     private static string SettingsRoot(string id)=>id switch{"Ambience" or "Motion"=>"Appearance","Visibility"=>"Controls","Clipboard"=>"Content","Notifications"=>"Application",_=>id};
     private static string FriendlySection(string title)=>title switch
     {
+        "Move & resize" when EditionSettingsActive => "Move island",
         "Shape"=>"Dock shape","Color & material"=>"Colors","Settings material"=>"Settings window","Surface"=>"Glass appearance","Controls & outlines"=>"Buttons & input fields","Typography"=>"Text weight","Text and navigation"=>"Panel dots","Animation performance"=>"Smoothness & power","Display"=>"Screen","Closed island"=>"Compact dock","Open panel"=>"Expanded dock","Enabled widgets & order"=>"Your widgets","Notch gestures"=>"Mouse actions","Global hotkey"=>"Open dock shortcut","Automatic activity"=>"Automatic previews","Clipboard history"=>"Clipboard capture","Completion sound"=>"Timer & focus sound",_=>title
     };
     private void FilterSettingsCategory(string id)

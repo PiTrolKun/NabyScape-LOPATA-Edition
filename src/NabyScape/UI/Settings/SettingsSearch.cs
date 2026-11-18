@@ -85,6 +85,17 @@ public sealed partial class SettingsWindow
         Add("Notifications from other apps","Notifications","Other apps","Show notifications from other apps","claude chatgpt telegram whatsapp discord windows toast notif aplikasi lain other apps");
         Add("Quiet hours","Notifications","Notification presentation","","quiet hours mute silent senyap diam jadwal malam");
         Add("Launch at Windows startup","Application","Behavior","Start automatically when signing in to Windows","startup autostart windows mulai otomatis login");
+        if (EditionSettingsActive)
+        {
+            items.RemoveAll(item => item.Category == "AI" && item.Section is "AI companion" or "Naby in the dock"
+                || item.Title == "Uninstall NabyScape"
+                || item.Category == "Appearance" && item.Section is "Theme" or "Surface"
+                || item.Category == "Layout" && item.Section == "Hover preview"
+                || item.Category == "Visibility" && item.Section == "Manual tuck shortcut"
+                || item.Control is "Use same color for both states" or "Closed width" or "Panel width");
+            Add("Island sizes and monitor", "Layout", "Display", LopataEdition.OpenCaption,
+                "monitor display follow cursor width height size и размеры монитора ширина высота экран размер курсор");
+        }
         return items.ToArray();
     }
     private void InitializeSettingsSearch(Grid main,Grid workspace,Border fieldHost)

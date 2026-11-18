@@ -79,7 +79,9 @@ public sealed partial class App : Application
     public string TuckHotkeyStatus=>!Settings.TuckHotkeyEnabled?"Tuck shortcut off":overlay?.TuckHotkeyError.Length>0?overlay.TuckHotkeyError:$"Tuck / return to automatic · {Settings.TuckHotkeyModifiers}+{Settings.TuckHotkeyKey}";
     internal void FlushPreferenceEditors()=>overlay?.FlushPreferenceEditors();
     // Countdown completions route through the shared notification manager.
-    internal void OpenVoice()=>overlay?.OpenFeaturePage("voice");
+    internal void OpenVoice(){if(!UsesLopataEdition)overlay?.OpenFeaturePage("voice");}
+    internal bool UsesLopataEdition { get; private set; }
+    internal bool SupportsWidget(string id) => !UsesLopataEdition || id != "voice";
     public event Action? SettingsChanged;
     public event Action? Updated;
     internal RuntimeChange CurrentUpdate {get;private set;}=RuntimeChange.All;
@@ -90,11 +92,10 @@ public sealed partial class App : Application
     {
         if(args.Length==1 && args[0]=="--lyrics-romaji-worker"){LyricsRomajiWorker.Run();return;}
         if(args.Length==2 && args[0]=="--speech-worker"){AssistantSpeechWorker.Run(args[1]).GetAwaiter().GetResult();return;}
-        if(Array.Exists(args,a=>a=="--widget-mcp")){AssistantWidgetBridge.RunStdio().GetAwaiter().GetResult();return;}
         var culture=System.Globalization.CultureInfo.GetCultureInfo("en-US");
         System.Globalization.CultureInfo.DefaultThreadCurrentCulture=culture;
         System.Globalization.CultureInfo.DefaultThreadCurrentUICulture=culture;
-        if (Array.Exists(args, a => a is "--update-handoff" or "--install" or "--uninstall")) return;
+        if (Array.Exists(args, a => a is "--update-handoff" or "--install" or "--uninstall" or "--widget-mcp")) return;
         if(WindowFixture.TryRun(args))return;
         if(Array.Exists(args,a=>a=="--exit")) {try {using var signal=EventWaitHandle.OpenExisting(LopataEdition.Instance + ".Exit");signal.Set();}catch(WaitHandleCannotBeOpenedException){}return;}
         if(Array.Exists(args,a=>a=="--self-test")) { SelfTests.Run(args);return; }
@@ -136,7 +137,8 @@ public sealed partial class App : Application
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         bool languageFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-language-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
-        if (!diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture) PrepareLopataSettings();
+        UsesLopataEdition = !diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture;
+        if (UsesLopataEdition) PrepareLopataSettings();
         if (musicFixture) { Settings.MediaIntegrationEnabled = false; Settings.LyricsEnabled = false; }
         if(assistantFixture || isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
         Updates=new(Store,Array.Exists(e.Args,a=>a=="--stage3-only")?new Stage3Diagnostics.Network():null,stagingDirectory:diagnosticPath!=null?Path.Combine(Store.DirectoryPath,"updates"):null);
@@ -156,6 +158,7 @@ public sealed partial class App : Application
         Brightness=new();Brightness.Start(diagnosticPath==null && Settings.ReactiveFeedback && Settings.BrightnessFeedback);
         Calendar=new(Store);Awake=new();
         Assistant=new(this,diagnosticPath!=null?new AssistantMemoryKeys():null);
+        if (UsesLopataEdition) Assistant.Options.Enabled = false;
         tray=new Forms.NotifyIcon{Text=LopataEdition.Name,Visible=diagnosticPath==null};
         using(var stream=GetResourceStream(new Uri("pack://application:,,,/Assets/lopata-island.ico")).Stream) tray.Icon=new System.Drawing.Icon(stream);
         var menu=new Forms.ContextMenuStrip();
@@ -170,12 +173,15 @@ public sealed partial class App : Application
         AddTray("Notifications", OpenNotifications);
         AddTray("Send test notification", SendTestNotification);
         AddTray("Settings", ShowSettings);
-        AddTray("Move & resize island", () => overlay?.ToggleDockEditing());
+        AddTray(UsesLopataEdition ? "Move island" : "Move & resize island", () => overlay?.ToggleDockEditing());
         AddTray("LOPATA chat", ShowLopataChat);
         AddTray("LOPATA updates", ShowLopataUpdates);
-        var wakeMenu = AddTray("Resume wake word", () => Assistant.ToggleWakeListening());
-        AddTray("Stop all microphones", () => Assistant.StopSession());
-        menu.Opening+=(_,_)=>{wakeMenu.Text=Localization.Text(Assistant.WakeArmed?"Pause wake word":"Resume wake word");wakeMenu.Enabled=Assistant.Options.Enabled && Assistant.Options.WakeWord.Enabled;};
+        if (!UsesLopataEdition)
+        {
+            var wakeMenu = AddTray("Resume wake word", () => Assistant.ToggleWakeListening());
+            AddTray("Stop all microphones", () => Assistant.StopSession());
+            menu.Opening+=(_,_)=>{wakeMenu.Text=Localization.Text(Assistant.WakeArmed?"Pause wake word":"Resume wake word");wakeMenu.Enabled=Assistant.Options.Enabled && Assistant.Options.WakeWord.Enabled;};
+        }
         AddTray("Tuck / Return to automatic", () => overlay?.ToggleTuck());
         AddTray("Hide / show", () => overlay?.ToggleVisibility());
         menu.Items.Add(new Forms.ToolStripSeparator());
@@ -189,7 +195,7 @@ public sealed partial class App : Application
         tray.ContextMenuStrip=menu;tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowSettings);
         overlay=new OverlayWindow(this);MainWindow=overlay;StartupTrace.Attach(overlay,e.Args,Store.Log);overlay.Show();Previews=new(this,overlay.OpenFeaturePage);
         if (!diagnosticMode) LopataUpdates.Start();
-        Assistant.Changed+=RefreshAssistantTray;if(diagnosticPath==null)Assistant.StartBackgroundFeatures();
+        Assistant.Changed+=RefreshAssistantTray;
         Notifications.Changed+=()=>overlay.RefreshNotice();
         Updates.UpdateAvailable+=release=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates","Update available",Localization.Format("{0} · Open Settings > Application to review.", release.Version))));
         Updates.DownloadReady+=()=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates",Localization.Text("Update ready to install"),Localization.Text("Open Settings > Application to install and restart when ready."))));
@@ -272,6 +278,7 @@ public sealed partial class App : Application
     internal bool SettingsSaveSucceeded {get;private set;}
     public void ChangeSettings()
     {
+        if (UsesLopataEdition) LopataEdition.ApplyAppearance(Settings, lopataAppearance);
         Settings.Normalize();Media.Configure(Settings);Media.SetEnabled(MediaFeaturesWanted);Brightness.Start(!diagnosticMode && Settings.ReactiveFeedback && Settings.BrightnessFeedback);Audio.SpectrumEnabled=Settings.WaveformSource=="Spectrum";ApplyAppearance();Motion.Configure(Settings);
         Productivity?.SetClipboardEnabled(Settings.ClipboardHistory);
         SettingsSaveSucceeded=false;

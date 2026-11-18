@@ -96,6 +96,46 @@ internal static class LopataLanguageDiagnostics
             Require(Diagnostics.Descendants(settings).OfType<ComboBox>().Any(choice => !choice.IsEnabled &&
                 System.Windows.Automation.AutomationProperties.GetName(choice) == Localization.Text("Interface language")),
                 "Island settings respect the language selected in LOPATA");
+            Require(app.UsesLopataEdition && !app.Assistant.Options.Enabled && !app.SupportsWidget("voice"),
+                "The LOPATA edition leaves the upstream assistant and voice widget inactive");
+            settings.OpenCategory("AI");
+            settings.UpdateLayout();
+            var chatButton = SettingsElements(settings).OfType<Button>().Single(button => UI.Identity(button) == "Open chat");
+            Require(!SettingsElements(settings).OfType<AssistantProviderSettings>().Any(), "Chat settings have no upstream provider editor");
+            chatButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            var localChat = app.Windows.Cast<Window>().OfType<LopataChatWindow>().Single();
+            Require(localChat.IsVisible, "The settings button opens the LOPATA chat window without sending a message");
+            localChat.Close();
+            Capture(settings, "edition-chat-ru");
+
+            var search = SettingsElements(settings).OfType<TextBox>().Single(input => UI.Identity(input) == Localization.Text("Search settings"));
+            search.Text = "Hermes";
+            settings.UpdateLayout();
+            Require(HasText(settings, Localization.Text("No settings found. Try color, dock, lyrics, weather or notifications.")),
+                "Settings search has no Hermes entries in the LOPATA edition");
+            search.Clear();
+
+            settings.OpenCategory("Layout");
+            var layout = SettingsElements(settings).ToArray();
+            Require(layout.OfType<Button>().Any(button => UI.Identity(button) == LopataEdition.OpenCaption) &&
+                !layout.OfType<Slider>().Any(slider => UI.Identity(slider) is "Closed width" or "Panel width"),
+                "The layout page routes shared settings to LOPATA and omits duplicate sliders");
+            var sizing = new Settings { Width = 390, Horizontal = 28 };
+            CustomizationProfile.Import(CustomizationProfile.Export(new Settings { Width = 480, Horizontal = 42 }), sizing,
+                LopataEdition.SharedAppearanceKeys);
+            Require(sizing.Width == 390 && sizing.Horizontal == 42 &&
+                !CustomizationProfile.Export(sizing, LopataEdition.SharedAppearanceKeys).Contains("\"Width\"", StringComparison.Ordinal),
+                "Layout import and export keep LOPATA-controlled sizes separate from island position");
+            settings.OpenCategory("Notifications");
+            Require(!SettingsElements(settings).OfType<CheckBox>().Any(check => UI.Identity(check) == "Update available") &&
+                SettingsCaptions(settings).Contains(Localization.Text("LOPATA releases appear in the island's update indicator.")),
+                "Notifications explain the LOPATA indicator without the upstream update toggle");
+
+            app.ShowWelcome();
+            var welcome = app.Windows.Cast<Window>().OfType<WelcomeWindow>().Single();
+            Require(!SettingsElements(welcome).OfType<Button>().Any(button => UI.Identity(button) == "AI"),
+                "Quick setup has no upstream provider onboarding");
+            welcome.Close();
             var previousDetailMode = app.Settings.SettingsShowAll;
             app.Settings.SettingsShowAll = true;
             foreach (var category in new[] { "Home", "Appearance", "Ambience", "Motion", "Layout", "Visibility", "Controls", "Content",

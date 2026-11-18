@@ -35,7 +35,7 @@ public sealed partial class SettingsWindow
         controls.Children.Add(Check("Ambient light",s.CoverAmbient,v=>s.CoverAmbient=v));
         controls.Children.Add(Check("Show ambience on closed dock",s.ClosedAmbient,v=>s.ClosedAmbient=v));
         var widgets=new StackPanel();
-        foreach(var pair in Settings.Names.Where(p=>p.Key!="tools").Concat(new[]{new System.Collections.Generic.KeyValuePair<string,string>("ai","AI companion")}))
+        foreach(var pair in Settings.Names.Where(p=>p.Key!="tools" && app.SupportsWidget(p.Key)).Concat(app.UsesLopataEdition ? Array.Empty<System.Collections.Generic.KeyValuePair<string,string>>() : new[]{new System.Collections.Generic.KeyValuePair<string,string>("ai","AI companion")}))
         {
             string id=pair.Key;
             string label=Localization.Format("Ambient light for {0}",Localization.Text(pair.Value));

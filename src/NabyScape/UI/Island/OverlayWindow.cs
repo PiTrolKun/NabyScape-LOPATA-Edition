@@ -164,7 +164,7 @@ public sealed partial class OverlayWindow : Window
         var heading=new DockPanel{Margin=new(2,0,4,12)};var settings=Icons.Button("settings","Settings",app.ShowSettings,false,32);settings.Margin=new(0);settings.Background=UI.Brush("#1C1C1E");
         DockPanel.SetDock(settings,Dock.Right);heading.Children.Add(settings);var bell=NotificationBell(32);bell.Margin=new(0,0,6,0);DockPanel.SetDock(bell,Dock.Right);heading.Children.Add(bell);var name=UI.Heading(Localization.Text("Activity"),18);name.FontWeight=FontWeights.SemiBold;heading.Children.Add(name);body.Children.Add(heading);body.Children.Add(widgets);
         double full=bodyWidth,half=(full-10)/2;widgets.Width=full+10;
-        foreach(var widget in app.Settings.Widgets.Where(w=>w.Enabled))
+        foreach(var widget in app.Settings.Widgets.Where(w=>w.Enabled && app.SupportsWidget(w.Id)))
         {
             Border card;bool small=false;
             switch(widget.Id)

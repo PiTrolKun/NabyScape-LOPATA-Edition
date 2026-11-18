@@ -51,7 +51,9 @@ public sealed partial class OverlayWindow
     }
     private IEnumerable<(string title,string detail,Action run)> Commands()
     {
-        yield return ("AI companion","Chat, voice and reviewed actions · configure your own provider",app.ShowAssistant);
+        yield return app.UsesLopataEdition
+            ? ("LOPATA chat", "Use LOPATA's local core to chat", app.ShowLopataChat)
+            : ("AI companion", "Chat, voice and reviewed actions · configure your own provider", app.ShowAssistant);
         yield return ("Notifications","See every recent alert, including Downloads · Enter",()=>{CloseCommands();OpenNotificationCenter();});
         yield return ("Tuck / Return to automatic","Toggle the manual tuck latch; hover the edge to preview",()=>{CloseCommands();ToggleTuck();});
         yield return ("Open Settings","Appearance, widgets, and interaction",app.ShowSettings);

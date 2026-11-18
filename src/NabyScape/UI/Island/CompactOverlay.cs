@@ -43,8 +43,8 @@ public sealed partial class OverlayWindow
     private static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer" or "focus"=>"focus","stopwatch"=>"stopwatch","voice"=>"voice","shortcuts"=>"access","tools"=>"tools",_=>"status"};
     private static string PageName(string page)=>Localization.Text(Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","focus"=>"Focus","stopwatch"=>"Stopwatch","voice"=>"Naby voice","status"=>"Status","tools"=>"Tools",_=>"Launch"});
     private string? hoverPanelWidget;
-    private bool WidgetOn(string id)=>id==hoverPanelWidget || app.Settings.Widgets.Any(w=>w.Enabled && w.Id==id);
-    private IEnumerable<WidgetSetting> PanelWidgets=>app.Settings.Widgets.Where(w=>w.Enabled || w.Id==hoverPanelWidget);
+    private bool WidgetOn(string id)=>app.SupportsWidget(id) && (id==hoverPanelWidget || app.Settings.Widgets.Any(w=>w.Enabled && w.Id==id));
+    private IEnumerable<WidgetSetting> PanelWidgets=>app.Settings.Widgets.Where(w=>app.SupportsWidget(w.Id) && (w.Enabled || w.Id==hoverPanelWidget));
     private void OpenHoverPanel(string widget,bool activate=true)
     {
         LeaveAssistantPanel();

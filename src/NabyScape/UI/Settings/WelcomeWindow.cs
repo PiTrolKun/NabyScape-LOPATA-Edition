@@ -36,14 +36,14 @@ internal sealed class WelcomeWindow : Window
         var scroll=UI.Scroll(body);layout.Children.Add(scroll);
         var footer=new WrapPanel{Margin=new(24,12,24,20)};
         var skip=UI.CaptionButton("Skip setup",Skip);footer.Children.Add(skip);
-        back=UI.CaptionButton("Back",()=>{step--;Render();});next=UI.CaptionButton("Next",()=>{if(step<2){step++;Render();}else Finish(purpose=="AI");},true);
+        back=UI.CaptionButton("Back",()=>{step--;Render();});next=UI.CaptionButton("Next",()=>{if(step<2){step++;Render();}else Finish(!app.UsesLopataEdition && purpose=="AI");},true);
         footer.Children.Add(back);footer.Children.Add(next);Grid.SetRow(footer,1);layout.Children.Add(footer);
         Content=layout;Render();
     }
 
     private void Render()
     {
-        body.Children.Clear();progress.Text=$"GET STARTED  /  {step+1} OF 3";body.Children.Add(progress);
+        body.Children.Clear();progress.Text=Localization.Format("Setup · step {0} of {1}",step+1,3);body.Children.Add(progress);
         back.Visibility=step==0?Visibility.Collapsed:Visibility.Visible;
         next.Content=step==2?(purpose=="AI"?Localization.Text("Continue to AI setup"):Localization.Text("Finish setup")):Localization.Text("Next");
         body.Children.Add(UI.Text(step==0?Localization.Text("What brings you here?"):step==1?Localization.Text("Make it yours."):Localization.Text("Your dock is ready."),28));
@@ -52,32 +52,34 @@ internal sealed class WelcomeWindow : Window
             body.Children.Add(UI.Text(Localization.Text("Choose a starting point. You can change every choice later."),13,UI.Muted));
             foreach(var choice in new[]{("Music","Playback, volume, clock and weather"),("Productivity","Focus, timer, notes, tasks and calendar"),("AI","Naby voice, clock and notes · connect your provider next"),("Custom","Recommended NabyScape setup · keep the complete default experience")})
             {
-                var content=new StackPanel();content.Children.Add(UI.Text((choice.Item1=="Custom"?"Recommended":choice.Item1)+(purpose==choice.Item1?" · Selected":""),16));var hint=UI.Text(choice.Item2,12,UI.Muted);hint.Margin=new(0,5,0,0);content.Children.Add(hint);
+                if(app.UsesLopataEdition && choice.Item1=="AI")continue;
+                string caption=Localization.Text(choice.Item1=="Custom"?"Recommended":choice.Item1);
+                var content=new StackPanel();content.Children.Add(UI.Text(purpose==choice.Item1?Localization.Format("{0} · Selected",caption):caption,16));var hint=UI.Caption(choice.Item2,12,UI.Muted);hint.Margin=new(0,5,0,0);content.Children.Add(hint);
                 var button=UI.CaptionButton(choice.Item1,()=>{purpose=choice.Item1;ChoosePurpose();Render();});button.Content=content;button.Padding=new(16);button.Margin=new(0,10,0,0);button.HorizontalContentAlignment=HorizontalAlignment.Left;button.Background=UI.Brush(purpose==choice.Item1?app.Settings.SelectionFill:app.Settings.ControlFill);body.Children.Add(button);
             }
-            body.Children.Add(UI.Text(Localization.Text("Choose a purpose to change widgets, or keep Recommended to use the complete default setup. Microphone listening starts only when you choose it."),12,UI.Muted));
+            body.Children.Add(UI.Caption(app.UsesLopataEdition?"Choose a purpose to change widgets, or keep Recommended to use the complete default setup.":"Choose a purpose to change widgets, or keep Recommended to use the complete default setup. Microphone listening starts only when you choose it.",12,UI.Muted));
         }
         else if(step==1)
         {
             body.Children.Add(UI.Text(Localization.Text("Dock position"),16));var edges=new WrapPanel();
             foreach(string side in new[]{"Top","Bottom","Left","Right"})
             {
-                var option=new RadioButton{Content=side,GroupName="Dock position",IsChecked=edge==side,Margin=new(0,10,16,14),Padding=new(6)};
+                var option=new RadioButton{Content=Localization.Text(side),GroupName="Dock position",IsChecked=edge==side,Margin=new(0,10,16,14),Padding=new(6)};
                 UI.Named(option,"Dock position: "+side);option.Checked+=(_,_)=>{edge=side;edgeChanged=true;};edges.Children.Add(option);
             }
             body.Children.Add(edges);body.Children.Add(UI.Text(Localization.Text("Your widgets"),16));
-            foreach(var choice in app.Settings.Widgets.Where(w=>purpose=="Custom" || widgets[w.Id]))
+            foreach(var choice in app.Settings.Widgets.Where(w=>app.SupportsWidget(w.Id) && (purpose=="Custom" || widgets[w.Id])))
             {
-                var id=choice.Id;var toggle=new CheckBox{Content=Settings.Names.GetValueOrDefault(id)??id,IsChecked=widgets[id],Margin=new(0,12,0,3),Padding=new(6)};
+                var id=choice.Id;var toggle=new CheckBox{Content=Localization.Text(Settings.Names.GetValueOrDefault(id)??id),IsChecked=widgets[id],Margin=new(0,12,0,3),Padding=new(6)};
                 UI.Named(toggle,"Enable "+id);toggle.Click+=(_,_)=>{widgets[id]=toggle.IsChecked==true;changedWidgets.Add(id);};body.Children.Add(toggle);
             }
-            body.Children.Add(UI.Text(Localization.Text("All widgets remain available in Settings. Weather asks for a city; AI asks for a connection."),12,UI.Muted));
+            body.Children.Add(UI.Caption(app.UsesLopataEdition?"You can change widgets in Settings. Choose a city to see the weather.":"All widgets remain available in Settings. Weather asks for a city; AI asks for a connection.",12,UI.Muted));
         }
         else
         {
             body.Children.Add(UI.Text(Localization.Text("Click the dock to open your widgets. Hover for a quick look. Right-click the tray icon to open Settings."),14,UI.Muted));
-            body.Children.Add(UI.Text(string.Join(" · ",widgets.Where(w=>w.Value).Select(w=>Settings.Names.GetValueOrDefault(w.Key)??w.Key)),13));
-            if(purpose!="AI")body.Children.Add(UI.Card(Localization.Text("AI is optional"),UI.Text(Localization.Text("Connect your own provider or Hermes whenever you're ready. Voice starts only when you choose it."),13,UI.Muted),UI.CaptionButton("Set up AI",()=>Finish(true))));
+            body.Children.Add(UI.Text(string.Join(" · ",widgets.Where(w=>w.Value && app.SupportsWidget(w.Key)).Select(w=>Localization.Text(Settings.Names.GetValueOrDefault(w.Key)??w.Key))),13));
+            if(!app.UsesLopataEdition && purpose!="AI")body.Children.Add(UI.Card(Localization.Text("AI is optional"),UI.Text(Localization.Text("Connect your own provider or Hermes whenever you're ready. Voice starts only when you choose it."),13,UI.Muted),UI.CaptionButton("Set up AI",()=>Finish(true))));
             body.Children.Add(UI.Text("Clipboard history: "+(app.Settings.ClipboardHistory?"On":"Off")+" · Download alerts: "+(app.Settings.DownloadsEnabled?"On":"Off")+". Change these in Settings at any time.",12,UI.Muted));
             body.Children.Add(UI.Text(Localization.Text("You can reopen this guide from Settings > General."),12,UI.Muted));
         }
@@ -93,7 +95,7 @@ internal sealed class WelcomeWindow : Window
             "Productivity"=>new[]{"timer","focus","clock","notes","tasks","calendar"},
             _=>new[]{"voice","clock","notes"}
         };
-        foreach(string id in widgets.Keys.ToArray()){widgets[id]=enabled.Contains(id);changedWidgets.Add(id);}
+        foreach(string id in widgets.Keys.Where(app.SupportsWidget).ToArray()){widgets[id]=enabled.Contains(id);changedWidgets.Add(id);}
     }
     private bool MarkComplete()
     {

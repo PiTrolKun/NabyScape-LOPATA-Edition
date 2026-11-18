@@ -20,6 +20,15 @@ internal static class LopataEdition
     internal const string LayerCaption = "Above windows";
     internal const string VkUrl = "https://vk.ru/lopata_ai_localhub";
     internal const string YouTubeUrl = "https://youtube.com/@lopata_ai_hub";
+    internal static readonly IReadOnlySet<string> SharedAppearanceKeys = new HashSet<string>(StringComparer.Ordinal)
+    {
+        nameof(Settings.ColorTheme), nameof(Settings.Background), nameof(Settings.Accent), nameof(Settings.CollapsedSameColor),
+        nameof(Settings.CollapsedBackground), nameof(Settings.GlassStyle), nameof(Settings.GlassStrength), nameof(Settings.Width),
+        nameof(Settings.Height), nameof(Settings.PanelWidth), nameof(Settings.PanelMaxHeight), nameof(Settings.HoverWidth),
+        nameof(Settings.HoverHeight), nameof(Settings.PanelAutoHeight), nameof(Settings.PanelPadding), nameof(Settings.SectionGap),
+        nameof(Settings.Radius), nameof(Settings.ReduceMotion), nameof(Settings.Monitor), nameof(Settings.DisplayMode),
+        nameof(Settings.HotkeyEnabled), nameof(Settings.VisibilityHotkeyEnabled), nameof(Settings.TuckHotkeyEnabled)
+    };
     internal static string ProfileDirectory => Path.Combine(IslandPreferences.Root, "Profile");
 
     internal static KeyValuePair<string, string>[] Captions { get; } =
@@ -52,7 +61,7 @@ internal static class LopataEdition
         {
             var target = HostExecutable() ?? throw new FileNotFoundException();
             // LOPATA routes a second launch to its existing instance and restores it from the tray.
-            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(target)! })?.Dispose();
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {

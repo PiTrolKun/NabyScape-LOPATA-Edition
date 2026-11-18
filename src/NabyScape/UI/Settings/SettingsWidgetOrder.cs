@@ -21,7 +21,7 @@ public sealed partial class SettingsWindow
         }
         void Build()
         {
-            list.Children.Clear();foreach(var item in items)
+            list.Children.Clear();foreach(var item in items.Where(setting=>app.SupportsWidget(setting.Id)))
             {
                 var row=new DockPanel{LastChildFill=true};
                 var grip=UI.Button("Drag to reorder "+item.Id,()=>{});grip.Content="⠿";grip.FontSize=19;grip.Width=28;grip.Padding=new(0);grip.Background=Brushes.Transparent;grip.Foreground=UI.Muted;grip.Cursor=Cursors.SizeNS;grip.Margin=new(0,0,8,0);DockPanel.SetDock(grip,Dock.Left);row.Children.Add(grip);

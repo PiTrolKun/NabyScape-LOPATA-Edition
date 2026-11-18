@@ -55,7 +55,8 @@ public sealed partial class SettingsWindow
             UI.Caption("English is used when a translation is unavailable. Your content stays in its original language.", 11, UI.Muted),
             UI.Caption("Text size", 12), scale, contrast,
             UI.Caption("Windows high contrast is always respected. Larger text may require scrolling in compact widgets.", 11, UI.Muted),
-            Check("Reduce motion", settings.ReduceMotion, value => settings.ReduceMotion = value),
+            app.UsesLopataEdition ? UI.Caption("Motion reduction is managed in LOPATA island settings.", 11, UI.Muted) :
+                Check("Reduce motion", settings.ReduceMotion, value => settings.ReduceMotion = value),
             UI.Caption("Motion also follows the Windows animation setting.", 11, UI.Muted), save, notice));
     }
 }

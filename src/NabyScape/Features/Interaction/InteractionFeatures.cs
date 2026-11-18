@@ -76,6 +76,7 @@ public sealed partial class OverlayWindow
     }
     internal void OpenFeaturePage(string kind)
     {
+        if(!app.SupportsWidget(kind))return;
         if(kind is "notes" or "calendar" or "files")ShowTools(kind);
         else OpenHoverPanel(kind);
     }

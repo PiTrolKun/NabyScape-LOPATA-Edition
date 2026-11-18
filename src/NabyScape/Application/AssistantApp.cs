@@ -6,11 +6,13 @@ public sealed partial class App
     private AssistantWindow? assistantWindow;
     internal void ShowAssistant()
     {
+        if(UsesLopataEdition){ShowLopataChat();return;}
         if(overlay!=null){overlay.OpenAssistant();return;}
         ShowAssistantWindow();
     }
     internal void ShowAssistantWindow()
     {
+        if(UsesLopataEdition){ShowLopataChat();return;}
         if(assistantWindow==null){assistantWindow=new(this);assistantWindow.Closed+=(_,_)=>assistantWindow=null;}
         assistantWindow.Show();if(assistantWindow.WindowState==System.Windows.WindowState.Minimized)assistantWindow.WindowState=System.Windows.WindowState.Normal;assistantWindow.Activate();
     }

@@ -42,8 +42,9 @@ public sealed partial class OverlayWindow
                 var pointer=PointToScreen(Mouse.GetPosition(this));var delta=pointer-editingPointer;var s=app.Settings;
                 if(move)
                 {
-                    var screen=Forms.Screen.FromPoint(new System.Drawing.Point((int)(editingCenter+delta.X),(int)pointer.Y));double scale=Native.Scale(screen),compact=s.Width*scale;
-                    s.Monitor=screen.DeviceName;s.DisplayMode="Selected";s.Horizontal=Math.Clamp((editingCenter+delta.X-screen.WorkingArea.Left-compact/2)/Math.Max(1,screen.WorkingArea.Width-compact)*100,0,100);
+                    var screen=app.UsesLopataEdition?IslandScreen:Forms.Screen.FromPoint(new System.Drawing.Point((int)(editingCenter+delta.X),(int)pointer.Y));double scale=Native.Scale(screen),compact=s.Width*scale;
+                    if(!app.UsesLopataEdition){s.Monitor=screen.DeviceName;s.DisplayMode="Selected";}
+                    s.Horizontal=Math.Clamp((editingCenter+delta.X-screen.WorkingArea.Left-compact/2)/Math.Max(1,screen.WorkingArea.Width-compact)*100,0,100);
                     double top=Math.Clamp((editingTop+delta.Y-screen.WorkingArea.Top)/scale,0,Math.Max(0,screen.WorkingArea.Height/scale-PaintedHeight));
                     if(Math.Abs(s.Horizontal-50)<.7)s.Horizontal=50;
                     s.DockEdge=original.Preset=="Mac" && top<=8?"Top":"Floating";s.Preset=original.Preset=="Mac" && top<=8?"Mac":"iPhone";s.Top=s.Preset=="Mac"?0:top;surface.Notch=s.Preset=="Mac" && s.DockEdge=="Top";
@@ -78,12 +79,13 @@ public sealed partial class OverlayWindow
         moveGrip=Grip("Move island",Cursors.SizeAll,true);resizeLeft=Grip("Resize island from left",Cursors.SizeNESW,false,true);resizeRight=Grip("Resize island from right",Cursors.SizeNWSE,false);
         root.Children.Add(dockHandles);surface.ContourChanged+=RefreshDockHandles;root.SizeChanged+=(_,_)=>RefreshDockHandles();app.SettingsChanged+=RefreshDockHandles;
         PreviewKeyDown+=(_,_)=>RefreshDockHandles();PreviewKeyUp+=(_,_)=>RefreshDockHandles();
-        var menu=new ContextMenu();var unlock=new MenuItem{Header=Localization.Text("Move & resize island"),IsCheckable=true};unlock.Click+=(_,_)=>ToggleDockEditing();menu.Opened+=(_,_)=>unlock.IsChecked=app.Settings.DockUnlocked;menu.Items.Add(unlock);compact.ContextMenu=menu;
+        var menu=new ContextMenu();var unlock=new MenuItem{Header=Localization.Text(app.UsesLopataEdition?"Move island":"Move & resize island"),IsCheckable=true};unlock.Click+=(_,_)=>ToggleDockEditing();menu.Opened+=(_,_)=>unlock.IsChecked=app.Settings.DockUnlocked;menu.Items.Add(unlock);compact.ContextMenu=menu;
         RefreshDockHandles();
     }
     private void RefreshDockHandles()
     {
         if(moveGrip==null)return;
+        resizeLeft.Visibility=resizeRight.Visibility=app.UsesLopataEdition?Visibility.Collapsed:Visibility.Visible;
         bool visible=(app.Settings.DockUnlocked || Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)) && !userHidden && !IsTucked && !assistantPeeking && !noticeShowing;
         dockHandles.Visibility=visible?Visibility.Visible:Visibility.Collapsed;if(!visible)return;
         double left=(root.ActualWidth-PaintedWidth)/2;

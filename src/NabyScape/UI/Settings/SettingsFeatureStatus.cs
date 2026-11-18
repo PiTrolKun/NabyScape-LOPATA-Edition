@@ -32,6 +32,10 @@ public sealed partial class SettingsWindow
             !app.Settings.Widgets.Any(w=>w.Enabled && w.Id=="media")?("Hidden","Enable the music widget to show playback controls.","Choose widgets"):
             !app.Media.Available?("Waiting for music","Play a song in your music app, then select its media session.","Music settings"):("Ready","Playback controls use the selected music session.","Music settings"),()=>
             {if(!app.Settings.MediaIntegrationEnabled){app.Settings.MediaIntegrationEnabled=true;app.ChangeSettings();}else Navigate(app.Settings.Widgets.Any(w=>w.Enabled && w.Id=="media")?"Audio":"Content");});
+        if (app.UsesLopataEdition)
+            Row("LOPATA chat", () => ("Local core", "Talk to LOPATA through its installed local core.", "Open chat"), app.ShowLopataChat);
+        else
+        {
         Row("AI chat",()=>!app.Assistant.Options.Enabled?("Off","AI is optional. Connect a provider when you are ready.","Set up AI"):
             !app.Assistant.Setup.Chat.Configured?("Needs setup","Choose a provider or connect Hermes, then save your connection.","Connect AI"):
             app.Assistant.Setup.Chat.Title.Contains("attention",StringComparison.OrdinalIgnoreCase)?("Needs attention","The last connection check failed. Review the connection and try again.","Review connection"):
@@ -51,6 +55,7 @@ public sealed partial class SettingsWindow
                 }
                 else OpenAiVoiceSettings();
             });
+        }
         Row("Lyrics",()=>!app.Settings.LyricsEnabled && app.Settings.ClosedMediaContent!="Lyrics"?("Off","Enable panel lyrics or choose Live lyrics for the closed dock.","Choose lyrics"):
             !app.Media.Available?("Waiting for music","Play a song to look up timed lyrics.","Music settings"):
             !LyricTiming.CanUse(app.Media)?("Unavailable","This player has not provided enough track details or playback timing.","Music settings"):

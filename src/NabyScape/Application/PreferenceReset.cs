@@ -43,6 +43,7 @@ internal static class PreferenceReset
             "Audio"=>"closed media display, media sources, waveform and feedback",
             "System"=>"clock format and monitor readings",
             "Launch"=>"launch appearance",
+            "Application" when System.Windows.Application.Current is App { UsesLopataEdition: true } => "text size, contrast and settings detail level",
             "Application"=>"update checks and automatic downloads, interface language, text size and contrast",
             _=>"update checks, notification delivery and download monitoring"
         };

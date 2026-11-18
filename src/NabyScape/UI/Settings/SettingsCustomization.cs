@@ -38,6 +38,37 @@ public sealed partial class SettingsWindow
 
     private void LayoutSettings()
     {
+        if (!app.UsesLopataEdition) { OriginalLayoutSettings(); return; }
+
+        var s = app.Settings;
+        DisplaySettings();
+        DockPlacementSettings();
+        DockEditingSettings();
+        var closed = new StackPanel();
+        AddSlider(closed, "Horizontal position", s.Horizontal, 0, 100, v => s.Horizontal = v, "%");
+        ClosedClockSettings(closed);
+        page.Children.Add(Section("Closed island", closed));
+
+        var panel = new StackPanel();
+        AddSlider(panel, "Content size", s.PanelScale * 100, 85, 125, v => s.PanelScale = v / 100, "%");
+        page.Children.Add(Section("Open panel", Check("Compact panel with tabs", s.CompactLayout, v => s.CompactLayout = v), panel));
+        page.Children.Add(Section("Layout profile", UI.Row(UI.CaptionButton("Export layout", ExportCustomization), UI.CaptionButton("Import layout", ImportCustomization)),
+            UI.Caption("Layout files transfer widget order, dock position and local appearance settings. Shared island settings are managed in LOPATA.", 11, UI.Muted)));
+    }
+
+    private FrameworkElement SharedAppearanceControls()
+    {
+        var controls = new StackPanel();
+        controls.Children.Add(UI.Caption("Set the island palette, sizes, screen, animation reduction and shortcut availability in LOPATA settings under Island.", 12, UI.Muted));
+        var open = UI.CaptionButton(LopataEdition.OpenCaption, LopataEdition.OpenHost);
+        open.HorizontalAlignment = HorizontalAlignment.Left;
+        open.Margin = new(0, 8, 0, 0);
+        controls.Children.Add(open);
+        return controls;
+    }
+
+    private void OriginalLayoutSettings()
+    {
         DisplaySettings();DockPlacementSettings();DockEditingSettings();var s=app.Settings;var geometry=new StackPanel();AddSlider(geometry,"Closed width",s.Width,Settings.ClosedWidthMin,Settings.ClosedWidthMax,v=>s.Width=v,"px");ClosedWidthHint(geometry);AddSlider(geometry,"Closed height",s.Height,28,72,v=>s.Height=v,"px");AddSlider(geometry,"Corner radius",s.Radius,0,40,v=>s.Radius=v,"px");AddSlider(geometry,"Horizontal position",s.Horizontal,0,100,v=>s.Horizontal=v,"%");if(s.Preset!="Mac" || s.DockEdge=="Floating")AddSlider(geometry,"Top offset",s.Top,0,Math.Max(150,SystemParameters.WorkArea.Height-72),v=>s.Top=v,"px");ClosedClockSettings(geometry);page.Children.Add(Section("Closed island",geometry));
         var panel=new StackPanel();AddSlider(panel,"Panel width",s.PanelWidth,300,960,v=>s.PanelWidth=v,"px");AddSlider(panel,"Maximum panel height",s.PanelMaxHeight,240,1100,v=>s.PanelMaxHeight=v,"px");AddSlider(panel,"Content inset",s.PanelPadding,16,40,v=>s.PanelPadding=v,"px");AddSlider(panel,"Content size",s.PanelScale*100,85,125,v=>s.PanelScale=v/100,"%");AddSlider(panel,"Section spacing",s.SectionGap,8,28,v=>s.SectionGap=v,"px");page.Children.Add(Section("Open panel",Check("Compact panel with tabs",s.CompactLayout,v=>s.CompactLayout=v),Check("Fit panel height to content",s.PanelAutoHeight,v=>s.PanelAutoHeight=v),UI.Text(Localization.Text("Dragging a lower panel corner sets a manual height. With Fit height off, the height limit becomes the fixed panel height; content scrolls inside it."),11,UI.Muted),NabyPanelNote(),Advanced("Panel dimensions and spacing",panel)));
         var hover=new StackPanel();AddSlider(hover,"Preview width",s.HoverWidth,300,760,v=>s.HoverWidth=v,"px");AddSlider(hover,"Preview height",s.HoverHeight,184,440,v=>s.HoverHeight=v,"px");page.Children.Add(Section("Hover preview",hover));
@@ -83,7 +114,7 @@ public sealed partial class SettingsWindow
         {previewLayout.Margin=inset;previewMaterial.Visibility=s.GlassStyle?Visibility.Visible:Visibility.Collapsed;previewMaterial.Background=IslandSurface.Material(IslandPalette.Background(s));previewMaterial.Opacity=(closed?.45:1)*s.GlassStrength;return;}
         previewTemplateKey=template;previewFrames.Clear();previewRealtimeFrames.Clear();hasPreviewWave=false;
         var content=new StackPanel{Margin=inset};previewLayout=content;var header=new DockPanel{Height=closed?height:23};var time=UI.Text(DateTime.Now.ToString(s.Clock24Hour?"HH:mm":"h:mm tt"),11);time.FontWeight=FontWeights.Bold;bool leadingTime=closed && ClosedClockLayout.Slot(s.ClosedClockPosition,false)==ClosedClockSlot.Leading;DockPanel.SetDock(time,leadingTime?Dock.Left:Dock.Right);if(leadingTime)time.Margin=new(0,0,10,0);header.Children.Add(time);previewFrames.Add(_=>time.Text=DateTime.Now.ToString(s.Clock24Hour?"HH:mm":"h:mm tt"));var appName=UI.Text(closed && previewContent=="Music"?(app.Media.Available?app.Media.Title:""):Localization.Text(previewContent),11);appName.TextWrapping=TextWrapping.NoWrap;appName.TextTrimming=TextTrimming.CharacterEllipsis;appName.FontWeight=s.BoldHeadings?FontWeights.SemiBold:FontWeights.Normal;header.Children.Add(appName);if(closed || hover)content.Children.Add(header);
-        if(closed && previewContent=="AI"){appName.Text=Localization.Text("Ask Naby");var face=new AssistantOrb{Width=22,Height=22,ReduceMotion=s.ReduceMotion,Margin=new(0,0,8,0)};DockPanel.SetDock(face,Dock.Left);header.Children.Insert(leadingTime?1:0,face);}
+        if(closed && previewContent=="AI"){appName.Text=Localization.Text(app.UsesLopataEdition?"LOPATA chat":"Ask Naby");var face=new AssistantOrb{Width=22,Height=22,ReduceMotion=s.ReduceMotion,Margin=new(0,0,8,0)};DockPanel.SetDock(face,Dock.Left);header.Children.Insert(leadingTime?1:0,face);}
         if(closed && previewContent=="Music" && app.Media.Available && s.ClosedMediaContent!="None")
         {
             FrameworkElement? icon=s.ClosedMediaIcon=="Artwork" && app.Media.Artwork!=null?new Border{Width=20,Height=20,CornerRadius=new(5),Clip=new RectangleGeometry(new Rect(0,0,20,20),5,5),Margin=new(0,0,8,0),VerticalAlignment=VerticalAlignment.Center,Child=new Image{Source=app.Media.Artwork,Stretch=Stretch.UniformToFill}}:s.LiveActivity && s.ClosedMediaIcon=="Waveform" && s.ClosedMediaContent=="Title"?PreviewWave():null;
@@ -107,7 +138,7 @@ public sealed partial class SettingsWindow
         if(!closed)
         {
             var detail=new StackPanel{Margin=new(0,hover?12:s.SectionGap,0,0),LayoutTransform=new ScaleTransform(s.PanelScale,s.PanelScale)};
-            if(previewContent=="AI"){detail.Children.Add(new AssistantOrb{Width=64,Height=64,ReduceMotion=s.ReduceMotion});detail.Children.Add(UI.Heading(Localization.Text("Ask Naby"),17));detail.Children.Add(UI.Text(hover?Localization.Text("Chat here · Talk"):Localization.Text("Chat and voice in your island"),12,UI.Muted));detail.Children.Add(UI.Text(Localization.Text("Mic and screen start only when you choose."),11,UI.Muted));}
+            if(previewContent=="AI"){detail.Children.Add(new AssistantOrb{Width=64,Height=64,ReduceMotion=s.ReduceMotion});detail.Children.Add(UI.Heading(Localization.Text(app.UsesLopataEdition?"LOPATA chat":"Ask Naby"),17));detail.Children.Add(UI.Caption(app.UsesLopataEdition?"Talk to LOPATA through its installed local core.":hover?"Chat here · Talk":"Chat and voice in your island",12,UI.Muted));if(!app.UsesLopataEdition)detail.Children.Add(UI.Caption("Mic and screen start only when you choose.",11,UI.Muted));}
             else if(previewContent=="Stopwatch")detail.Children.Add(new StopwatchView(app));
             else if(previewContent=="Visibility")detail.Children.Add(VisibilityExample());
             else if(previewContent is "Drop zone" or "Detached preview" or "Cover gestures" or "Smart clipboard" or "Control colors" or "Typography" or "Panel navigation")detail.Children.Add(FeaturePreview(previewContent));
@@ -137,7 +168,7 @@ public sealed partial class SettingsWindow
         content.ClipToBounds=true;var layers=new Grid{ClipToBounds=true};previewMaterial=new Border{Background=IslandSurface.Material(IslandPalette.Background(s)),Opacity=(closed?.45:1)*s.GlassStrength,Visibility=s.GlassStyle?Visibility.Visible:Visibility.Collapsed};layers.Children.Add(previewMaterial);if(ambientPreview.Parent is Panel previousAmbientHost)previousAmbientHost.Children.Remove(ambientPreview);layers.Children.Add(ambientPreview);layers.Children.Add(content);preview.Child=layers;previewDimensions.Text=detailExample?Localization.Text("Detail preview · your current appearance"):Localization.Format("{0:0} × {1:0} px · {2}",width,height,Localization.Text(s.Preset=="Mac"?"Notch":"Pill"));foreach(var entry in previewModeButtons){entry.Value.Background=entry.Key==previewMode?SettingsTheme.Lime:Brushes.Transparent;entry.Value.Foreground=entry.Key==previewMode?SettingsTheme.LimeInk:SettingsTheme.Quiet;}
     }
     private void ExportCustomization()
-    {var dialog=new Microsoft.Win32.SaveFileDialog{Title="Export NabyScape layout",Filter="NabyScape layout|*.json",FileName="NabyScape-layout.json"};if(dialog.ShowDialog(this)!=true)return;try{File.WriteAllText(dialog.FileName,CustomizationProfile.Export(app.Settings));status.Text=Localization.Text("Layout exported");}catch(Exception ex){status.Text=Localization.Text("Could not export layout");app.Store.Log(ex);}}
+    {var dialog=new Microsoft.Win32.SaveFileDialog{Title=Localization.Text("Export NabyScape layout"),Filter=Localization.Text("NabyScape layout")+"|*.json",FileName="NabyScape-layout.json"};if(dialog.ShowDialog(this)!=true)return;try{File.WriteAllText(dialog.FileName,CustomizationProfile.Export(app.Settings,app.UsesLopataEdition?LopataEdition.SharedAppearanceKeys:null));status.Text=Localization.Text("Layout exported");}catch(Exception ex){status.Text=Localization.Text("Could not export layout");app.Store.Log(ex);}}
     private void ImportCustomization()
-    {var dialog=new Microsoft.Win32.OpenFileDialog{Title="Import NabyScape layout",Filter="NabyScape layout|*.json"};if(dialog.ShowDialog(this)!=true)return;try{if(new FileInfo(dialog.FileName).Length>262144)throw new InvalidDataException("Layout file is too large.");CustomizationProfile.Import(File.ReadAllText(dialog.FileName),app.Settings);Save();Navigate(current);status.Text=Localization.Text("Layout imported");}catch(Exception ex){status.Text="Could not import layout. "+ex.Message;app.Store.Log(ex);}}
+    {var dialog=new Microsoft.Win32.OpenFileDialog{Title=Localization.Text("Import NabyScape layout"),Filter=Localization.Text("NabyScape layout")+"|*.json"};if(dialog.ShowDialog(this)!=true)return;try{if(new FileInfo(dialog.FileName).Length>262144)throw new InvalidDataException("Layout file is too large.");CustomizationProfile.Import(File.ReadAllText(dialog.FileName),app.Settings,app.UsesLopataEdition?LopataEdition.SharedAppearanceKeys:null);Save();Navigate(current);status.Text=Localization.Text("Layout imported");}catch(Exception ex){status.Text=Localization.Format("Could not import layout. {0}",Localization.Text(ex.Message));app.Store.Log(ex);}}
 }

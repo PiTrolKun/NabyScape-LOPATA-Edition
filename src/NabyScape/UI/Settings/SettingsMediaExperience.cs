@@ -18,7 +18,7 @@ public sealed partial class SettingsWindow
         var textMode=new ComboBox{ItemsSource=new[]{"Original script","Japanese Romaji · Latin letters"}.Select(Localization.Text).ToArray(),SelectedIndex=s.LyricsTextMode=="Romaji"?1:0};UI.Named(textMode,Localization.Text("Lyrics writing system"));
         textMode.SelectionChanged+=(_,_)=>{s.LyricsTextMode=textMode.SelectedIndex==1?"Romaji":"Original";app.Lyrics.SetTextMode(s.LyricsTextMode);Save();};
         timing.Children.Insert(0,UI.Text(Localization.Text("Lyric text"),11,UI.Muted));timing.Children.Insert(1,textMode);
-        page.Children.Add(Section("Lyrics",LyricsAnimationExample(),Check("Show synced lyrics in the media panel",s.LyricsEnabled,v=>s.LyricsEnabled=v),UI.Text(Localization.Text("Automatic finds timed lyrics across public catalogues using the current title, artist and duration. Choose a source from the Lyrics menu. Romaji is generated offline; availability varies by track."),11,UI.Muted),presets,timing,UI.Text(Localization.Text("The lyrics icon beside playback controls toggles this preference. Slide follows each new line; Focus softly emphasizes it; Karaoke sweeps across the line using line timing. Reduce Motion keeps the text static. Tab to the lyrics button and press Space to show or hide."),11,UI.Muted)));
+        page.Children.Add(Section("Lyrics",LyricsAnimationExample(),Check("Show synced lyrics in the media panel",s.LyricsEnabled,v=>s.LyricsEnabled=v),UI.Caption(app.UsesLopataEdition?"Tracks made in LOPATA use their saved lyrics. Online lookup is available for other tracks. You can also load a local LRC file.":"Automatic finds timed lyrics across public catalogues using the current title, artist and duration. Choose a source from the Lyrics menu. Romaji is generated offline; availability varies by track.",11,UI.Muted),presets,timing,UI.Text(Localization.Text("The lyrics icon beside playback controls toggles this preference. Slide follows each new line; Focus softly emphasizes it; Karaoke sweeps across the line using line timing. Reduce Motion keeps the text static. Tab to the lyrics button and press Space to show or hide."),11,UI.Muted)));
     }
     private FrameworkElement LyricsAnimationExample()
     {
@@ -31,6 +31,13 @@ public sealed partial class SettingsWindow
     }
     private void DockEditingSettings()
     {
+        if (app.UsesLopataEdition)
+        {
+            page.Children.Add(Section("Move & resize", new DockPositionEditor(app, Save),
+                Check("Show island move handle", app.Settings.DockUnlocked, value => app.Settings.DockUnlocked = value),
+                UI.Caption("Drag the top handle to move the island on the current screen. Use the LOPATA settings to change its sizes or screen.", 11, UI.Muted)));
+            return;
+        }
         page.Children.Add(Section("Move & resize",new DockPositionEditor(app,Save),Check("Show island move and resize handles",app.Settings.DockUnlocked,value=>app.Settings.DockUnlocked=value),UI.Text(Localization.Text("Drag the top grip to reposition the island. Drag either lower corner to resize the current state: closed, hover or open panel. Position and each size are saved separately. Hold Alt while the island is focused to reveal handles temporarily; Esc cancels a drag. Dragging down detaches a notch into a pill; a drag that begins as a notch can snap back to the top edge."),11,UI.Muted)));
     }
     private void CompletionSoundSettings()
