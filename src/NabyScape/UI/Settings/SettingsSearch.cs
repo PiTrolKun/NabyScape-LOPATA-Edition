@@ -118,8 +118,8 @@ public sealed partial class SettingsWindow
         if(matches.Length==0){var empty=UI.Caption("No settings found. Try color, dock, lyrics, weather or notifications.",12,UI.Muted);empty.Margin=new(12);settingsResults.Children.Add(empty);}
         foreach(var item in matches)
         {
-            var result=item;var button=UI.Button("Open "+result.Title,()=>OpenSettingsSearchResult(result));button.Background=Brushes.Transparent;button.BorderThickness=new(0);button.Padding=new(12,9,12,9);button.Margin=new(0,1,0,1);button.HorizontalContentAlignment=HorizontalAlignment.Stretch;
-            var labels=new StackPanel();labels.Children.Add(UI.Caption(result.Title,12));var path=UI.Text(CategoryTitle(result.Category)+(result.Section.Length>0?"  /  "+FriendlySection(result.Section):""),10,UI.Muted);path.Margin=new(0,3,0,0);labels.Children.Add(path);button.Content=labels;settingsResults.Children.Add(button);
+            var result=item;var button=UI.Button(Localization.Format("Open {0}",Localization.Text(result.Title)),()=>OpenSettingsSearchResult(result));button.Background=Brushes.Transparent;button.BorderThickness=new(0);button.Padding=new(12,9,12,9);button.Margin=new(0,1,0,1);button.HorizontalContentAlignment=HorizontalAlignment.Stretch;
+            var labels=new StackPanel();labels.Children.Add(UI.Caption(result.Title,12));var path=UI.Text(CategoryTitle(result.Category)+(result.Section.Length>0?"  /  "+Localization.Text(FriendlySection(result.Section)):""),10,UI.Muted);path.Margin=new(0,3,0,0);labels.Children.Add(path);button.Content=labels;settingsResults.Children.Add(button);
         }
         searchResultsHost.Visibility=Visibility.Visible;
     }

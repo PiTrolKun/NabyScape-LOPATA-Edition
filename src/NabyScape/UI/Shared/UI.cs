@@ -49,6 +49,14 @@ internal static class UI
     {AutomationProperties.SetAutomationId(control,english);AutomationProperties.SetName(control,Localization.Text(english));}
     public static string Identity(DependencyObject control)
     {var id=AutomationProperties.GetAutomationId(control);return id.Length>0?id:AutomationProperties.GetName(control);}
+    internal static ComboBox CaptionChoice(System.Collections.Generic.IEnumerable<string> values, string? selected = null)
+    {
+        var choice = new ComboBox { SelectedValuePath = nameof(FrameworkElement.Tag) };
+        foreach (var value in values)
+            choice.Items.Add(new ComboBoxItem { Tag = value, Content = Localization.Text(value) });
+        choice.SelectedValue = selected;
+        return choice;
+    }
     private static readonly object HeadingTag=new();
     public static TextBlock Heading(string text,double size=13,Brush? color=null)
     {var heading=Text(text,size,color);heading.Tag=HeadingTag;heading.FontWeight=App.Current is App app && app.Settings?.BoldHeadings==true?FontWeights.SemiBold:FontWeights.Normal;return heading;}

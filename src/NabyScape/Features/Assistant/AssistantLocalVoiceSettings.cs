@@ -27,7 +27,7 @@ internal sealed partial class AssistantProviderSettings
         enabled.Click+=(_,_)=>{ai.Options.Enabled=!ai.Options.Enabled;SaveConfiguration();RefreshEnabled();enabled.Content=ai.Options.Enabled?Localization.Text("AI companion on"):Localization.Text("Enable AI companion");};
         p.Children.Add(UI.Heading(Localization.Text("How should Naby hear and speak?"),20));
         var intro=UI.Text(Localization.Text("Choose where your voice is processed. Your chat connection supplies the answers."),13,UI.Muted);intro.Margin=new(0,6,0,16);p.Children.Add(intro);
-        var mode=new ComboBox{ItemsSource=new[]{"Online provider","On this PC","External server","My model files"},SelectedIndex=options.Enabled?(options.Managed?(options.OwnModels?3:1):2):0};speechModePicker=mode;
+        var mode=new ComboBox{ItemsSource=new[]{"Online provider","On this PC","External server","My model files"}.Select(Localization.Text).ToArray(),SelectedIndex=options.Enabled?(options.Managed?(options.OwnModels?3:1):2):0};speechModePicker=mode;
         var choices=new Grid{Margin=new(0,0,0,18)};choices.ColumnDefinitions.Add(new());choices.ColumnDefinitions.Add(new());
         var choiceButtons=new System.Collections.Generic.List<Button>();
         string[] titles={"Online provider","On this PC","External server","My model files"};
@@ -35,8 +35,8 @@ internal sealed partial class AssistantProviderSettings
         for(int i=0;i<4;i++)
         {
             if(i%2==0)choices.RowDefinitions.Add(new(){Height=GridLength.Auto});int index=i;
-            var content=new StackPanel();content.Children.Add(UI.Heading(titles[i],15));var caption=UI.Text(captions[i],12,UI.Muted);caption.Margin=new(0,5,0,0);content.Children.Add(caption);
-            var button=UI.Button(titles[i],()=>mode.SelectedIndex=index);button.SetBinding(IsEnabledProperty,new System.Windows.Data.Binding("IsEnabled"){Source=mode});button.Content=content;button.HorizontalContentAlignment=HorizontalAlignment.Left;button.Padding=new(16);button.MinHeight=84;button.Margin=new(0,0,i%2==0?10:0,10);button.Tag=new CornerRadius(10);choiceButtons.Add(button);Grid.SetRow(button,i/2);Grid.SetColumn(button,i%2);choices.Children.Add(button);
+            var content=new StackPanel();content.Children.Add(UI.Heading(Localization.Text(titles[i]),15));var caption=UI.Caption(captions[i],12,UI.Muted);caption.Margin=new(0,5,0,0);content.Children.Add(caption);
+            var button=UI.CaptionButton(titles[i],()=>mode.SelectedIndex=index);button.SetBinding(IsEnabledProperty,new System.Windows.Data.Binding("IsEnabled"){Source=mode});button.Content=content;button.HorizontalContentAlignment=HorizontalAlignment.Left;button.Padding=new(16);button.MinHeight=84;button.Margin=new(0,0,i%2==0?10:0,10);button.Tag=new CornerRadius(10);choiceButtons.Add(button);Grid.SetRow(button,i/2);Grid.SetColumn(button,i%2);choices.Children.Add(button);
         }
         UI.Named(choices,Localization.Text("Voice processing location"));p.Children.Add(choices);
         var realtimeHelp=new StackPanel();realtimeHelp.Children.Add(UI.Heading(Localization.Text("Online voice"),17));Label(realtimeHelp,"Voice provider",voiceProvider);
@@ -44,16 +44,16 @@ internal sealed partial class AssistantProviderSettings
         realtimeHelp.Children.Add(AssistantWindow.Pill(Localization.Text("Configure provider"),()=>{SelectSetupSection("Chat");connectionEditor.IsExpanded=true;}));p.Children.Add(realtimeHelp);
         var automatic=AutomaticSpeechSettings(mode);p.Children.Add(automatic);var own=OwnSpeechSettings(mode);p.Children.Add(own);
         var local=new StackPanel();
-        void SpeechMode(){for(int i=0;i<choiceButtons.Count;i++){bool selected=i==mode.SelectedIndex;choiceButtons[i].SetResourceReference(Control.BackgroundProperty,selected?"SelectionFill":"ControlFill");if(choiceButtons[i].Content is StackPanel card && card.Children[0] is TextBlock heading)heading.Text=titles[i]+(selected?" · Selected":"");System.Windows.Automation.AutomationProperties.SetHelpText(choiceButtons[i],selected?"Selected voice source":"Choose this voice source");}own.Visibility=mode.SelectedIndex==3?Visibility.Visible:Visibility.Collapsed;local.Visibility=mode.SelectedIndex==2?Visibility.Visible:Visibility.Collapsed;automatic.Visibility=mode.SelectedIndex==1?Visibility.Visible:Visibility.Collapsed;realtimeHelp.Visibility=mode.SelectedIndex==0?Visibility.Visible:Visibility.Collapsed;}
+        void SpeechMode(){for(int i=0;i<choiceButtons.Count;i++){bool selected=i==mode.SelectedIndex;choiceButtons[i].SetResourceReference(Control.BackgroundProperty,selected?"SelectionFill":"ControlFill");if(choiceButtons[i].Content is StackPanel card && card.Children[0] is TextBlock heading)heading.Text=selected?Localization.Format("{0} · Selected",Localization.Text(titles[i])):Localization.Text(titles[i]);System.Windows.Automation.AutomationProperties.SetHelpText(choiceButtons[i],Localization.Text(selected?"Selected voice source":"Choose this voice source"));}own.Visibility=mode.SelectedIndex==3?Visibility.Visible:Visibility.Collapsed;local.Visibility=mode.SelectedIndex==2?Visibility.Visible:Visibility.Collapsed;automatic.Visibility=mode.SelectedIndex==1?Visibility.Visible:Visibility.Collapsed;realtimeHelp.Visibility=mode.SelectedIndex==0?Visibility.Visible:Visibility.Collapsed;}
         mode.SelectionChanged+=(_,_)=>SpeechMode();SpeechMode();
-        var tier=new ComboBox{ItemsSource=new[]{"Light · CPU","Balanced · CPU / GPU","Quality · about 8 GB VRAM"},SelectedItem=options.Tier};Label(local,"Hardware template",tier);
+        var tier=UI.CaptionChoice(new[]{"Light · CPU","Balanced · CPU / GPU","Quality · about 8 GB VRAM"},options.Tier);Label(local,"Hardware template",tier);
         var info=UI.Text(Localization.Text("Templates are starting points, not hardware guarantees. Speech services run separately and use additional RAM/VRAM. A local chat model shares that budget."),10,UI.Muted);local.Children.Add(info);
         var advanced=new StackPanel();
         var asrProtocol=new ComboBox{ItemsSource=new[]{"WhisperCpp","OpenAI-compatible"},SelectedItem=options.AsrProtocol};Label(advanced,"ASR server type",asrProtocol);
         var asrUrl=UI.Input(Localization.Text("Local ASR URL"),options.AsrUrl);Label(advanced,"ASR base URL · localhost",asrUrl);
         var asrModel=new ComboBox{IsEditable=true,IsTextSearchEnabled=true,StaysOpenOnEdit=true,ItemsSource=new[]{"tiny","base","small","medium","large-v3-turbo"},Text=options.AsrModel};Label(local,"Listening model · choose or paste an ASR model ID",asrModel);UI.Named(asrModel,Localization.Text("Local ASR model"));
         local.Children.Add(UI.Text(Localization.Text("Suggested model names; this list does not mean they are installed. The model must match the one loaded by your local server."),10,UI.Muted));
-        var tts=new ComboBox{ItemsSource=new[]{"Windows voice","Kokoro / compatible","Piper / compatible"},SelectedItem=options.TtsEngine};Label(local,"Text-to-speech engine",tts);
+        var tts=UI.CaptionChoice(new[]{"Windows voice","Kokoro / compatible","Piper / compatible"},options.TtsEngine);Label(local,"Text-to-speech engine",tts);
         var ttsUrl=UI.Input(Localization.Text("Local TTS URL"),options.TtsUrl);Label(advanced,"TTS base URL · localhost",ttsUrl);
         var speechModels=new StackPanel();local.Children.Add(speechModels);
         var ttsModel=new ComboBox{IsEditable=true,IsTextSearchEnabled=true,StaysOpenOnEdit=true,ItemsSource=new[]{"kokoro"},Text=options.TtsModel};Label(speechModels,"Speaking model · paste the ID from your TTS server",ttsModel);UI.Named(ttsModel,Localization.Text("Local TTS model"));
@@ -66,8 +66,8 @@ internal sealed partial class AssistantProviderSettings
         tts.SelectionChanged+=(_,_)=>TtsFields();TtsFields();
         tier.SelectionChanged+=(_,_)=>
         {
-            if(tier.SelectedIndex==0){asrProtocol.SelectedItem="WhisperCpp";asrUrl.Text="http://127.0.0.1:8080/";asrModel.Text="tiny";tts.SelectedItem="Windows voice";}
-            else{asrProtocol.SelectedItem="OpenAI-compatible";asrUrl.Text="http://127.0.0.1:8178/v1/";asrModel.Text=tier.SelectedIndex==1?"small":"large-v3-turbo";tts.SelectedItem="Kokoro / compatible";ttsUrl.Text="http://127.0.0.1:8880/v1/";ttsModel.Text="kokoro";voice.Text="af_heart";}
+            if(tier.SelectedIndex==0){asrProtocol.SelectedItem="WhisperCpp";asrUrl.Text="http://127.0.0.1:8080/";asrModel.Text="tiny";tts.SelectedValue="Windows voice";}
+            else{asrProtocol.SelectedItem="OpenAI-compatible";asrUrl.Text="http://127.0.0.1:8178/v1/";asrModel.Text=tier.SelectedIndex==1?"small":"large-v3-turbo";tts.SelectedValue="Kokoro / compatible";ttsUrl.Text="http://127.0.0.1:8880/v1/";ttsModel.Text="kokoro";voice.Text="af_heart";}
         };
         local.Children.Add(new Expander{Header=Localization.Text("Server addresses & microphone tuning"),Content=advanced,Margin=new(0,12,0,10)});
         local.Children.Add(UI.Text(Localization.Text("2 · Start your local speech service"),14));
@@ -108,7 +108,7 @@ internal sealed partial class AssistantProviderSettings
             if(mode.SelectedIndex==1){saveManagedPack?.Invoke();return;}if(mode.SelectedIndex==3){_=saveOwnModels?.Invoke();return;}
             try
             {
-                var current=ai.Options.LocalVoice;var next=new AssistantLocalVoiceOptions{Enabled=mode.SelectedIndex==2,Managed=false,OwnModels=false,OwnAsrEngine=current.OwnAsrEngine,OwnAsrPath=current.OwnAsrPath,OwnTtsEngine=current.OwnTtsEngine,OwnTtsPath=current.OwnTtsPath,OwnSpeaker=current.OwnSpeaker,ManagedAsr=current.ManagedAsr,ManagedTts=current.ManagedTts,ManagedGpu=current.ManagedGpu,SpeechPreference=current.SpeechPreference,SpeechLanguage=current.SpeechLanguage,Tier=tier.SelectedItem as string??"Light · CPU",AsrProtocol=asrProtocol.SelectedItem as string??"WhisperCpp",AsrUrl=asrUrl.Text.Trim(),AsrModel=asrModel.Text.Trim(),TtsEngine=tts.SelectedItem as string??"Windows voice",TtsUrl=ttsUrl.Text.Trim(),TtsModel=ttsModel.Text.Trim(),Voice=voice.Text.Trim(),SilenceMs=(int)silence.Value,Sensitivity=sensitivity.Value};
+                var current=ai.Options.LocalVoice;var next=new AssistantLocalVoiceOptions{Enabled=mode.SelectedIndex==2,Managed=false,OwnModels=false,OwnAsrEngine=current.OwnAsrEngine,OwnAsrPath=current.OwnAsrPath,OwnTtsEngine=current.OwnTtsEngine,OwnTtsPath=current.OwnTtsPath,OwnSpeaker=current.OwnSpeaker,ManagedAsr=current.ManagedAsr,ManagedTts=current.ManagedTts,ManagedGpu=current.ManagedGpu,SpeechPreference=current.SpeechPreference,SpeechLanguage=current.SpeechLanguage,Tier=tier.SelectedValue as string??"Light · CPU",AsrProtocol=asrProtocol.SelectedItem as string??"WhisperCpp",AsrUrl=asrUrl.Text.Trim(),AsrModel=asrModel.Text.Trim(),TtsEngine=tts.SelectedValue as string??"Windows voice",TtsUrl=ttsUrl.Text.Trim(),TtsModel=ttsModel.Text.Trim(),Voice=voice.Text.Trim(),SilenceMs=(int)silence.Value,Sensitivity=sensitivity.Value};
                 next.StreamReplies=current.StreamReplies;
                 if(next.Enabled){LocalAssistantVoice.Endpoint(next.AsrUrl);if(next.TtsEngine!="Windows voice")LocalAssistantVoice.Endpoint(next.TtsUrl);if(next.AsrModel.Length>160 || next.TtsModel.Length>160 || next.Voice.Length>160)throw new InvalidOperationException("Model and voice IDs must be at most 160 characters.");}
                 ai.Options.LocalVoice=next;if(!SaveConfiguration("Voice setup")){speechStatus.Text=status.Text;return;}speechStatus.Text=Localization.Text("Voice setup saved. Open Voice mode and choose Start conversation.");

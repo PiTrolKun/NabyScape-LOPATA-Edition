@@ -37,15 +37,16 @@ public sealed partial class SettingsWindow
         bool glass=MaterialResult.Actual=="Simulated glass";SettingsTheme.Apply(light,MaterialResult.Native || glass);
         // Retain native blur beneath a tint so secondary text stays readable.
         Background=Accessibility.HighContrast?SystemColors.WindowBrush:MaterialResult.Native?SettingsTheme.WindowFill:glass?IslandSurface.Material(light?"#E6EAE2":"#111214"):UI.Brush(light?"#F3F5F0":"#111214");
-        materialStatus.Text=MaterialResult.Status+" Native materials apply to Settings only. The island preview keeps its existing material.";
+        materialStatus.Text=Localization.Format("Requested: {0}. Actual: {1}. {2}",Localization.Text(MaterialResult.Requested),Localization.Text(MaterialResult.Actual),MaterialResult.HResult<0?Localization.Format("DWM could not enable the material (0x{0:X8}).",MaterialResult.HResult):Localization.Text(MaterialResult.Reason));
+        if(MaterialResult.Native || MaterialResult.Requested != MaterialResult.Actual) materialStatus.Text+=" "+Localization.Text("Native materials apply only to the Settings window.");
         // Repaint retained examples once after the HWND composition change settles;
         // do not rebuild controls or attach a continuous rendering callback.
         Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle,()=>{if(IsVisible)foreach(var scene in settingExamples)scene.InvalidateVisual();});
     }
     private void MaterialControls()
     {
-        var choice=new ComboBox{ItemsSource=SettingsBackdrop.Choices,SelectedItem=SettingsBackdrop.Requested(app.Settings)};UI.Named(choice,Localization.Text("Settings material"));
-        choice.SelectionChanged+=(_,_)=>{app.Settings.SettingsMaterial=choice.SelectedItem?.ToString()??"";ApplyMaterial();Save();};
+        var choice=UI.CaptionChoice(SettingsBackdrop.Choices,SettingsBackdrop.Requested(app.Settings));UI.Named(choice,Localization.Text("Settings material"));
+        choice.SelectionChanged+=(_,_)=>{app.Settings.SettingsMaterial=choice.SelectedValue?.ToString()??"";ApplyMaterial();Save();};
         page.Children.Add(Section("Settings material",choice,materialStatus,UI.Text(Localization.Text("Mica is an opaque wallpaper/theme-based foundation. Acrylic is a translucent system blur. This illustration is schematic; see the Settings window itself for the active material. Island glass and its shaped corners remain unchanged."),11,UI.Muted)));
     }
 }

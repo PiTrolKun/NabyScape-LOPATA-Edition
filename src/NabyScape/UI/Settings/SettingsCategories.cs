@@ -29,7 +29,7 @@ public sealed partial class SettingsWindow
         new("Application","General","App","Manage startup, updates, local data and app preferences.","general startup update version install storage data reset backup mulai windows")
     };
     private static SettingsCategory Category(string id)=>SettingsCategories.FirstOrDefault(c=>c.Id==id)??SettingsCategories[0];
-    private static string CategoryTitle(string id)=>Localization.Text(Category(id).Title);
+    internal static string CategoryTitle(string id)=>Localization.Text(Category(id).Title);
     private static string CategoryId(string title)=>SettingsCategories.FirstOrDefault(c=>c.Title==title || Localization.Text(c.Title)==title)?.Id??title;
     private static string SettingsRoot(string id)=>id switch{"Ambience" or "Motion"=>"Appearance","Visibility"=>"Controls","Clipboard"=>"Content","Notifications"=>"Application",_=>id};
     private static string FriendlySection(string title)=>title switch

@@ -34,7 +34,7 @@ internal sealed partial class AssistantProviderSettings
             catch(Exception ex){feedback.Text=ex is OperationCanceledException?Localization.Text("Test cancelled or timed out. Microphone and test engines are closed."):"Test needs attention · "+ex.Message;Feedback(feedback.Text,true);}
             finally{ai.EndSpeechCheck();pending.Dispose();pending=null;foreach(Button button in actions.Children)button.IsEnabled=true;}
         }
-        foreach(var item in new[]{("Test microphone","microphone"),("Test transcription","transcription"),("Play sample","sample")}){string kind=item.Item2;actions.Children.Add(AssistantWindow.Pill(item.Item1,()=>_=Run(kind)));}
+        foreach(var item in new[]{("Test microphone","microphone"),("Test transcription","transcription"),("Play sample","sample")}){string kind=item.Item2;actions.Children.Add(AssistantWindow.Pill(Localization.Text(item.Item1),()=>_=Run(kind)));}
         actions.Children.Add(AssistantWindow.Pill(Localization.Text("Cancel test"),()=>pending?.Cancel()));body.Children.Add(actions);body.Children.Add(feedback);
         testSelectedMicrophone=()=>_=Run("microphone");
         body.Unloaded+=(_,_)=>pending?.Cancel();body.IsVisibleChanged+=(_,_)=>{if(!body.IsVisible)pending?.Cancel();};var expander=new Expander{Header=Localization.Text("Test microphone & speech"),Content=body,Margin=new(0,12,0,8)};UI.Named(expander,Localization.Text("Speech checks"));return expander;

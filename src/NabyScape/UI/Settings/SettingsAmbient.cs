@@ -23,11 +23,11 @@ public sealed partial class SettingsWindow
     }
     private FrameworkElement PremiumChoice(string name,string value,string[] values,Action<string> change)
     {
-        var choice=new ComboBox{ItemsSource=values,SelectedItem=value,MinHeight=32,Margin=new(0,4,0,10)};UI.Named(choice,name);
-        choice.SelectionChanged+=(_,_)=>{if(choice.SelectedItem is string selected){change(selected);Save();}};
+        var choice=UI.CaptionChoice(values,value);choice.MinHeight=32;choice.Margin=new(0,4,0,10);UI.LocalizedName(choice,name);
+        choice.SelectionChanged+=(_,_)=>{if(choice.SelectedValue is string selected){change(selected);Save();}};
         if(name.StartsWith("Quiet hours"))return choice;
         string label=name switch{"Ambient scope"=>"Where the light appears","Ambient color source"=>"Color source","Cover palette"=>"Album colors","Ambient audio response"=>"React to music","Ambient movement"=>"Light movement","Interaction feedback"=>"Hover & click feedback","Dock side"=>"Dock position",_=>name};
-        var field=new StackPanel();var caption=UI.Text(label,11,UI.Muted);caption.Margin=new(0,4,0,0);field.Children.Add(caption);field.Children.Add(choice);return field;
+        var field=new StackPanel();var caption=UI.Caption(label,11,UI.Muted);caption.Margin=new(0,4,0,0);field.Children.Add(caption);field.Children.Add(choice);return field;
     }
     private void AmbientSettings()
     {
@@ -38,7 +38,8 @@ public sealed partial class SettingsWindow
         foreach(var pair in Settings.Names.Where(p=>p.Key!="tools").Concat(new[]{new System.Collections.Generic.KeyValuePair<string,string>("ai","AI companion")}))
         {
             string id=pair.Key;
-            widgets.Children.Add(Check(pair.Value+" ambient",s.AmbientWidgets.Contains(id),v=>{if(v){if(!s.AmbientWidgets.Contains(id))s.AmbientWidgets.Add(id);}else s.AmbientWidgets.Remove(id);}));
+            string label=Localization.Format("Ambient light for {0}",Localization.Text(pair.Value));
+            widgets.Children.Add(Check(label,s.AmbientWidgets.Contains(id),v=>{if(v){if(!s.AmbientWidgets.Contains(id))s.AmbientWidgets.Add(id);}else s.AmbientWidgets.Remove(id);}));
         }
         var selected=new Expander{Header=Localization.Text("Choose widgets"),Content=widgets,Margin=new(0,0,0,12),Visibility=s.AmbientScope=="Selected widgets"?Visibility.Visible:Visibility.Collapsed};
         controls.Children.Add(PremiumChoice("Ambient scope",s.AmbientScope,new[]{"All widgets","Music only","Selected widgets"},v=>{s.AmbientScope=v;selected.Visibility=v=="Selected widgets"?Visibility.Visible:Visibility.Collapsed;}));controls.Children.Add(selected);
@@ -78,9 +79,9 @@ public sealed partial class SettingsWindow
         var from=new StackPanel{Margin=new(0,0,6,0)};from.Children.Add(UI.Text(Localization.Text("From · local time"),11,UI.Muted));from.Children.Add(PremiumChoice("Quiet hours start",hours[s.QuietStart],hours,v=>s.QuietStart=Array.IndexOf(hours,v)));
         var to=new StackPanel{Margin=new(6,0,0,0)};to.Children.Add(UI.Text(Localization.Text("Until"),11,UI.Muted));to.Children.Add(PremiumChoice("Quiet hours end",hours[s.QuietEnd],hours,v=>s.QuietEnd=Array.IndexOf(hours,v)));Grid.SetColumn(to,1);schedule.Children.Add(from);schedule.Children.Add(to);controls.Children.Add(schedule);
         controls.Children.Add(UI.Text(Localization.Text("Quiet hours silence Naby notifications and completion sounds. A matching start and end disables the schedule. Windows notifications from other apps are unaffected."),11,UI.Muted));
-        var snoozeStatus=UI.Text("",11,UI.Muted);void Status()=>snoozeStatus.Text=s.NotificationsSnoozedUntil is {} until && until>DateTimeOffset.UtcNow?"Snoozed until "+until.ToLocalTime().ToString("HH:mm"):"Notifications are not snoozed.";Status();controls.Children.Add(snoozeStatus);
+        var snoozeStatus=UI.Text("",11,UI.Muted);void Status()=>snoozeStatus.Text=s.NotificationsSnoozedUntil is {} until && until>DateTimeOffset.UtcNow?Localization.Format("Snoozed until {0}",until.ToLocalTime().ToString("HH:mm")):Localization.Text("Notifications are not snoozed.");Status();controls.Children.Add(snoozeStatus);
         var actions=new WrapPanel();
-        foreach(int minutes in new[]{15,30,60})actions.Children.Add(UI.Button("Snooze "+minutes+" min",()=>{s.NotificationsSnoozedUntil=DateTimeOffset.UtcNow.AddMinutes(minutes);app.Notifications.Clear();Save();Status();}));
+        foreach(int minutes in new[]{15,30,60})actions.Children.Add(UI.Button(Localization.Format("Snooze {0} min",minutes),()=>{s.NotificationsSnoozedUntil=DateTimeOffset.UtcNow.AddMinutes(minutes);app.Notifications.Clear();Save();Status();}));
         actions.Children.Add(UI.Button(Localization.Text("Resume notifications"),()=>{s.NotificationsSnoozedUntil=null;Save();Status();}));controls.Children.Add(actions);
         controls.Children.Add(UI.Text(Localization.Text("Snooze ends automatically. It does not stop Timer or Focus. Resume removes the snooze; any scheduled quiet hours still apply."),11,UI.Muted));
         page.Children.Add(Section("Notification presentation",controls));

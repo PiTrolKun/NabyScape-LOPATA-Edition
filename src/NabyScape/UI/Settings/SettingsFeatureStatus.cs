@@ -25,7 +25,7 @@ public sealed partial class SettingsWindow
         {
             var row=new DockPanel{Margin=new(0,0,0,16)};var action=UI.CaptionButton("Open",open);action.MinWidth=116;action.VerticalAlignment=VerticalAlignment.Center;action.Margin=new(16,0,0,0);DockPanel.SetDock(action,Dock.Right);row.Children.Add(action);
             var text=new StackPanel();var state=UI.Text("",14);state.FontWeight=FontWeights.SemiBold;text.Children.Add(state);var detail=UI.Text("",12,UI.Muted);detail.Margin=new(0,5,0,0);text.Children.Add(detail);row.Children.Add(text);group.Children.Add(row);
-            void Update(){var value=assess();Motion.Text(state,title+" · "+value.State);Motion.Text(detail,value.Detail);action.Content=Localization.Text(value.Action);UI.Named(action,value.Action);}
+            void Update(){var value=assess();Motion.Text(state,Localization.Text(title)+" · "+Localization.Text(value.State));Motion.Text(detail,Localization.Text(value.Detail));action.Content=Localization.Text(value.Action);UI.LocalizedName(action,value.Action);}
             homeStatusUpdates.Add(Update);Update();
         }
         Row("Music",()=>!app.Settings.MediaIntegrationEnabled?("Off","Music apps are disconnected. Playback in your music app is unaffected.","Enable music"):

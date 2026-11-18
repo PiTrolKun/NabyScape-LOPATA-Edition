@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -69,6 +70,35 @@ internal static class LopataLanguageDiagnostics
             Require(Diagnostics.Descendants(settings).OfType<ComboBox>().Any(choice => !choice.IsEnabled &&
                 System.Windows.Automation.AutomationProperties.GetName(choice) == Localization.Text("Interface language")),
                 "Island settings respect the language selected in LOPATA");
+            var previousDetailMode = app.Settings.SettingsShowAll;
+            app.Settings.SettingsShowAll = true;
+            foreach (var category in new[] { "Home", "Appearance", "Ambience", "Motion", "Layout", "Visibility", "Controls", "Content",
+                "Clipboard", "Audio", "Weather", "System", "Launch", "AI", "Notifications", "Application" })
+            {
+                settings.OpenCategory(category);
+                settings.UpdateLayout();
+                File.WriteAllLines(Path.Combine(directory, "settings-" + category + ".txt"), SettingsCaptions(settings).Distinct());
+                if (category == "Ambience")
+                {
+                    var captions = SettingsCaptions(settings).ToArray();
+                    Require(captions.Contains("Где показывать подсветку") && captions.Contains("Все виджеты") &&
+                        captions.Contains("Смешение цветов обложки") && captions.Contains("Добавляет мягкое цветное свечение за виджетами."),
+                        "Native settings translate the label, inactive list options and help text");
+                    var scope = SettingsElements(settings).OfType<ComboBox>().Single(choice => UI.Identity(choice) == "Ambient scope");
+                    var previous = scope.SelectedValue;
+                    scope.SelectedValue = "Selected widgets";
+                    settings.UpdateLayout();
+                    for (int i = 0; i < 20 && app.Store.Load<Settings>("settings").AmbientScope != "Selected widgets"; i++)
+                        await Task.Delay(50);
+                    Require(app.Settings.AmbientScope == "Selected widgets" && app.Store.Load<Settings>("settings").AmbientScope == "Selected widgets",
+                        "Selecting a translated option saves its original setting value");
+                    scope.SelectedValue = previous;
+                    scope.BringIntoView();
+                    settings.UpdateLayout();
+                    Capture(settings, "ambience-ru");
+                }
+            }
+            app.Settings.SettingsShowAll = previousDetailMode;
             settings.Close();
 
             var timerNotice = new InternalNotice("timer", "Timer finished", "Your timer has finished.");
@@ -79,7 +109,9 @@ internal static class LopataLanguageDiagnostics
             var custom = new System.Collections.Generic.Dictionary<string, string>
             {
                 ["nothing playing"] = "ПЕРЕВОД ПОЛЬЗОВАТЕЛЯ",
-                ["Overview"] = "МОЙ ОБЗОР"
+                ["Overview"] = "МОЙ ОБЗОР",
+                ["Where the light appears"] = "МОЯ ПОДПИСЬ ПОДСВЕТКИ",
+                ["All widgets"] = "МОЙ СПИСОК ВИДЖЕТОВ"
             };
             for (int i = 0; i < 800; i++) custom["fixture" + i] = new string('Ж', 72);
             IslandPreferences.SaveJson("language.json", new IslandLanguage("ru-RU", custom));
@@ -94,6 +126,12 @@ internal static class LopataLanguageDiagnostics
             Require(!ReferenceEquals(island, translated) && HasText(translated, custom["nothing playing"]),
                 "The running island shows the new title. Visible labels: " + string.Join(" | ",
                     Diagnostics.Descendants(translated).OfType<TextBlock>().Where(label => label.IsVisible).Select(label => label.Text)));
+            app.ShowSettings("Ambience");
+            var customSettings = app.Windows.Cast<Window>().OfType<SettingsWindow>().Single();
+            var customCaptions = SettingsCaptions(customSettings).ToArray();
+            Require(customCaptions.Contains(custom["Where the light appears"]) && customCaptions.Contains(custom["All widgets"]),
+                "User translations override native settings and options from the shared dictionary");
+            customSettings.Close();
 
             IslandPreferences.SaveJson("language.json", new IslandLanguage("en", new()));
             for (int i = 0; i < 20 && Localization.Language != "en"; i++) await Task.Delay(100);
@@ -117,6 +155,27 @@ internal static class LopataLanguageDiagnostics
             image.Frames.Add(BitmapFrame.Create(bitmap));
             using var file = File.Create(Path.Combine(directory, name + ".png"));
             image.Save(file);
+        }
+    }
+
+    private static IEnumerable<DependencyObject> SettingsElements(DependencyObject node)
+    {
+        yield return node;
+        if (node is not FrameworkElement and not FrameworkContentElement) yield break;
+        foreach (var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>())
+            foreach (var item in SettingsElements(child)) yield return item;
+    }
+
+    private static IEnumerable<string> SettingsCaptions(DependencyObject root)
+    {
+        foreach (var node in SettingsElements(root))
+        {
+            if (node is TextBlock { Text.Length: > 0 } text) yield return text.Text;
+            if (node is HeaderedContentControl { Header: string header }) yield return header;
+            if (node is ContentControl { Content: string caption }) yield return caption;
+            if (node is FrameworkElement { ToolTip: string tip }) yield return tip;
+            if (node is ComboBox combo)
+                foreach (var option in combo.Items.OfType<string>()) yield return option;
         }
     }
 }

@@ -28,7 +28,7 @@ internal sealed partial class AssistantProviderSettings
         var check=ai.ChatSetupFor(saved);connectionStatus.Text=check.Title+"\n"+check.Detail;connectionStatus.Foreground=check.Verified?UI.Brush("#A9CDBD"):UI.Muted;
     }
     private (string,string,string,string,bool,bool,string,string,string,string) ReadDraftIdentity()
-        =>(name.Text.Trim(),url.Text.Trim(),model.Text.Trim(),protocol.SelectedItem?.ToString()??"",imageInput,imageOutput,realtimeUrl.Text.Trim(),realtimeModel.Text.Trim(),realtimeProtocol.SelectedItem?.ToString()??"",voiceName.Text.Trim());
+        =>(name.Text.Trim(),url.Text.Trim(),model.Text.Trim(),protocol.SelectedValue?.ToString()??"",imageInput,imageOutput,realtimeUrl.Text.Trim(),realtimeModel.Text.Trim(),realtimeProtocol.SelectedValue?.ToString()??"",voiceName.Text.Trim());
     private static (string,string,string,string,bool,bool,string,string,string,string) ReadSavedIdentity(AssistantProvider p)
         =>(p.Name,p.BaseUrl,p.Model,p.Protocol,p.Vision,p.ImageOutput,p.RealtimeUrl,p.RealtimeModel,p.RealtimeProtocol,p.Voice);
     private void InitializeModelPicker(Panel page)

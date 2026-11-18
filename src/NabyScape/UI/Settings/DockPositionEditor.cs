@@ -44,7 +44,7 @@ internal sealed class DockPositionEditor : UserControl
         double left=(screen.WorkingArea.Width/scale-s.Width)*s.Horizontal/100,top=side?(height-s.Height)*s.DockVertical/100:bottom?height-s.Height-s.DockInset:s.Top;
         if(side)left=s.DockEdge=="Left"?s.DockInset:screen.WorkingArea.Width/scale-s.Width-s.DockInset;
         double off=side?s.DockVertical-50:s.Horizontal-50;alignment.Text=Math.Abs(off)<.05?Localization.Text("Centered on this screen"):$"{Math.Abs(off):0.#}% {(side?(off<0?"above":"below"):(off<0?"left of":"right of"))} center";alignment.Foreground=Math.Abs(off)<.05?UI.Brush("#A4CEC0"):UI.Muted;
-        coordinates.Text=$"Left {left:0} px · Top {top:0} px · {scale*100:0}% display scaling";syncing=false;Draw();
+        coordinates.Text=Localization.Format("Left {0:0} px · Top {1:0} px · {2:0}% display scaling",left,top,scale*100);syncing=false;Draw();
     }
     private void Drag(Point point)
     {

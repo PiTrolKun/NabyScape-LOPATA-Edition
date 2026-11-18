@@ -19,7 +19,7 @@ internal sealed partial class AssistantProviderSettings
             foreach(var item in buttons)
             {
                 bool active=item.Key==id;item.Value.SetResourceReference(Control.BackgroundProperty,active?"SelectionFill":"ControlFill");
-                System.Windows.Automation.AutomationProperties.SetHelpText(item.Value,active?"Current voice settings page":"Open "+item.Key);
+                System.Windows.Automation.AutomationProperties.SetHelpText(item.Value,active?Localization.Text("Current voice settings page"):Localization.Format("Open {0} settings",Localization.Text(item.Key)));
             }
         }
         selectVoicePage=Select;
@@ -30,12 +30,12 @@ internal sealed partial class AssistantProviderSettings
         };
         void Add(string id,string title,string icon,Func<FrameworkElement> build)
         {
-            var button=AssistantControls.Action(title,icon,()=>Select(id));button.Margin=new(0,0,6,6);button.MinHeight=40;buttons[id]=button;navigation.Children.Add(button);
+            var button=AssistantControls.Action(Localization.Text(title),icon,()=>Select(id));button.Margin=new(0,0,6,6);button.MinHeight=40;buttons[id]=button;navigation.Children.Add(button);
             var content=build();content.Visibility=Visibility.Collapsed;pages[id]=content;host.Children.Add(content);
         }
         FrameworkElement Direct(string title,string subtitle,FrameworkElement element)
         {
-            var body=new StackPanel();body.Children.Add(UI.Heading(title,20));var hint=UI.Text(subtitle,13,UI.Muted);hint.Margin=new(0,6,0,18);body.Children.Add(hint);
+            var body=new StackPanel();body.Children.Add(UI.Heading(Localization.Text(title),20));var hint=UI.Caption(subtitle,13,UI.Muted);hint.Margin=new(0,6,0,18);body.Children.Add(hint);
             if(element is Expander expander)
             {
                 // Keep the existing lifecycle and refresh handlers, without a second navigation gate.

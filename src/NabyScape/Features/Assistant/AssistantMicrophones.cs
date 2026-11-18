@@ -13,6 +13,7 @@ namespace NabyScape;
 internal sealed record AssistantMicrophone(string Id,string Name,int Number)
 {
     public override string ToString()=>Name;
+    public string DisplayName=>Id.Length==0?Localization.Text(Name):Name;
 }
 
 internal static class AssistantMicrophones
@@ -56,7 +57,7 @@ internal sealed partial class AssistantProviderSettings
     {
         var body=new StackPanel{Margin=new(0,0,0,18)};
         body.Children.Add(UI.Text(Localization.Text("Microphone"),14));
-        var input=new ComboBox{MinHeight=38,Margin=new(0,8,0,8)};UI.Named(input,Localization.Text("Input microphone"));body.Children.Add(input);
+        var input=new ComboBox{DisplayMemberPath=nameof(AssistantMicrophone.DisplayName),MinHeight=38,Margin=new(0,8,0,8)};UI.Named(input,Localization.Text("Input microphone"));body.Children.Add(input);
         var feedback=UI.Text("",11,UI.Muted);Accessibility.Live(feedback);
         bool loading=false;
         void Refresh()
@@ -65,7 +66,7 @@ internal sealed partial class AssistantProviderSettings
             try
             {
                 input.ItemsSource=AssistantMicrophones.List();input.SelectedItem=input.Items.Cast<AssistantMicrophone>().FirstOrDefault(d=>d.Id==ai.Options.MicrophoneId);
-                feedback.Text=input.SelectedItem==null?Localization.Text("Saved microphone unavailable. Reconnect it or choose an input."):"Selected: "+input.SelectedItem+" · used for voice, wake word and audio tests.";
+                feedback.Text=input.SelectedItem is AssistantMicrophone device?Localization.Format("Selected: {0} · used for voice, wake word and audio tests.",device.DisplayName):Localization.Text("Saved microphone unavailable. Reconnect it or choose an input.");
             }
             catch(Exception){feedback.Text=Localization.Text("Could not list microphones. Check Windows sound settings, then refresh.");}
             finally{loading=false;}

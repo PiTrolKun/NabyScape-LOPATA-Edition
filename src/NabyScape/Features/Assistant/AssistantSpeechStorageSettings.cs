@@ -25,7 +25,7 @@ internal sealed partial class AssistantProviderSettings
         body.Children.Add(UI.Text(Localization.Text("Windows voices are managed in Windows Settings. Model files you imported from another folder stay in their original location and are not deleted here."),10,UI.Muted));
         void Add(string id,string name,bool tts)
         {
-            var row=new StackPanel();row.Children.Add(UI.Text((tts?"TTS · ":"ASR · ")+name,12));
+            var row=new StackPanel();row.Children.Add(UI.Text(Localization.Format(tts?"Speech synthesis · {0}":"Speech recognition · {0}",Localization.Text(name)),12));
             var detail=UI.Text("",11,UI.Muted);detail.Margin=new(0,4,0,8);row.Children.Add(detail);
             var remove=AssistantWindow.Pill(Localization.Text("Uninstall"),()=>{});remove.HorizontalAlignment=HorizontalAlignment.Left;UI.Named(remove,"Uninstall "+name);
             remove.Click+=async(_,_)=>

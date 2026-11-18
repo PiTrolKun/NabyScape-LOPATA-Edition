@@ -16,6 +16,7 @@ internal sealed record SpeechModelFile(string Path,SpeechAsset Asset);
 internal sealed record SpeechAsrModel(string Id,string Name,double RamGb,double FreeGb,double GpuGb,SpeechAsset Asset,string Engine="whisper",string Folder="",string Language="multi",SpeechModelFile[]? Files=null,string Info="",string SourcePath="")
 {
     public override string ToString()=>Name;
+    public string DisplayName=>Localization.Text(Name);
     internal bool Native=>Engine!="whisper";
     internal long DownloadBytes=>Files?.Sum(f=>f.Asset.Bytes)??Asset.Bytes;
     internal bool Supports(string language)=>Language=="multi" || Language==language;
@@ -23,6 +24,7 @@ internal sealed record SpeechAsrModel(string Id,string Name,double RamGb,double 
 internal sealed record SpeechTtsModel(string Id,string Name,string Path,long Bytes,string Hash,string ConfigHash,string CardHash,SpeechAsset? Package=null,string Locale="",int Speaker=0,double FreeGb=.4,string Engine="piper",string Folder="",string Info="",string SourcePath="")
 {
     public override string ToString()=>Name;
+    public string DisplayName=>Localization.Text(Name);
     internal bool Supports(string language)=>Language is "any" or "multi" || Language==language;
     internal string Language=>Locale.Length>0?Locale:Id.StartsWith("id_")?"id":Id.StartsWith("es_")?"es":Id.StartsWith("en_")?"en":"any";
 }

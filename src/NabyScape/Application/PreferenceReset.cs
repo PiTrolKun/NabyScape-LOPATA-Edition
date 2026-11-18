@@ -46,8 +46,8 @@ internal static class PreferenceReset
             "Application"=>"update checks and automatic downloads, interface language, text size and contrast",
             _=>"update checks, notification delivery and download monitoring"
         };
-        string detail=category==null?string.Join("; ",Categories.Where(pair=>pair.Value.Length>0).Select(pair=>pair.Key+": "+Detail(pair.Key))):Detail(category);
-        return $"Reset {(category??"all preferences")} to defaults ({Keys(category).Length} preferences): {detail}. Startup, clipboard capture/history, shortcuts, Notes, Tasks, shelf, calendar and activity targets are kept. A preference backup is saved first.";
+        string detail=category==null?string.Join("; ",Categories.Where(pair=>pair.Value.Length>0).Select(pair=>SettingsWindow.CategoryTitle(pair.Key)+": "+Localization.Text(Detail(pair.Key)))):Localization.Text(Detail(category));
+        return Localization.Format("Reset {0} to defaults ({1} preferences): {2}. Startup, clipboard capture/history, shortcuts, Notes, Tasks, shelf, calendar and activity targets are kept. A preference backup is saved first.",category is null?Localization.Text("all preferences"):SettingsWindow.CategoryTitle(category),Keys(category).Length,detail);
     }
     private static string[] Keys(string? category)=>category==null?Categories.Values.SelectMany(v=>v).Where(key=>key!=nameof(Settings.ClipboardHistory)).Distinct().ToArray():Categories[category];
     internal static void Reset(Store store,Settings target,string? category)
