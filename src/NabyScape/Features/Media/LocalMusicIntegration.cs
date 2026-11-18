@@ -12,7 +12,9 @@ internal sealed record MusicPlaybackState(LocalMusicTrack? Track, string Title, 
 /// <summary>The library and transport shared by the island and a future local music assistant.</summary>
 internal interface ILocalMusicTransport
 {
-    Task<IReadOnlyList<LocalMusicTrack>> TracksAsync(LocalMusicSource source, string folder, CancellationToken token);
+    Task<IReadOnlyList<LocalMusicTrack>> TracksAsync(LocalMusicSource source, string folder, CancellationToken token,
+        bool requestCollectionRefresh = true);
+    Task<IReadOnlyList<LocalMusicTrack>> SavedCollectionAsync(CancellationToken token);
     Task<bool> PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack> queue, CancellationToken token = default);
     MusicPlaybackState CurrentMusic { get; }
     Task Command(string command);
@@ -23,8 +25,18 @@ public sealed partial class MediaService
 {
     private readonly LocalMusicLibrary library;
     private LocalMusicPlayback? localPlayback;
-    private LocalMusicTrack[] localQueue = [];
-    private int localIndex;
+    private LocalMusicQueue localQueue = new();
+    private LocalPlaybackOrder playbackOrder;
+    internal event Action<string>? LocalNavigationFailed;
+
+    private void ConfigurePlaybackOrder(LocalPlaybackOrder order)
+    {
+        if (playbackOrder == order) return;
+        playbackOrder = order;
+        if (localPlayback is not { } active) return;
+        localQueue.Reorder(active.Track, order);
+        PublishLocal();
+    }
     private CancellationTokenSource? openingLocal;
 
     internal static string LocalSourceId(LocalMusicSource source) =>
@@ -47,12 +59,16 @@ public sealed partial class MediaService
         }
     }
 
-    Task<IReadOnlyList<LocalMusicTrack>> ILocalMusicTransport.TracksAsync(LocalMusicSource source, string folder, CancellationToken token) =>
-        Task.Run(() => library.Read(source, folder, token), token);
+    Task<IReadOnlyList<LocalMusicTrack>> ILocalMusicTransport.TracksAsync(LocalMusicSource source, string folder,
+        CancellationToken token, bool requestCollectionRefresh) =>
+        Task.Run(() => library.Read(source, folder, token, requestCollectionRefresh), token);
+
+    Task<IReadOnlyList<LocalMusicTrack>> ILocalMusicTransport.SavedCollectionAsync(CancellationToken token) =>
+        Task.Run(library.ReadSavedCollection, token);
 
     Task<bool> ILocalMusicTransport.PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack> queue, CancellationToken token) => PlayLocalAsync(track, queue, token);
 
-    private async Task<bool> PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack> queue, CancellationToken token = default)
+    private async Task<bool> PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack>? queue, CancellationToken token = default)
     {
         if (disposed || DiagnosticFixture) return false;
         if (!System.IO.File.Exists(track.Path))
@@ -82,9 +98,8 @@ public sealed partial class MediaService
             localPlayback?.Dispose();
             localPlayback = candidate;
             candidate = null;
-            localQueue = queue.ToArray();
-            localIndex = Array.IndexOf(localQueue,track);
-            if (localIndex < 0) { localQueue = [track]; localIndex = 0; }
+            if (queue is not null) localQueue.Start(queue, track, playbackOrder);
+            else localQueue.MoveTo(track);
             sourceSelection.Select(LocalSourceId(track.Source));
             var active = localPlayback;
             active.Ended += () => FinishLocalTrack(active);
@@ -115,10 +130,17 @@ public sealed partial class MediaService
 
     private async void FinishLocalTrack(LocalMusicPlayback completed)
     {
-        if (localPlayback != completed) return;
+        if (localPlayback != completed || openingLocal is not null) return;
+        if (playbackOrder == LocalPlaybackOrder.RepeatTrack)
+        {
+            completed.Seek(0);
+            completed.Play();
+            PublishLocal();
+            return;
+        }
+
         PublishLocal();
-        if (localIndex + 1 < localQueue.Length)
-            await PlayLocalAsync(localQueue[localIndex + 1], localQueue);
+        await NavigateLocalAsync(localQueue.Next);
     }
 
     private void PublishLocal()
@@ -130,18 +152,18 @@ public sealed partial class MediaService
         Playing = active.Playing;
         CanToggle = true;
         CanSeek = active.Timeline().duration > 0;
-        CanPrevious = localIndex > 0;
-        CanNext = localIndex + 1 < localQueue.Length;
+        CanPrevious = localQueue.Previous is not null;
+        CanNext = localQueue.Next is not null;
         Changed?.Invoke();
     }
 
     private async Task LocalCommand(string command)
     {
         if (localPlayback is not { } active) return;
-        if (command == "next" && localIndex + 1 < localQueue.Length)
-            await PlayLocalAsync(localQueue[localIndex + 1], localQueue);
-        else if (command == "previous" && localIndex > 0)
-            await PlayLocalAsync(localQueue[localIndex - 1], localQueue);
+        if (command == "next")
+            await NavigateLocalAsync(localQueue.Next);
+        else if (command == "previous")
+            await NavigateLocalAsync(localQueue.Previous);
         else if (command == "toggle")
         {
             if (active.Playing) active.Pause();
@@ -155,11 +177,18 @@ public sealed partial class MediaService
         }
     }
 
+    private async Task NavigateLocalAsync(LocalMusicTrack? track)
+    {
+        if (track is null || openingLocal is not null) return;
+        if (!await PlayLocalAsync(track, null) && LocalOpenError is { } message)
+            LocalNavigationFailed?.Invoke(message);
+    }
+
     private void StopLocalSource()
     {
         openingLocal?.Cancel();
         localPlayback?.Dispose();
         localPlayback = null;
-        localQueue = [];
+        localQueue = new();
     }
 }

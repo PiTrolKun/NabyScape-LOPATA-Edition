@@ -14,46 +14,28 @@ internal sealed record LocalMusicTrack(string Path, LocalMusicSource Source)
     public string Name => System.IO.Path.GetFileNameWithoutExtension(Path);
 }
 
-internal sealed class LocalMusicLibrary
+internal sealed class LocalMusicLibrary : IDisposable
 {
     private const int MaximumTracks = CollectionSnapshot.MaxEntries;
     private static readonly HashSet<string> AudioExtensions = new(StringComparer.OrdinalIgnoreCase)
         { ".wav", ".mp3", ".flac", ".opus", ".ogg", ".m4a", ".aac", ".wma", ".aif", ".aiff" };
     private readonly string collectionRoot;
-    private readonly bool includeDefaultMusic;
+    private readonly LopataMusicIndex index;
 
-    internal LocalMusicLibrary(string? collectionRoot = null)
+    internal LocalMusicLibrary(string? collectionRoot = null, string? profile = null)
     {
         this.collectionRoot = collectionRoot ?? CollectionPaths.DefaultDirectory;
-        includeDefaultMusic = collectionRoot is null;
+        index = new(this.collectionRoot, Path.Combine(profile ?? collectionRoot ?? LopataEdition.ProfileDirectory,
+            "lopata-music-index.json"), collectionRoot is null);
     }
 
-    internal IReadOnlyList<LocalMusicTrack> Read(LocalMusicSource source, string folder, CancellationToken token)
-    {
-        if (source == LocalMusicSource.Folder) return ReadFolder(folder, token);
-        var configuration = CollectionConfig.Load(collectionRoot);
-        if (configuration.Enabled)
-        {
-            try
-            {
-                CollectionFiles.WriteAtomic(Path.Combine(collectionRoot, "refresh.request"),
-                    System.Text.Encoding.ASCII.GetBytes(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
-        }
+    internal IReadOnlyList<LocalMusicTrack> Read(LocalMusicSource source, string folder, CancellationToken token,
+        bool requestCollectionRefresh = true) =>
+        source == LocalMusicSource.Folder ? ReadFolder(folder, token) : index.Refresh(requestCollectionRefresh, token);
 
-        // Known locations and completed exports are available even on a machine without the Explorer worker.
-        var defaultMusic = includeDefaultMusic ? new[] { Environment.GetFolderPath(Environment.SpecialFolder.MyMusic) } : [];
-        var roots = configuration.Roots.Concat(defaultMusic)
-            .Where(Path.IsPathFullyQualified).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var local = configuration with { Roots = roots, SearchEnabled = false };
-        using var scanner = new CollectionScanner();
-        var checkedPaths = scanner.Scan(collectionRoot, local, token).Items.Select(item => item.Path);
-        var snapshot = configuration.Enabled
-            ? CollectionPublication.ReadCurrent(collectionRoot, CollectionPublication.Revision(configuration)) : [];
-        return MakeList(snapshot.Select(item => item.Path).Concat(checkedPaths)
-            .Where(path => CollectionFilePolicy.IsAllowed(path, configuration)), source, token);
-    }
+    internal IReadOnlyList<LocalMusicTrack> ReadSavedCollection() => index.ReadSaved();
+    internal static bool IsAudioPath(string path) => AudioExtensions.Contains(Path.GetExtension(path));
+    public void Dispose() => index.Dispose();
 
     internal bool IsLopata(string path) => CollectionOriginReader.Read(path) is not null ||
         CollectionJournal.TryResolveOrigin(path, collectionRoot) is not null;
@@ -79,7 +61,7 @@ internal sealed class LocalMusicLibrary
         foreach (var path in candidates)
         {
             token.ThrowIfCancellationRequested();
-            if (!Path.IsPathFullyQualified(path) || !AudioExtensions.Contains(Path.GetExtension(path)) || !seen.Add(path)) continue;
+            if (!Path.IsPathFullyQualified(path) || !IsAudioPath(path) || !seen.Add(path)) continue;
             try
             {
                 var info = new FileInfo(path);

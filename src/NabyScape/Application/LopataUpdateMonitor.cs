@@ -20,9 +20,9 @@ internal sealed record LopataUpdateCache(string Executable, PublishedUpdateVersi
 internal sealed class LopataUpdateMonitor(
     Func<LopataUpdateTarget?> readTarget,
     Func<LopataUpdateTarget, CancellationToken, Task<UpdateOffer?>> check,
-    Action<Exception> log) : IDisposable
+    Action<Exception> log, TimeProvider? clock = null) : IDisposable
 {
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(5);
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(4) };
     private readonly CancellationTokenSource stop = new();
     private DateTimeOffset nextCheck;
@@ -37,6 +37,7 @@ internal sealed class LopataUpdateMonitor(
 
     internal void Start()
     {
+        if (disposed || backgroundEnabled) return;
         backgroundEnabled = true;
         timer.Tick += Poll;
         timer.Start();
@@ -50,30 +51,17 @@ internal sealed class LopataUpdateMonitor(
         if (disposed) return;
         try
         {
-            var target = readTarget();
-            if (target != Target)
-            {
-                var before = Target;
-                Target = target;
-                if (before is null || target is null || !SameChannel(before, target))
-                    Versions = target is null ? [] : Load(target);
-                if (target?.Channel is not null) SetVersions(target, Versions);
-                nextCheck = default;
-                Status = target is null ? "LOPATA installation could not be found"
-                    : target.Channel is null ? "Choose an update channel in LOPATA"
-                    : "LOPATA update check pending";
-                Changed?.Invoke();
-            }
+            var target = RefreshTarget();
             if (target?.Channel is null || Checking ||
-                (!manual && (!backgroundEnabled || !target.Automatic || DateTimeOffset.UtcNow < nextCheck))) return;
+                (!manual && (!backgroundEnabled || !target.Automatic || Now < nextCheck))) return;
             Checking = true;
-            nextCheck = DateTimeOffset.UtcNow + CheckInterval;
+            nextCheck = Now + CheckInterval;
             Status = "Checking LOPATA updates";
             Changed?.Invoke();
             try
             {
                 var offer = await check(target, stop.Token);
-                if (disposed || target != Target) return;
+                if (disposed || target != RefreshTarget()) return;
                 SetVersions(target, Versions.Concat(offer?.PublishedVersions ?? []).ToArray());
                 Status = "LOPATA update check complete";
             }
@@ -94,6 +82,25 @@ internal sealed class LopataUpdateMonitor(
             Status = "Could not check LOPATA updates";
             Changed?.Invoke();
         }
+    }
+
+    private DateTimeOffset Now => (clock ?? TimeProvider.System).GetUtcNow();
+
+    private LopataUpdateTarget? RefreshTarget()
+    {
+        var target = readTarget();
+        if (target == Target) return target;
+        var before = Target;
+        Target = target;
+        if (before is null || target is null || !SameChannel(before, target))
+            Versions = target is null ? [] : Load(target);
+        if (target?.Channel is not null) SetVersions(target, Versions);
+        nextCheck = default;
+        Status = target is null ? "LOPATA installation could not be found"
+            : target.Channel is null ? "Choose an update channel in LOPATA"
+            : "LOPATA update check pending";
+        Changed?.Invoke();
+        return target;
     }
 
     private static bool SameChannel(LopataUpdateTarget left, LopataUpdateTarget right) =>
@@ -138,29 +145,39 @@ internal sealed class LopataUpdateMonitor(
 internal sealed class LopataInstalledUpdateProbe
 {
     private string? lastExecutable;
-    private (DateTime DllWritten, DateTime JournalWritten, long DllLength, long JournalLength) lastStamp;
+    private ((DateTime Written, long Size) Assembly, (DateTime Written, long Size) Journal,
+        (DateTime Written, long Size) Manifest) lastStamp;
     private string? lastVersion;
 
     internal LopataUpdateTarget? Read()
     {
-        var registered = InstalledUpdateState.Read();
-        var executable = LopataEdition.HostExecutable(registered);
+        var registration = InstalledUpdateState.Read();
+        var executable = registration is null ? LopataEdition.HostExecutable()
+            : Path.Combine(registration.AppDirectory, "AIHub.exe");
         if (executable is null) return null;
-        var directory = Path.GetDirectoryName(executable)!;
-        var dll = new FileInfo(Path.Combine(directory, "AIHub.dll"));
-        var state = string.Equals(directory, registered?.AppDirectory.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)
-            ? registered : null;
-        var journal = state is null ? null : new FileInfo(Path.Combine(state.StateDirectory, "transaction.json"));
-        var stamp = (dll.LastWriteTimeUtc, journal?.LastWriteTimeUtc ?? default, dll.Exists ? dll.Length : 0,
-            journal?.Exists == true ? journal.Length : 0);
+        var assembly = new FileInfo(Path.Combine(Path.GetDirectoryName(executable)!, "AIHub.dll"));
+        var directory = registration?.StateDirectory;
+        var journal = directory is null ? null : new FileInfo(Path.Combine(directory, "transaction.json"));
+        var installed = directory is null ? null : new FileInfo(Path.Combine(directory, "installed.signed.json"));
+        var stamp = (Stamp(assembly), Stamp(journal), Stamp(installed));
         if (executable != lastExecutable || stamp != lastStamp)
         {
-            var version = dll.Exists ? FileVersionInfo.GetVersionInfo(dll.FullName).ProductVersion : null;
-            if (version is not null && version.EndsWith("-dev", StringComparison.Ordinal)) version = version[..^4];
-            if (state is not null && journal?.Exists == true &&
-                new UpdateTransaction(state.Roots(), UpdateReleaseKeys.Trusted, state.StateDirectory).ReadJournal() is
-                    { Phase: not (UpdatePhase.Healthy or UpdatePhase.RolledBack) } pending)
-                version = pending.Previous?.Verify(UpdateReleaseKeys.Trusted).Version;
+            string? version = assembly.Exists ? FileVersionInfo.GetVersionInfo(assembly.FullName).ProductVersion : null;
+            if (version?.EndsWith("-dev", StringComparison.Ordinal) == true) version = version[..^4];
+            if (registration is not null)
+            {
+                if (journal?.Exists == true &&
+                    new UpdateTransaction(registration.Roots(), UpdateReleaseKeys.Trusted, directory!).ReadJournal() is
+                        { Phase: not (UpdatePhase.Healthy or UpdatePhase.RolledBack) } pending)
+                    version = pending.Previous?.Verify(UpdateReleaseKeys.Trusted).Version;
+                else if (version is not null && installed?.Exists == true)
+                {
+                    SafeUpdatePath.RejectLinks(installed.FullName);
+                    if (installed.Length > SignedManifest.MaximumEnvelopeBytes)
+                        throw new InvalidDataException("Oversized installed update manifest.");
+                    version = SignedManifest.Read(File.ReadAllBytes(installed.FullName)).Verify(UpdateReleaseKeys.Trusted).Version;
+                }
+            }
             lastVersion = PublishedUpdateCatalog.VersionFromTag(version);
             lastExecutable = executable;
             lastStamp = stamp;
@@ -180,4 +197,7 @@ internal sealed class LopataInstalledUpdateProbe
         }
         return new(executable, lastVersion, channel, automatic);
     }
+
+    private static (DateTime Written, long Size) Stamp(FileInfo? file) =>
+        file?.Exists == true ? (file.LastWriteTimeUtc, file.Length) : default;
 }

@@ -36,7 +36,7 @@ internal static class OwnedPopupPolicy
 
 public sealed partial class OverlayWindow
 {
-    private bool OwnedPopupOpen=>localMusicWindow?.IsVisible==true || sessions.IsDropDownOpen || audioMenu?.IsOpen==true || MinimalWidgets.MenuOpen(this) || LyricsSourcesControl.MenuOpen || OwnedPopupPolicy.CaptureOwnedBy(this);
+    private bool OwnedPopupOpen=>localMusicWindow?.IsVisible==true || sessions.IsDropDownOpen || audioMenu?.IsOpen==true || islandExitMenu?.IsOpen==true || MinimalWidgets.MenuOpen(this) || LyricsSourcesControl.MenuOpen || OwnedPopupPolicy.CaptureOwnedBy(this);
 }
 
 internal static class OwnedPopupTests

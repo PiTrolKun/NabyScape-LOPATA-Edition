@@ -92,6 +92,7 @@ public sealed partial class App : Application
         var culture=System.Globalization.CultureInfo.GetCultureInfo("en-US");
         System.Globalization.CultureInfo.DefaultThreadCurrentCulture=culture;
         System.Globalization.CultureInfo.DefaultThreadCurrentUICulture=culture;
+        if (!IslandRestart.WaitForPrevious(args)) { Environment.ExitCode = 1; return; }
         if (Array.Exists(args, a => a is "--update-handoff" or "--install" or "--uninstall" or "--widget-mcp")) return;
         if(WindowFixture.TryRun(args))return;
         if(Array.Exists(args,a=>a=="--exit")) {try {using var signal=EventWaitHandle.OpenExisting(LopataEdition.Instance + ".Exit");signal.Set();}catch(WaitHandleCannotBeOpenedException){}return;}
@@ -133,9 +134,11 @@ public sealed partial class App : Application
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         bool languageFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-language-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
-        UsesLopataEdition = !diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture;
+        bool restartFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-restart-only") &&
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
+        UsesLopataEdition = !diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture || restartFixture;
         if (UsesLopataEdition) PrepareLopataSettings();
-        if (musicFixture || languageFixture || lopataFixture || updatesFixture) Settings.MediaIntegrationEnabled = false;
+        if (musicFixture || languageFixture || lopataFixture || updatesFixture || restartFixture) Settings.MediaIntegrationEnabled = false;
         if (musicFixture) Settings.LyricsEnabled = false;
         if(isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
         InitializeLopataUpdates();
@@ -149,7 +152,7 @@ public sealed partial class App : Application
         Motion.Configure(Settings);
         Session=diagnosticPath==null?Store.Load<SessionState>("session"):new SessionState();Session.Timer??=new();Session.Stopwatch??=new();Session.Stopwatch.Recover();
         DispatcherUnhandledException+=(_,args)=> { Store.Log(args.Exception);args.Handled=true;Notify("Something went wrong", "The operation failed. Details were saved to errors.log."); };
-        Audio=new(Store.Log){SpectrumEnabled=Settings.WaveformSource=="Spectrum"};Media=new(Store.Log,musicFixture ? Path.Combine(diagnosticPath!,"collection") : null);Media.Configure(Settings);Productivity=new(Store,Store.Log,diagnosticPath==null);Productivity.SetClipboardEnabled(Settings.ClipboardHistory);
+        Audio=new(Store.Log){SpectrumEnabled=Settings.WaveformSource=="Spectrum"};Media=new(Store.Log,musicFixture ? Path.Combine(diagnosticPath!,"collection") : null, Store.DirectoryPath);Media.Configure(Settings);Productivity=new(Store,Store.Log,diagnosticPath==null);Productivity.SetClipboardEnabled(Settings.ClipboardHistory);
         AmbientAudio=new(this);Weather=new(Store);
         Brightness=new();Brightness.Start(diagnosticPath==null && Settings.ReactiveFeedback && Settings.BrightnessFeedback);
         Calendar=new(Store);Awake=new();
@@ -179,6 +182,7 @@ public sealed partial class App : Application
         menu.Items.Add(support);
         AddTray(LopataEdition.OpenCaption, LopataEdition.OpenHost);
         AddTray(LopataEdition.LayerCaption, ToggleLopataLayer);
+        AddTray(LopataEdition.RestartCaption, RestartIsland);
         AddTray(LopataEdition.CloseCaption, Quit);
         tray.ContextMenuStrip=menu;tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowSettings);
         overlay=new OverlayWindow(this);MainWindow=overlay;StartupTrace.Attach(overlay,e.Args,Store.Log);overlay.Show();Previews=new(this,overlay.OpenFeaturePage);
@@ -190,6 +194,7 @@ public sealed partial class App : Application
         void ConfigureExternal()=>ExternalNotifications?.Configure(Settings.ExternalNotifications && !diagnosticMode);
         SettingsChanged+=ConfigureExternal;ConfigureExternal();
         ConfigureDownloads();
+        Media.LocalNavigationFailed += message => Notify(Localization.Text("Media"), Localization.Text(message));
         Media.Changed+=()=>{Lyrics.ObserveTrack(Media);PublishUpdate(RuntimeChange.Media);};
         Audio.Changed+=()=>{PrivateDiagnostics.SetServiceState(DiagnosticService.Audio,Audio.Available?DiagnosticServiceState.Ready:DiagnosticServiceState.Degraded);PublishUpdate(RuntimeChange.Audio);};
         Productivity.Changed+=()=>PublishUpdate(RuntimeChange.Productivity);Calendar.Changed+=()=>PublishUpdate(RuntimeChange.Calendar);
@@ -226,6 +231,7 @@ public sealed partial class App : Application
         else if(lopataFixture) _=LopataEditionDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(updateDiagnostics is not null) _=updateDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(languageFixture) _=LopataLanguageDiagnostics.Run(this,diagnosticPath!);
+        else if(restartFixture) _=RunIslandRestartDiagnostics(overlay, diagnosticPath!, e.Args);
         else if(diagnosticPath!=null) _=Diagnostics.Run(this,overlay,diagnosticPath);
         else
         {
@@ -265,6 +271,29 @@ public sealed partial class App : Application
     }
     public void Notify(string title,string text)
     { PostNotice(new("failure",title,text)); }
+    private bool restarting;
+    internal void RestartIsland()
+    {
+        if (quitting || restarting) return;
+        restarting = true;
+        try
+        {
+            FlushPreferenceEditors();
+            var executable = Environment.ProcessPath ?? throw new IOException("The running island executable is unavailable.");
+            using var current = System.Diagnostics.Process.GetCurrentProcess();
+            using var replacement = IslandRestart.StartReplacement(executable, current, restartDiagnosticArguments);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException
+            or System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            restarting = false;
+            Store.Log(error);
+            MessageBox.Show(Localization.Text("Could not restart the island."), LopataEdition.Name);
+            return;
+        }
+        Quit();
+    }
+
     public void Quit()
     { quitting=true;Shutdown(); }
     protected override void OnExit(ExitEventArgs e)

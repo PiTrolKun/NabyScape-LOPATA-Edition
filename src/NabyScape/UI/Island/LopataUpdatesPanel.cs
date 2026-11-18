@@ -38,7 +38,7 @@ public partial class App
         var check = UI.CaptionButton("Check for updates", () => { _ = LopataUpdates.RefreshAsync(manual: true); });
         var actions = new WrapPanel();
         actions.Children.Add(check);
-        actions.Children.Add(UI.CaptionButton(LopataEdition.OpenCaption, LopataEdition.OpenHost));
+        actions.Children.Add(UI.CaptionButton(LopataEdition.OpenCaption, () => LopataEdition.OpenHost(LopataUpdates.Target?.Executable)));
         var panel = new StackPanel { Margin = new(16) };
         panel.Children.Add(installed);
         status.Margin = new(0, 6, 0, 8);

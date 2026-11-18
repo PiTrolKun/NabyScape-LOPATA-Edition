@@ -327,5 +327,6 @@
   "RecentColors": [],
   "NotificationsSnoozedUntil": null,
   "HomeWidget": "media",
+  "PlaybackOrder": 0,
   "LocalMusicFolder": ""
 }

@@ -66,6 +66,7 @@ internal static class LopataMusicDiagnostics
             Check(files.Any(t => t.Name=="External") && files.Any(t => t.Name=="Copied") && files.All(t => t.Path.StartsWith(folder, StringComparison.OrdinalIgnoreCase)),
                 "separate folder finds marked and unmarked files outside Windows Search");
 
+            await CheckSavedCollection(directory, token, Check);
             using var fake = new CountingLyrics();
             using var lyrics = new LyricsService(fake);
             lyrics.SelectedSource = "LRCLIB";
@@ -157,6 +158,17 @@ internal static class LopataMusicDiagnostics
             Check(heart.ActualWidth==textButton.ActualWidth && heart.ActualHeight==textButton.ActualHeight &&
                 Equals(heart.Tag,textButton.Tag) && Equals(heart.Background,textButton.Background),
                 "favorite and open lyrics buttons use the same circular background");
+            var orderButton = Diagnostics.Descendants(row).OfType<Button>().Single(button =>
+                AutomationProperties.GetAutomationId(button) == "Playback order");
+            var orderCenter = orderButton.TranslatePoint(new Point(orderButton.ActualWidth/2, orderButton.ActualHeight/2), row);
+            Check(orderButton.IsVisible && orderButton.IsEnabled && orderCenter.X > right.X &&
+                orderCenter.X + orderButton.ActualWidth / 2 <= row.ActualWidth + .5, "The order button fits to the right of lyrics");
+            foreach (string expected in new[] { "Shuffle", "Repeat track", "Play in order" })
+            {
+                orderButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Check(AutomationProperties.GetItemStatus(orderButton) == Localization.Text(expected),
+                    "One press chooses " + expected);
+            }
             Check(AutomationProperties.GetItemStatus(heart) == "Off","a track starts with an empty favorite icon");
             heart.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent,heart));
             Check(AutomationProperties.GetItemStatus(heart) == "On" && new LocalMusicLists(app.Store).Favorites.Single()==primary,
@@ -201,6 +213,7 @@ internal static class LopataMusicDiagnostics
             Check(local.CurrentMusic.Track==queue[0],"previous goes back in the local queue");
             await Play(files.Single(t => t.Name=="Opus"),files);
             await CheckLists(app,island,directory,token,Check);
+            await CheckPlaybackModes(app, local, files, token, Check);
             app.Media.SelectNone();
             Check(local.CurrentMusic.Track is null && !local.CurrentMusic.Playing, "changing source stops local playback");
             Check(!heart.IsEnabled,"favorite button is unavailable without an addressed local file");
@@ -279,6 +292,101 @@ internal static class LopataMusicDiagnostics
             await Apply(saved);
             island.SelectPage("media", false);
             await Task.Delay(350, token);
+        }
+    }
+
+    private static Task CheckSavedCollection(string directory, CancellationToken token, Action<bool, string> check) => Task.Run(() =>
+    {
+        var stand = Path.Combine(directory, "cache-fixture-" + Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(stand, "songs");
+        var collection = Path.Combine(stand, "collection");
+        var snapshot = Path.Combine(stand, "snapshot.json");
+        Directory.CreateDirectory(root);
+        const int count = 280;
+        var sample = Path.Combine(directory, "known", "ThisPC.flac");
+        for (int number = 0; number < count; number++)
+            File.Copy(sample, Path.Combine(root, $"Track-{number:000}.flac"));
+        new CollectionConfig { Roots = [root], SearchEnabled = false }.Save(collection);
+
+        using (var first = new LopataMusicIndex(collection, snapshot, false))
+        {
+            var timer = Stopwatch.StartNew();
+            check(first.Refresh(false, token).Count == count && first.LastOriginReads == count,
+                "Initial music scan stores all 280 tracks with one origin read each");
+            File.WriteAllText(Path.Combine(directory, "music-cache-timings.txt"), $"Initial scan: {timer.ElapsedMilliseconds} ms.\n");
+        }
+        using var index = new LopataMusicIndex(collection, snapshot, false);
+        var warm = Stopwatch.StartNew();
+        check(index.ReadSaved().Count == count, "A new index instance displays the saved list before a rescan");
+        File.AppendAllText(Path.Combine(directory, "music-cache-timings.txt"), $"Saved list: {warm.ElapsedMilliseconds} ms.\n");
+        check(index.Refresh(false, token).Count == count && index.LastOriginReads == 0,
+            "Revalidating unchanged tracks after restart rereads zero audio files");
+        var removed = Path.Combine(root, "Track-000.flac");
+        var renamed = Path.Combine(root, "Track-001.flac");
+        var replacement = Path.Combine(root, "Renamed.flac");
+        var changed = Path.Combine(root, "Track-002.flac");
+        File.Delete(removed);
+        File.Move(renamed, replacement);
+        File.SetLastWriteTimeUtc(changed, DateTime.UtcNow.AddDays(-2));
+        File.Copy(sample, Path.Combine(root, "Added.flac"));
+        var updated = index.Refresh(false, token);
+        check(updated.Count == count && !updated.Any(track => track.Path == removed || track.Path == renamed)
+            && updated.Any(track => track.Path == replacement) && index.LastOriginReads == 3,
+            "Deletion and rename are reconciled, and only new or changed files reread their origin");
+        var offline = Path.Combine(stand, "disconnected-songs");
+        Directory.Move(root, offline);
+        check(index.Refresh(false, token).Count == count, "A temporarily unavailable source does not erase the cached tracks");
+        Directory.Move(offline, root);
+        check(index.Refresh(false, token).Count == count && index.LastOriginReads == 0, "Reconnecting the source reuses its retained file stamps");
+        File.WriteAllText(snapshot, "{damaged");
+        using var recovery = new LopataMusicIndex(collection, snapshot, false);
+        check(recovery.ReadSaved().Count == 0 && recovery.Refresh(false, token).Count == count && recovery.ReadSaved().Count == count,
+            "A damaged music cache is rebuilt using the original files");
+        var empty = Path.Combine(stand, "new-source");
+        Directory.CreateDirectory(empty);
+        new CollectionConfig { Roots = [empty], SearchEnabled = false }.Save(collection);
+        check(recovery.ReadSaved().Count == 0 && recovery.Refresh(false, token).Count == 0,
+            "Changing the source roots invalidates the old list");
+    }, token);
+
+    private static async Task CheckPlaybackModes(App app, ILocalMusicTransport player, IReadOnlyList<LocalMusicTrack> all,
+        CancellationToken token, Action<bool, string> check)
+    {
+        var tracks = all.Take(3).ToArray();
+        check(tracks.Length == 3 && await player.PlayLocalAsync(tracks[0], tracks, token), "Playback mode fixture opens the first track");
+        await player.Command("toggle");
+        await player.Seek(.35);
+        var paused = player.CurrentMusic;
+        try
+        {
+            app.Settings.PlaybackOrder = LocalPlaybackOrder.Shuffle;
+            app.ChangeSettings();
+            check(!player.CurrentMusic.Playing && player.CurrentMusic.Track == paused.Track &&
+                Math.Abs(player.CurrentMusic.Position - paused.Position) < .2, "Changing order preserves the paused track and position");
+            await player.Command("next");
+            var second = player.CurrentMusic.Track;
+            await player.Command("previous");
+            check(second != tracks[0] && player.CurrentMusic.Track == tracks[0], "Shuffle Previous returns to the played track");
+            await player.Command("next");
+            check(player.CurrentMusic.Track == second, "Shuffle Next follows the same order after going back");
+            await player.Command("next");
+            check(player.CurrentMusic.Track != second && player.CurrentMusic.Track != tracks[0] && !app.Media.CanNext,
+                "Shuffle plays each entry once and stops at the end");
+            app.Settings.PlaybackOrder = LocalPlaybackOrder.RepeatTrack;
+            app.ChangeSettings();
+            check(await player.PlayLocalAsync(tracks[0], tracks, token), "Repeat mode opens a track");
+            await player.Seek(.97);
+            await Task.Delay(350, token);
+            check(player.CurrentMusic.Track == tracks[0] && player.CurrentMusic.Playing &&
+                player.CurrentMusic.Position < player.CurrentMusic.Duration * .8, "The local audio transport really repeats the current track");
+            await player.Command("next");
+            check(player.CurrentMusic.Track == tracks[1] && app.Store.Load<Settings>("settings").PlaybackOrder == LocalPlaybackOrder.RepeatTrack,
+                "Repeat preserves manual Next and saves the mode");
+        }
+        finally
+        {
+            app.Settings.PlaybackOrder = LocalPlaybackOrder.Sequential;
+            app.ChangeSettings();
         }
     }
 

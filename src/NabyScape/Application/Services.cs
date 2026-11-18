@@ -71,14 +71,15 @@ public sealed partial class MediaService : IDisposable, ILocalMusicTransport
     public bool CanPrevious { get; private set; }
     public bool CanSeek { get; private set; }
     public MediaService(Action<Exception> log) : this(log, null) { }
-    internal MediaService(Action<Exception> log, string? collectionRoot)
+    internal MediaService(Action<Exception> log, string? collectionRoot, string? profile = null)
     {
         dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
         this.log = log;
-        library = new LocalMusicLibrary(collectionRoot);
+        library = new LocalMusicLibrary(collectionRoot, profile);
     }
     internal void Configure(Settings settings)
     {
+        ConfigurePlaybackOrder(settings.PlaybackOrder);
         followPlayback=settings.MediaFollowsPlayback;browserPreviews=settings.BrowserMediaPreviews;
         if(excludeBrowserMedia==settings.ExcludeBrowserMedia)return;
         excludeBrowserMedia=settings.ExcludeBrowserMedia;
@@ -260,6 +261,7 @@ public sealed partial class MediaService : IDisposable, ILocalMusicTransport
     public void Dispose()
     {
         disposed=true;generation++;managerGeneration++;StopLocalSource();
+        library.Dispose();
         if(manager!=null) { manager.SessionsChanged-=SessionsChanged;manager.CurrentSessionChanged-=CurrentChanged; }
         if(selected!=null) { selected.MediaPropertiesChanged-=PropertiesChanged;selected.PlaybackInfoChanged-=PlaybackChanged;selected.TimelinePropertiesChanged-=TimelineChanged; }
         foreach(var session in watched)try{session.PlaybackInfoChanged-=AnyPlaybackChanged;}catch { /* Closing never blocks on an expired session. */ }

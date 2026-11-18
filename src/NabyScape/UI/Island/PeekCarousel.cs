@@ -31,6 +31,7 @@ public sealed partial class OverlayWindow
     private Button peekPrevious=null!,peekNext=null!,peekJoin=null!,peekShelfFile=null!,peekMute=null!,peekTrackPrevious=null!,peekTrackNext=null!,peekOutput=null!;
     private Slider peekVolume=null!;
     private string peekId="media";
+    private bool peekPageChosen;
     private StackPanel peekDotStrip=null!;
     private Point? peekDown;
     private bool peekDragging,peekTouching,peekTouchBlocked;
@@ -100,7 +101,7 @@ public sealed partial class OverlayWindow
         peekViewport.ManipulationStarting+=(_,e)=>{if(peekTouchBlocked || PeekGestureBlocked(e.OriginalSource as DependencyObject)){e.Cancel();return;}peekTouching=true;peekSuppressClick=true;peekOffset=0;e.ManipulationContainer=peekViewport;e.Mode=ManipulationModes.TranslateX;PromotePeek();e.Handled=true;};
         peekViewport.ManipulationDelta+=(_,e)=>{if(peekTouching){DragPeek(e.CumulativeManipulation.Translation.X);e.Handled=true;}};
         peekViewport.ManipulationCompleted+=(_,e)=>{if(peekTouching){peekTouching=false;FinishPeekSwipe(peekOffset);e.Handled=true;}};
-        peekViewport.MouseLeftButtonUp+=(_,e)=>{if(peekSuppressClick){peekSuppressClick=false;e.Handled=true;return;}if(!PeekGestureBlocked(e.OriginalSource as DependencyObject)){OpenPeekPage();e.Handled=true;}};
+        peekViewport.MouseLeftButtonUp+=(_,e)=>{if(peekSuppressClick){peekSuppressClick=false;e.Handled=true;return;}if(!PeekGestureBlocked(e.OriginalSource as DependencyObject)){ExpandFromPeek();e.Handled=true;}};
         PreviewKeyDown+=(_,e)=>{if(!peeking || Keyboard.FocusedElement is TextBox or Slider)return;if(e.Key is Key.Left or Key.Right){NavigatePeek(e.Key==Key.Right?1:-1);e.Handled=true;}};
     }
     internal static bool PeekGestureBlocked(DependencyObject? source)
@@ -146,7 +147,7 @@ public sealed partial class OverlayWindow
     private void PromotePeek()
     {if(!peeking)return;detailDelay.Stop();peekDetailed=true;automaticPreview=false;activityDismiss.Stop();ApplyPeekGeometry();UpdateToolPeeks();motion.Go(surface,IslandSurface.SurfaceHeightProperty,PeekExpandedHeight,app.Settings.AnimationMs);}
     internal void SelectPeek(string id)
-    {if(noticeShowing || !peeking || !PeekPages().Contains(id))return;PromotePeek();var ids=PeekPages();int old=Array.IndexOf(ids,peekId),next=Array.IndexOf(ids,id);double start=(next-old)*PeekWidth;if(Math.Abs(next-old)>1){peekId=id;LayoutPeek(0,false);peekViews[id].Opacity=.65;Motion.Fade(peekViews[id],1,160);UpdatePeekDeck();return;}if(next==old){LayoutPeek(0,true);return;}peekId=id;LayoutPeek(start,false);UpdatePeekDeck();LayoutPeek(0,true);WakeLiveRendering();}
+    {if(noticeShowing || !peeking || !PeekPages().Contains(id))return;peekPageChosen=true;PromotePeek();var ids=PeekPages();int old=Array.IndexOf(ids,peekId),next=Array.IndexOf(ids,id);double start=(next-old)*PeekWidth;if(Math.Abs(next-old)>1){peekId=id;LayoutPeek(0,false);peekViews[id].Opacity=.65;Motion.Fade(peekViews[id],1,160);UpdatePeekDeck();return;}if(next==old){LayoutPeek(0,true);return;}peekId=id;LayoutPeek(start,false);UpdatePeekDeck();LayoutPeek(0,true);WakeLiveRendering();}
     internal void NavigatePeek(int direction)
     {var ids=PeekPages();int index=Array.IndexOf(ids,peekId);if(ids.Length>0)SelectPeek(ids[Math.Clamp(index+Math.Sign(direction),0,ids.Length-1)]);}
     private void LayoutPeek(double offset,bool animate)
@@ -165,7 +166,7 @@ public sealed partial class OverlayWindow
     internal void DragPeek(double distance)
     {var ids=PeekPages();int index=Array.IndexOf(ids,peekId);peekOffset=Math.Clamp(distance,-PeekWidth,PeekWidth);if((index==0 && distance>0)||(index==ids.Length-1 && distance<0))peekOffset*=.22;LayoutPeek(Motion.Enabled?peekOffset:0,false);}
     internal void FinishPeekSwipe(double offset)
-    {var ids=PeekPages();int index=Array.IndexOf(ids,peekId);int next=Math.Clamp(index+(offset < -app.Settings.SwipeDistance?1:offset>app.Settings.SwipeDistance?-1:0),0,Math.Max(0,ids.Length-1));if(ids.Length==0)return;peekId=ids[next];LayoutPeek(offset+(next-index)*PeekWidth,false);UpdatePeekDeck();LayoutPeek(0,true);peekOffset=0;WakeLiveRendering();if(!DiagnosticRun && !PointerInside() && !PeekInteractionActive)leaveDelay.Start();}
+    {var ids=PeekPages();int index=Array.IndexOf(ids,peekId);int next=Math.Clamp(index+(offset < -app.Settings.SwipeDistance?1:offset>app.Settings.SwipeDistance?-1:0),0,Math.Max(0,ids.Length-1));if(ids.Length==0)return;if(next!=index)peekPageChosen=true;peekId=ids[next];LayoutPeek(offset+(next-index)*PeekWidth,false);UpdatePeekDeck();LayoutPeek(0,true);peekOffset=0;WakeLiveRendering();if(!DiagnosticRun && !PointerInside() && !PeekInteractionActive)leaveDelay.Start();}
     private void EndPeekGesture(){peekDown=null;peekDragging=peekTouching=false;peekOffset=0;peekWheel.Reset();if(peekViewport.IsMouseCaptured)peekViewport.ReleaseMouseCapture();}
     internal bool RoutePeekWheel(int delta,bool horizontal,DependencyObject? source)
     {
@@ -219,6 +220,12 @@ public sealed partial class OverlayWindow
         peekMediaControls.ColumnDefinitions[1].Width=new(narrow?0:34);
         peekTrackPrevious.Visibility=peekTrackNext.Visibility=narrow?Visibility.Collapsed:Visibility.Visible;
     }
+    internal void ExpandFromPeek()
+    {
+        if (app.UsesLopataEdition && !peekPageChosen) Reveal();
+        else OpenPeekPage();
+    }
+
     internal void OpenPeekPage()
     {
         if(!HoverPagePolicy.Available(app.Settings,peekId))return;

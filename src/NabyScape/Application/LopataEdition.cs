@@ -17,6 +17,7 @@ internal static class LopataEdition
     internal const string StartupName = "LOPATA.NabyScape";
     internal const string OpenCaption = "Open LOPATA";
     internal const string CloseCaption = "Close island";
+    internal const string RestartCaption = "Restart island";
     internal const string LayerCaption = "Above windows";
     internal const string VkUrl = "https://vk.ru/lopata_ai_localhub";
     internal const string YouTubeUrl = "https://youtube.com/@lopata_ai_hub";
@@ -55,11 +56,13 @@ internal static class LopataEdition
         return File.Exists(installed) ? installed : null;
     }
 
-    internal static void OpenHost()
+    internal static void OpenHost() => OpenHost(null);
+
+    internal static void OpenHost(string? executable)
     {
         try
         {
-            var target = HostExecutable() ?? throw new FileNotFoundException();
+            var target = executable ?? HostExecutable() ?? throw new FileNotFoundException();
             // LOPATA routes a second launch to its existing instance and restores it from the tray.
             Process.Start(new ProcessStartInfo(target) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(target)! })?.Dispose();
         }

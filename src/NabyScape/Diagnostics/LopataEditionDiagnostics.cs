@@ -45,6 +45,16 @@ internal static class LopataEditionDiagnostics
             Capture(island, Path.Combine(directory, "island-open.png"));
 
             await CheckActionToolbar(app, island, directory);
+            var exit = Diagnostics.Descendants(island).OfType<Button>().Single(button =>
+                button.IsVisible && UI.Identity(button) == "Island exit options");
+            exit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Task.Delay(80);
+            var exitMenu = exit.ContextMenu;
+            if (exitMenu?.IsOpen != true || exitMenu.Items.OfType<MenuItem>().Select(item => item.Header).SequenceEqual(
+                new object[] { Localization.Text(LopataEdition.CloseCaption), Localization.Text(LopataEdition.RestartCaption) }) != true)
+                throw new InvalidOperationException("Island exit menu did not present Close and Restart.");
+            exitMenu.IsOpen = false;
+            File.WriteAllText(Path.Combine(directory, "island-exit-menu-check.txt"), "PASS The header opens both localized actions.");
             await CheckScrollEdges(app, island, directory);
             await CheckWorkAndChat(island, directory);
             await LopataSideDockDiagnostics.Check(app,island,directory,Capture);
@@ -86,13 +96,13 @@ internal static class LopataEditionDiagnostics
             island.UpdateLayout();
             var panel = Diagnostics.Descendants(island).OfType<LopataWorkPanel>().Single();
             var navigation = Diagnostics.Descendants(island).OfType<Grid>().Single(grid => Equals(grid.Tag, "panel-navigation"));
-            var close = Find(island, LopataEdition.CloseCaption);
+            var close = Find(island, "Island exit options");
             var tabs = navigation.Children.OfType<ScrollViewer>().Single();
             var closeBounds = close.TransformToAncestor(navigation).TransformBounds(new Rect(close.RenderSize));
             var tabBounds = tabs.TransformToAncestor(navigation).TransformBounds(new Rect(tabs.RenderSize));
             var closeCenter = new Point(closeBounds.Left + closeBounds.Width / 2, closeBounds.Top + closeBounds.Height / 2);
             var closeHit = navigation.InputHitTest(closeCenter) as DependencyObject;
-            if (!close.IsVisible || !close.IsTabStop || !Equals(close.ToolTip, Localization.Text(LopataEdition.CloseCaption)) ||
+            if (!close.IsVisible || !close.IsTabStop || !Equals(close.ToolTip, Localization.Text("Island exit options")) ||
                 close.Parent != navigation || closeBounds.Left < 0 || tabBounds.Left - closeBounds.Right < 12 ||
                 (closeHit != close && (closeHit is null || !close.IsAncestorOf(closeHit))))
                 throw new InvalidOperationException("The close button is not isolated in the leading navigation slot.");

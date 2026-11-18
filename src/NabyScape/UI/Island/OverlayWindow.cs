@@ -196,6 +196,9 @@ public sealed partial class OverlayWindow : Window
                     {
                         var mediaContent = new StackPanel();
                         mediaContent.Children.Add(mediaGrid);
+                        var orderButton = BuildPlaybackOrderButton();
+                        orderButton.Margin = new Thickness(6, 0, 0, 0);
+                        transport.Children.Add(orderButton);
                         mediaContent.Children.Add(transport);
                         card = UI.Card(Localization.Text("Now playing"), BuildMediaControls(mediaContent, includeVolume: false));
                     }
@@ -244,6 +247,7 @@ public sealed partial class OverlayWindow : Window
     }
     public void Collapse()
     {
+        if (islandExitMenu is not null) islandExitMenu.IsOpen = false;
         portraitHoverPointer=null;
         mediaControls?.Close(false);ReleaseRevealOverride();
         shelfDropBrowsing=false;
@@ -339,7 +343,7 @@ public sealed partial class OverlayWindow : Window
         try{
             if((change&(RuntimeChange.Media|RuntimeChange.Settings))!=0)
             {
-            SyncLyrics();SyncFavoriteTrackButton();SwapText(title,app.Media.DisplayTitle);
+            SyncLyrics();SyncFavoriteTrackButton();SyncPlaybackOrderButton();SwapText(title,app.Media.DisplayTitle);
             string subtitle = app.UsesLopataEdition && !app.Media.Available && mediaControls is not null
                 ? Localization.Text(IdleMusicHint) : app.Media.DisplayArtist;
             SwapText(artist, subtitle);

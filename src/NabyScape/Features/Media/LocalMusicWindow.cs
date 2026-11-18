@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace NabyScape;
 
@@ -29,6 +30,7 @@ internal sealed class LocalMusicWindow : Window
     private readonly TextBlock folder = new() { TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBox search = new() { Margin = new(0, 3, 0, 8) };
     private readonly Button play, favorite, chooseFolder;
+    private readonly DispatcherTimer collectionRefresh = new() { Interval = TimeSpan.FromSeconds(10) };
     private CancellationTokenSource? loading, opening;
     private IReadOnlyList<LocalMusicTrack> listing = [];
     private bool closed, playing;
@@ -100,9 +102,21 @@ internal sealed class LocalMusicWindow : Window
         tracks.KeyDown += (_, args) => { if (args.Key == Key.Enter) { args.Handled = true; _ = PlayAsync(); } };
         dock.Children.Add(tracks);
         Content = dock;
-        Loaded += (_, _) => SelectList(activeList);
+        Loaded += (_, _) => { SelectList(activeList); collectionRefresh.Start(); };
+        collectionRefresh.Tick += (_, _) =>
+        {
+            if (IsVisible && activeList == LocalMusicList.Collection && loading is null && !playing)
+                _ = LoadAsync(background: true);
+        };
         app.MusicLists.FavoritesChanged += FavoritesChanged;
-        Closed += (_, _) => { closed = true; loading?.Cancel(); opening?.Cancel(); app.MusicLists.FavoritesChanged -= FavoritesChanged; };
+        Closed += (_, _) =>
+        {
+            closed = true;
+            collectionRefresh.Stop();
+            loading?.Cancel();
+            opening?.Cancel();
+            app.MusicLists.FavoritesChanged -= FavoritesChanged;
+        };
     }
 
     internal static string SourceName(LocalMusicList list) => list switch
@@ -114,7 +128,12 @@ internal sealed class LocalMusicWindow : Window
 
     private void SelectList(LocalMusicList list)
     {
-        if (activeList != list) opening?.Cancel();
+        if (activeList != list)
+        {
+            opening?.Cancel();
+            listing = [];
+            ApplyFilter();
+        }
         activeList = list;
         Title = Localization.Text(SourceName(list));
         try { app.MusicLists.SelectList(list); }
@@ -173,7 +192,7 @@ internal sealed class LocalMusicWindow : Window
         _ = LoadAsync();
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(bool background = false)
     {
         if (closed) return;
         var list = activeList;
@@ -183,17 +202,20 @@ internal sealed class LocalMusicWindow : Window
         string path = app.Settings.LocalMusicFolder ?? "";
         folder.Text = path;
         folder.ToolTip = path;
-        listing = [];
-        ApplyFilter();
-        status.Text = Localization.Text("Reading the music list…");
+        if (!background) status.Text = listing.Count == 0 ? Localization.Text("Reading the music list…") : "";
         try
         {
+            if (list == LocalMusicList.Collection && !background)
+            {
+                var saved = await transport.SavedCollectionAsync(request.Token);
+                if (request.IsCancellationRequested || closed) return;
+                if (saved.Count > 0) ShowTracks(saved);
+            }
             var entries = list == LocalMusicList.Favorites ? app.MusicLists.Favorites :
                 await transport.TracksAsync(list == LocalMusicList.Folder ? LocalMusicSource.Folder : LocalMusicSource.Collection,
-                    path, request.Token);
+                    path, request.Token, requestCollectionRefresh: !background);
             if (request.IsCancellationRequested || closed) return;
-            listing = entries;
-            ApplyFilter();
+            ShowTracks(entries);
             status.Text = listing.Count == 0 ? Localization.Text(list == LocalMusicList.Favorites ? "No favorite tracks yet." : list == LocalMusicList.Folder && path.Length == 0 ?
                 "Choose a folder to see its tracks." : "No playable audio files found.") : "";
         }
@@ -206,6 +228,13 @@ internal sealed class LocalMusicWindow : Window
         {
             if (ReferenceEquals(loading,request)) loading = null;
         }
+    }
+
+    private void ShowTracks(IReadOnlyList<LocalMusicTrack> entries)
+    {
+        if (listing.SequenceEqual(entries)) return;
+        listing = entries;
+        ApplyFilter();
     }
 
     private void ApplyFilter()

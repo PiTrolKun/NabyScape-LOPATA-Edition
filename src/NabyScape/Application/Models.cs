@@ -54,6 +54,7 @@ public sealed partial class Settings
     public bool TwoStageHover { get; set; } = true;
     public double PanelWidth { get; set; }=384;
     public string HomeWidget { get; set; } = "media";
+    public LocalPlaybackOrder PlaybackOrder { get; set; }
     public double PanelMaxHeight { get; set; }=408;
     public double PanelPadding { get; set; }=32;
     public double PanelScale { get; set; }=1;
@@ -131,6 +132,7 @@ public sealed partial class Settings
     {
         NormalizeLanguageAccessibility();
         if (HomeWidget == "focus") HomeWidget = "timer";
+        if (!Enum.IsDefined(PlaybackOrder)) PlaybackOrder = LocalPlaybackOrder.Sequential;
         if(Array.IndexOf(SettingsBackdrop.Choices,SettingsMaterial)<0)SettingsMaterial="";
         if(NotificationDelivery is not ("Notch" or "Windows" or "Both" or "Off"))NotificationDelivery="Notch";
         ExternalNotificationMuted=(ExternalNotificationMuted??new()).Where(n=>!string.IsNullOrWhiteSpace(n)).Select(n=>n.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Take(100).ToList();

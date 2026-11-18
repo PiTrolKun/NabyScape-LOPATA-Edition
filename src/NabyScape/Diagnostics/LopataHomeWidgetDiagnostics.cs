@@ -56,6 +56,7 @@ internal static class LopataHomeWidgetDiagnostics
 
         var settings = app.Settings;
         bool compact = settings.CompactLayout;
+        bool hover = settings.HoverPeek;
         string prior = settings.HomeWidget;
         var enabled = settings.Widgets.ToDictionary(widget => widget.Id, widget => widget.Enabled);
         SettingsWindow? window = null;
@@ -103,6 +104,20 @@ internal static class LopataHomeWidgetDiagnostics
             island.Reveal(false);
             Require(island.ActivePage == "notes" && Selected(Star()), "The new choice opens first and only its star is filled");
             island.Collapse();
+            settings.HoverPeek = true;
+            island.PreviewActivity();
+            island.SelectPeek("media");
+            island.Collapse();
+            island.PreviewActivity();
+            Require(island.IsPeeking && island.PeekPage == "media", "Passive hover presents the music preview");
+            island.ExpandFromPeek();
+            Require(island.ActivePage == "notes", "Expanding the passive preview opens the saved main widget");
+            island.Collapse();
+            island.PreviewActivity();
+            island.SelectPeek("media");
+            island.ExpandFromPeek();
+            Require(island.ActivePage == "media", "Expanding an explicitly selected preview opens that widget");
+            island.Collapse();
             island.ShowTools("links",false);
             Require(island.ActivePage == "links", "A direct shortcut still opens its requested tool");
             foreach (string page in LopataHomeWidget.Choices(app).Where(page => page is not ("media" or "timer")))
@@ -133,6 +148,7 @@ internal static class LopataHomeWidgetDiagnostics
             window?.Close();
             island.Collapse();
             settings.HomeWidget = prior;
+            settings.HoverPeek = hover;
             settings.CompactLayout = compact;
             foreach (var widget in settings.Widgets)
                 if (enabled.TryGetValue(widget.Id, out bool wasEnabled)) widget.Enabled = wasEnabled;

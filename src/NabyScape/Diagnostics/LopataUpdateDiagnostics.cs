@@ -14,6 +14,11 @@ namespace NabyScape;
 
 internal sealed class LopataUpdateDiagnostics
 {
+    private sealed class TestClock : TimeProvider
+    {
+        internal DateTimeOffset Now = DateTimeOffset.UnixEpoch;
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
     private LopataUpdateTarget target = new(@"C:\Fixtures\NoRunningLopata\AIHub.exe", "1.0.0", UpdateDelivery.FilePatch, true);
     private bool offline;
     private PublishedUpdateVersion[] published = [];
@@ -90,6 +95,39 @@ internal sealed class LopataUpdateDiagnostics
             await Refresh();
             Require(Badge().Visibility == Visibility.Collapsed && badge.Visibility == Visibility.Collapsed,
                 "The current installed version clears both badges even offline");
+            var clock = new TestClock();
+            int requests = 0;
+            var scheduleTarget = new LopataUpdateTarget(target.Executable, "2.0.0", UpdateDelivery.FilePatch, true);
+            using var schedule = new LopataUpdateMonitor(() => scheduleTarget, (_, _) =>
+            {
+                requests++;
+                return Task.FromResult<UpdateOffer?>(null);
+            }, app.Store.Log, clock);
+            schedule.Start();
+            Require(requests == 1, "Automatic checks run once on startup");
+            clock.Now += TimeSpan.FromMinutes(5) - TimeSpan.FromSeconds(1);
+            await schedule.RefreshAsync();
+            Require(requests == 1, "Automatic checks wait just under five minutes");
+            clock.Now += TimeSpan.FromSeconds(1);
+            await schedule.RefreshAsync();
+            Require(requests == 2, "Automatic checks repeat at five minutes");
+            scheduleTarget = scheduleTarget with { Automatic = false };
+            clock.Now += TimeSpan.FromMinutes(5);
+            await schedule.RefreshAsync();
+            Require(requests == 2, "Disabling automatic checks stops scheduled network requests");
+            await schedule.RefreshAsync(manual: true);
+            Require(requests == 3, "Manual checking remains available");
+
+            var response = new TaskCompletionSource<UpdateOffer?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var inFlight = new LopataUpdateMonitor(() => scheduleTarget, (_, _) => response.Task, app.Store.Log);
+            var checking = inFlight.RefreshAsync(manual: true);
+            scheduleTarget = scheduleTarget with { Version = "2.0.1" };
+            response.SetResult(new UpdateOffer("2.0.1-beta", UpdateDelivery.FilePatch, [], null, null, null)
+                { PublishedVersions = [new("2.0.1-beta", "v2.0.1-beta")] });
+            await checking;
+            Require(inFlight.Target?.Version == "2.0.1" && inFlight.Versions.Length == 0,
+                "An in-flight network response cannot bring back an already installed patch");
+
             using var afterInstall = CreateMonitor(app.Store.Log);
             await afterInstall.RefreshAsync(manual: true);
             Require(afterInstall.Versions.Length == 0, "The cleared count survives a restart");

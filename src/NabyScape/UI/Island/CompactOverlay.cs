@@ -121,7 +121,7 @@ public sealed partial class OverlayWindow
         if(app.Notifications.Current!=null && !expanded && !peeking && !fileDragActive && !userHidden){OpenNotice();return;}
         if(PeekPages().Length==0 || (!app.Settings.CompactLayout && !tuckPreview && !fileDragActive) || (!app.Settings.HoverPeek && !automaticPreview && !tuckPreview && !fileDragActive) || expanded || peeking || userHidden || (TuckRequested && !tuckPreview && !fileDragActive))return;
         if(PortraitDock && !DiagnosticRun && PointerInside() && Native.CursorPoint(out var pointer))portraitHoverPointer=pointer.Y;
-        peeking=true;RefreshNoticeEdge();SyncLopataMascot();Show();Dimensions();ConfigurePerformance();peekDetailed=!app.Settings.TwoStageHover || automaticPreview;detailDelay.Stop();if(!peekDetailed)detailDelay.Start();
+        peekPageChosen=false;peeking=true;RefreshNoticeEdge();SyncLopataMascot();Show();Dimensions();ConfigurePerformance();peekDetailed=!app.Settings.TwoStageHover || automaticPreview;detailDelay.Stop();if(!peekDetailed)detailDelay.Start();
         scroll.Visibility=Visibility.Collapsed;compact.IsHitTestVisible=false;Motion.Fade(compact,0,80);
         PreparePeekDeck();
         peekPanel.Visibility=Visibility.Visible;peekPanel.IsHitTestVisible=true;Motion.Fade(peekPanel,1,160);
@@ -161,7 +161,7 @@ public sealed partial class OverlayWindow
         var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,app.Settings.SectionGap)};
         // Equal side columns keep the page dots centered between the two ends.
         navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});navigation.ColumnDefinitions.Add(new());navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});
-        var close = LopataActions.Button(LopataEdition.CloseCaption, "x", app.Quit, size: 28);
+        var close = BuildIslandExitButton();
         close.Margin = new(0);
         close.Background = Brushes.Transparent;
         close.HorizontalAlignment = app.UsesLopataEdition ? HorizontalAlignment.Center : HorizontalAlignment.Right;
@@ -228,7 +228,7 @@ public sealed partial class OverlayWindow
         if(page=="tools")return BuildToolsPage();
         if(page=="media")
         {
-            mediaLyricsLayout=null;lyricsAside=null;mediaLyrics=null;lyricsButton=null;favoriteTrackButton=null;
+            mediaLyricsLayout=null;lyricsAside=null;mediaLyrics=null;lyricsButton=null;favoriteTrackButton=null;playbackOrderButton=null;
             var panel=new StackPanel();
             if(WidgetOn("media"))
             {
@@ -256,12 +256,33 @@ public sealed partial class OverlayWindow
                 playbackRow.ColumnDefinitions.Add(new());
                 playbackRow.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
                 playbackRow.ColumnDefinitions.Add(new());
-                playbackRow.Children.Add(BuildFavoriteTrackButton());
+                var favorite = BuildFavoriteTrackButton();
+                playbackRow.Children.Add(favorite);
                 var buttons=UI.Row(previous,play,next);
                 Grid.SetColumn(buttons,1);
                 playbackRow.Children.Add(buttons);
                 Grid.SetColumn(lyricsButton,2);
                 playbackRow.Children.Add(lyricsButton);
+                if (app.UsesLopataEdition)
+                {
+                    var orderButton = BuildPlaybackOrderButton();
+                    var textButton = lyricsButton;
+                    Grid.SetColumn(orderButton, 2);
+                    playbackRow.Children.Add(orderButton);
+                    playbackRow.SizeChanged += (_, _) =>
+                    {
+                        var sideWidth = playbackRow.ColumnDefinitions[2].ActualWidth;
+                        const double gap = 4;
+                        var size = Math.Clamp((sideWidth - gap) / 2, 18, 28);
+                        orderButton.Width = orderButton.Height = size;
+                        textButton.Width = textButton.Height = favorite.Width = favorite.Height = size;
+                        var offset = Math.Min(size + gap, Math.Max(0, (sideWidth - size) / 2));
+                        orderButton.RenderTransform = new TranslateTransform(offset, 0);
+                        var shift = size + gap - offset;
+                        textButton.RenderTransform = new TranslateTransform(-shift, 0);
+                        favorite.RenderTransform = new TranslateTransform(shift, 0);
+                    };
+                }
                 Grid.SetColumn(info,1);row.Children.Add(info);panel.Children.Add(row);panel.Children.Add(playbackRow);row.Loaded+=(_,_)=>QueueMediaLayout();row.IsVisibleChanged+=(_,_)=>{if(row.IsVisible)QueueMediaLayout();};
                 void ResizePlayer()
                 {
