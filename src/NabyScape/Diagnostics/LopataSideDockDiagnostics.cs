@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace NabyScape;
 
@@ -13,7 +14,7 @@ internal static class LopataSideDockDiagnostics
     internal static async Task Check(App app, OverlayWindow island, string directory, Action<OverlayWindow, string> capture)
     {
         var settings = app.Settings;
-        var saved = (settings.DockEdge, settings.DockVertical, settings.DockInset, settings.TwoStageHover);
+        var saved = (settings.DockEdge, settings.DockVertical, settings.DockInset, settings.TwoStageHover, settings.ClosedMediaContent);
         var report = new List<string>();
         var screen = Native.ChooseScreen(settings);
         var area = screen.WorkingArea;
@@ -42,12 +43,27 @@ internal static class LopataSideDockDiagnostics
         }
         Button Button(string id) => Diagnostics.Descendants(island).OfType<Button>()
             .Single(button => button.IsVisible && UI.Identity(button) == id);
+        void CheckTitle(bool portrait)
+        {
+            var label = island.HeaderLabel;
+            var transform = label.TransformToAncestor(island);
+            var direction = transform.Transform(new Point(20, 0)) - transform.Transform(new Point(0, 0));
+            var text = new FormattedText(label.Text, Localization.Culture, label.FlowDirection,
+                new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch),
+                label.FontSize, label.Foreground, VisualTreeHelper.GetDpi(label).PixelsPerDip);
+            Require(label.IsVisible && label.Text == app.Media.Title && label.Text.Length > 0 &&
+                (portrait ? direction.Y > 19 && Math.Abs(direction.X) < .1 &&
+                    text.Width > island.PaintedWidth && label.ActualWidth >= text.Width
+                    : direction.X > 19 && Math.Abs(direction.Y) < .1),
+                portrait ? "Closed title reads from top to bottom and fits along the strip" : "Returning to a horizontal edge restores horizontal title text");
+        }
 
         try
         {
             settings.DockVertical = 50;
             settings.DockInset = 0;
             settings.TwoStageHover = true;
+            settings.ClosedMediaContent = "Title";
             app.Media.DiagnosticFixture = true;
             app.Media.DiagnosticPlayback(true);
             foreach (string edge in new[] { "Left", "Right" })
@@ -59,6 +75,7 @@ internal static class LopataSideDockDiagnostics
                 AtEdge(edge, "closed");
                 Require(island.PaintedHeight > 3.5 * island.PaintedWidth && Button("Lopata.Chat.CompactMascot").ActualHeight >= 24,
                     edge + " collapsed island is a slim vertical strip with a clickable mascot");
+                CheckTitle(portrait: true);
                 capture(island, Path.Combine(directory, $"side-{edge.ToLowerInvariant()}-closed.png"));
 
                 island.PreviewActivity();
@@ -120,12 +137,13 @@ internal static class LopataSideDockDiagnostics
                 Require(island.PaintedWidth > 3 * island.PaintedHeight &&
                     Button("Lopata.Chat.CompactMascot").IsVisible,
                     edge + " returns to a horizontal collapsed island");
+                CheckTitle(portrait: false);
             }
             File.WriteAllLines(Path.Combine(directory, "side-dock-check.txt"), report);
         }
         finally
         {
-            (settings.DockEdge, settings.DockVertical, settings.DockInset, settings.TwoStageHover) = saved;
+            (settings.DockEdge, settings.DockVertical, settings.DockInset, settings.TwoStageHover, settings.ClosedMediaContent) = saved;
             app.Media.DiagnosticPlayback(false);
             app.Media.DiagnosticFixture = false;
             app.ChangeSettings();

@@ -89,6 +89,7 @@ public sealed partial class OverlayWindow
             previousLyric.Text=summary.Text;previousLyric.FontFamily=summary.FontFamily;previousLyric.FontSize=summary.FontSize;
             previousLyric.FontWeight=summary.FontWeight;previousLyric.Foreground=summary.Foreground;previousLyric.FlowDirection=summary.FlowDirection;
             previousLyric.Padding=summary.Padding;previousLyric.Width=summary.Width;previousLyric.HorizontalAlignment=summary.HorizontalAlignment;
+            previousLyric.TextAlignment=summary.TextAlignment;
             previousLyricMove.BeginAnimation(TranslateTransform.XProperty,null);previousLyricMove.X=lyricHorizontal.X;
             previousLyricMove.BeginAnimation(TranslateTransform.YProperty,null);previousLyricMove.Y=lyricHorizontal.Y;
             previousLyric.BeginAnimation(OpacityProperty,null);previousLyric.Opacity=summary.Opacity;

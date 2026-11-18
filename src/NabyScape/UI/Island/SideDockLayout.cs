@@ -40,7 +40,7 @@ public sealed partial class OverlayWindow
             {
                 portraitClosed = new Grid();
                 // The middle carries the current activity. The mascot has a separate hit target at the foot.
-                double[] fixedHeights = [14, 0, 0, -1, 0, 0, 0, -1, 0, 0, 0, 52];
+                double[] fixedHeights = [14, 0, 0, 8, 0, -1, 0, 8, 0, 0, 0, 52];
                 foreach (double height in fixedHeights)
                     portraitClosed.RowDefinitions.Add(new()
                     {
@@ -53,7 +53,10 @@ public sealed partial class OverlayWindow
             Move(closedCover, 4);
             Move(activity, 4);
             Move(feedbackIcon, 4);
-            Move(closedSummaryHost, 5, stretch: true);
+            Move(closedSummaryHost, 5);
+            closedSummaryHost.LayoutTransform = new RotateTransform(90);
+            closedSummaryHost.VerticalAlignment = VerticalAlignment.Stretch;
+            closedSummaryHost.Margin = new Thickness(0, 6, 0, 6);
             Move(closedTitleWave, 5, stretch: true);
             Move(feedbackLevel, 6);
             Move(lopataActivity, 8);
@@ -76,6 +79,8 @@ public sealed partial class OverlayWindow
             }
             horizontalClosedSlots.Clear();
             compact.Content = horizontalClosed;
+            closedSummaryHost.ClearValue(LayoutTransformProperty);
+            closedSummaryHost.VerticalAlignment = VerticalAlignment.Center;
             summary.ClearValue(TextBlock.TextAlignmentProperty);
             clockSlot = null;
         }
