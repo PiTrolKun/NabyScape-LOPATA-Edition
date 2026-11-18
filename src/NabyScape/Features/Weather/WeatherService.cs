@@ -80,10 +80,11 @@ internal sealed class WeatherService : IDisposable
         _=Refresh(s);return true;
     }
     private async Task Refresh(Settings s){try{await Start(s,Key(s));}catch(Exception){}}
-    internal async Task<WeatherPlace[]> Search(string city,CancellationToken token)
+    internal async Task<WeatherPlace[]> Search(string city,string language,CancellationToken token)
     {
         city=city.Trim();if(city.Length<2)return Array.Empty<WeatherPlace>();if(city.Length>120)city=city[..120];
-        using var doc=JsonDocument.Parse(await fetch("https://geocoding-api.open-meteo.com/v1/search?name="+Uri.EscapeDataString(city)+"&count=8&language=en&format=json",token));
+        string query=$"name={Uri.EscapeDataString(city)}&count=8&language={Uri.EscapeDataString(language)}&format=json";
+        using var doc=JsonDocument.Parse(await fetch("https://geocoding-api.open-meteo.com/v1/search?"+query,token));
         if(!doc.RootElement.TryGetProperty("results",out var results))return Array.Empty<WeatherPlace>();
         return results.EnumerateArray().Select(place=>new WeatherPlace(string.Join(", ",new[]{Text(place,"name"),Text(place,"admin1"),Text(place,"country")}.Where(v=>v.Length>0).Distinct()),Number(place,"latitude"),Number(place,"longitude"))).Where(p=>Math.Abs(p.Latitude)<=90 && Math.Abs(p.Longitude)<=180).ToArray();
     }

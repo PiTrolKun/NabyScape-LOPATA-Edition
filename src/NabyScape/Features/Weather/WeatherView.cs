@@ -94,7 +94,7 @@ internal sealed class WeatherView : UserControl
         searchRequest?.Cancel();searchRequest?.Dispose();searchRequest=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);var request=searchRequest;find.IsEnabled=false;results.Children.Clear();status.Text=Localization.Text("Looking for cities…");
         try
         {
-            var places=await app.Weather.Search(search.Text,request.Token);if(!IsLoaded || request!=searchRequest)return;
+            var places=await app.Weather.Search(search.Text,Localization.Language,request.Token);if(!IsLoaded || request!=searchRequest)return;
             foreach(var place in places)
             {
                 var button=UI.Button(place.Name,()=>{app.Settings.WeatherCity=place.Name;app.Settings.WeatherLatitude=place.Latitude;app.Settings.WeatherLongitude=place.Longitude;location.Visibility=Visibility.Collapsed;app.ChangeSettings();});button.FontSize=11;button.Margin=new(0,2,0,2);button.HorizontalContentAlignment=HorizontalAlignment.Left;button.Content=new TextBlock{Text=place.Name,TextTrimming=TextTrimming.CharacterEllipsis,Foreground=Brushes.White};results.Children.Add(button);

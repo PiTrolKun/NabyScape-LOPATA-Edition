@@ -21,6 +21,31 @@ internal static class WeatherRefreshTests
     {
         void Assert(bool pass,string reason="Weather refresh invariant failed"){if(!pass)throw new Exception(reason);}
         var now=new DateTimeOffset(2026,11,14,12,0,0,TimeSpan.Zero);
+        test("Weather city search sends Unicode input with the interface language and reads localized results",()=>
+        {
+            string root=Path.Combine(Path.GetTempPath(),"nabyscape-weather-"+Guid.NewGuid().ToString("N"));
+            try
+            {
+                string query="";
+                using var weather=new WeatherService(new Store(root),(url,_) =>
+                {
+                    query=new Uri(url).Query;
+                    return Task.FromResult(query.Contains("&language=ru&",StringComparison.Ordinal)
+                        ? """{"results":[{"name":"Берлин","admin1":"Берлин","country":"Германия","latitude":52.52437,"longitude":13.41053}]}"""
+                        : """{"results":[{"name":"Berlin","admin1":"Berlin","country":"Germany","latitude":52.52437,"longitude":13.41053}]}""");
+                });
+                foreach (var name in new[]{"  Берлин, Германия  ","Berlin"})
+                {
+                    var place=weather.Search(name,"ru",default).GetAwaiter().GetResult().Single();
+                    Assert(query.StartsWith("?name="+Uri.EscapeDataString(name.Trim())+"&",StringComparison.Ordinal) &&
+                        query.Contains("&language=ru&",StringComparison.Ordinal),"The API receives the unchanged name and Russian language.");
+                    Assert(place==new WeatherPlace("Берлин, Германия",52.52437,13.41053),"Localized output keeps the same coordinates.");
+                }
+                var english=weather.Search("Berlin","en",default).GetAwaiter().GetResult().Single();
+                Assert(query.Contains("&language=en&",StringComparison.Ordinal) && english.Name=="Berlin, Germany","English search still works.");
+            }
+            finally{if(Directory.Exists(root))Directory.Delete(root,true);}
+        });
         test("Weather schedule refreshes when stale, backs off after failures, retries on resume and stays off when unused",()=>
         {
             WeatherPlan Plan(WeatherDemand demand,double? ageMinutes,double attemptMinutesAgo=60,int failures=0,bool updating=false,bool away=false,bool nudged=false)=>new(demand,ageMinutes is {} age?now.AddMinutes(-age):null,now.AddMinutes(-attemptMinutesAgo),failures,updating,away,nudged);
