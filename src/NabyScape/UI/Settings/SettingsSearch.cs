@@ -34,7 +34,7 @@ public sealed partial class SettingsWindow
             foreach(string section in CategorySections(category.Id))items.Add(new(FriendlySection(section),category.Id,section,"",section+" "+category.Title));
         }
         void Add(string title,string category,string section,string control,string terms)=>items.Add(new(title,category,section,control,terms));
-        Add("Support NabyScape","Application","About NabyScape","Support NabyScape","donate donation donasi dukung support sponsor saweria kofi ko-fi coffee tip traktir");
+        Add(SupportLinks.DonationHeading,"Application","About NabyScape",SupportLinks.DonationHeading,"donate donation donasi dukung support sponsor saweria kofi ko-fi coffee tip traktir донат пожертвование благодарность");
         Add("Live lyrics on closed dock","Audio","Closed media display","Closed media content","lyrics lirik youtube apple song title none waveform");
         Add("Light or dark theme","Appearance","Theme","Theme","theme light dark white black mode windows follow system clair sombre blanc noir tema terang gelap");
         Add("Collapsed island color","Appearance","Color & material","Use same color for both states","closed collapsed compact island dock color background black visible wallpaper tertutup warna");

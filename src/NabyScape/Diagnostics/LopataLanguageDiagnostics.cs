@@ -66,7 +66,33 @@ internal static class LopataLanguageDiagnostics
             Require(HasText(settings, "Раздел «Вид и цвета»") && !HasText(settings, "Appearance overview"),
                 "The settings preview explains the current section in Russian");
             Capture(settings, "settings-ru");
-            settings.OpenCategory("Application");
+
+            foreach (var category in new[] { "Home", "Application" })
+            {
+                settings.OpenCategory(category);
+                var disclosure = SettingsElements(settings).OfType<Expander>()
+                    .Single(expander => UI.Identity(expander) == SupportLinks.DonationHeading);
+                disclosure.BringIntoView();
+                await Task.Delay(100);
+                var buttons = SettingsElements(disclosure).OfType<Button>().ToArray();
+                Require(!disclosure.IsExpanded && buttons.Length == 2 && buttons.All(button => !button.IsVisible),
+                    $"Donation disclosure starts collapsed in {category}");
+                if (category == "Home") Capture(settings, "donation-collapsed");
+
+                disclosure.IsExpanded = true;
+                settings.UpdateLayout();
+                var explanation = Localization.Text(SupportLinks.DonationExplanation);
+                Require(explanation.Contains("автор оригинального NabyScape") && explanation.Contains("Развитие острова в ЛОПАТЕ") &&
+                    HasText(disclosure, explanation) && buttons.All(button => button.IsVisible),
+                    $"Donation disclosure explains the recipient and shows both links in {category}");
+                if (category == "Home")
+                {
+                    buttons.Last().BringIntoView();
+                    Capture(settings, "donation-expanded");
+                }
+                disclosure.IsExpanded = false;
+            }
+
             Require(Diagnostics.Descendants(settings).OfType<ComboBox>().Any(choice => !choice.IsEnabled &&
                 System.Windows.Automation.AutomationProperties.GetName(choice) == Localization.Text("Interface language")),
                 "Island settings respect the language selected in LOPATA");

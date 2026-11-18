@@ -179,7 +179,7 @@ public sealed partial class App : Application
         AddTray("Tuck / Return to automatic", () => overlay?.ToggleTuck());
         AddTray("Hide / show", () => overlay?.ToggleVisibility());
         menu.Items.Add(new Forms.ToolStripSeparator());
-        var support = new Forms.ToolStripMenuItem(Localization.Text("Support NabyScape")) { Tag = "Support NabyScape" };
+        var support = new Forms.ToolStripMenuItem(Localization.Text(SupportLinks.DonationHeading)) { Tag = SupportLinks.DonationHeading };
         AddTray("Donate with Saweria", () => SupportLinks.Open(SupportLinks.Saweria, Store.Log), support.DropDownItems);
         AddTray("Donate with Ko-fi", () => SupportLinks.Open(SupportLinks.KoFi, Store.Log), support.DropDownItems);
         menu.Items.Add(support);
