@@ -16,7 +16,7 @@ internal static class NotificationCenterText
         if(age<TimeSpan.FromMinutes(1))return Localization.Text("Just now");
         if(age<TimeSpan.FromHours(1))return Localization.Format("{0} min ago",(int)age.TotalMinutes);
         if(age<TimeSpan.FromDays(1))return Localization.Format("{0} h ago",(int)age.TotalHours);
-        return at.ToLocalTime().ToString("dd MMM HH:mm",System.Globalization.CultureInfo.CurrentCulture);
+        return at.ToLocalTime().ToString("dd MMM HH:mm",Localization.Culture);
     }
     internal static string Kind(InternalNotice notice)=>notice.Kind=="external"?notice.Source??"App":Localization.Text(notice.Kind switch{"timer"=>"Timer","focus"=>"Focus","downloads"=>"Downloads","updates"=>"Update",_=>"NabyScape"});
     internal static string Icon(string kind)=>kind switch{"timer"=>"timer","focus"=>"focus","downloads"=>"folder","updates"=>"settings",_=>"bell"};
@@ -114,8 +114,8 @@ public sealed partial class OverlayWindow
         if(fresh){var dot=new Border{Width=6,Height=6,CornerRadius=new(3),Background=UI.Brush(IslandPalette.Accent(app.Settings)),Margin=new(0,0,6,0),VerticalAlignment=VerticalAlignment.Center};top.Children.Add(dot);}
         var sender=UI.Text(NotificationCenterText.Kind(notice),11,UI.Muted);sender.FontWeight=FontWeights.SemiBold;sender.TextWrapping=TextWrapping.NoWrap;sender.TextTrimming=TextTrimming.CharacterEllipsis;sender.VerticalAlignment=VerticalAlignment.Center;top.Children.Add(sender);
         text.Children.Add(top);
-        var title=UI.Text(notice.Title,13);title.FontWeight=FontWeights.SemiBold;title.TextWrapping=TextWrapping.NoWrap;title.TextTrimming=TextTrimming.CharacterEllipsis;title.Margin=new(0,3,0,0);text.Children.Add(title);
-        if(notice.Detail.Length>0){var detail=UI.Text(notice.Detail,12,UI.Muted);detail.MaxHeight=34;detail.LineHeight=17;detail.LineStackingStrategy=LineStackingStrategy.BlockLineHeight;detail.TextTrimming=TextTrimming.CharacterEllipsis;detail.Margin=new(0,2,0,0);detail.ToolTip=notice.Detail;text.Children.Add(detail);}
+        var title=UI.Text(notice.DisplayTitle,13);title.FontWeight=FontWeights.SemiBold;title.TextWrapping=TextWrapping.NoWrap;title.TextTrimming=TextTrimming.CharacterEllipsis;title.Margin=new(0,3,0,0);text.Children.Add(title);
+        if(notice.DisplayDetail.Length>0){var detail=UI.Text(notice.DisplayDetail,12,UI.Muted);detail.MaxHeight=34;detail.LineHeight=17;detail.LineStackingStrategy=LineStackingStrategy.BlockLineHeight;detail.TextTrimming=TextTrimming.CharacterEllipsis;detail.Margin=new(0,2,0,0);detail.ToolTip=notice.DisplayDetail;text.Children.Add(detail);}
         grid.Children.Add(text);
         var remove=Icons.Button("x","Remove notification",()=>app.Notifications.Remove(entry),false,24);remove.Background=Brushes.Transparent;remove.Margin=new(6,-2,-2,0);remove.VerticalAlignment=VerticalAlignment.Top;remove.Opacity=0;Grid.SetColumn(remove,2);grid.Children.Add(remove);
         string[] files=(notice.Files??Array.Empty<string>()).Where(File.Exists).ToArray();
@@ -134,7 +134,7 @@ public sealed partial class OverlayWindow
             // Keyboard: the row's action is also reachable as a button for screen readers.
             var action=UI.CaptionButton(notice.Kind=="external"?"Open app":files.Length>0?"Show in folder":"Open updates",open);action.Width=1;action.Height=1;action.MinHeight=1;action.Padding=new(0);action.Margin=new(0);action.Opacity=0;action.HorizontalAlignment=HorizontalAlignment.Left;action.VerticalAlignment=VerticalAlignment.Top;Grid.SetColumn(action,1);grid.Children.Add(action);
         }
-        System.Windows.Automation.AutomationProperties.SetName(row,notice.Title);
+        System.Windows.Automation.AutomationProperties.SetName(row,notice.DisplayTitle);
         return row;
     }
     // A bell with an unread dot, used in panel headers.

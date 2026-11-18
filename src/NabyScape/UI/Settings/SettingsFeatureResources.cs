@@ -23,12 +23,12 @@ public sealed partial class SettingsWindow
         {
             var target=page.Children.OfType<Border>().FirstOrDefault(b=>b.Tag as string=="Enabled widgets & order");target?.BringIntoView();
         }));body.Children.Add(actions);
-        body.Children.Add(UI.Text("Essentials shows music, clock, timer and focus. Other widgets stay off until you enable them. Animation quality stays the same.",12,UI.Muted));
+        body.Children.Add(UI.Text(Localization.Text("Essentials shows music, clock, timer and focus. Other widgets stay off until you enable them. Animation quality stays the same."),12,UI.Muted));
         body.Children.Add(Check("Connect to music apps",s.MediaIntegrationEnabled,v=>s.MediaIntegrationEnabled=v));
-        body.Children.Add(UI.Text("Off disconnects Windows media sessions and releases track artwork. It leaves playback in your music app untouched.",12,UI.Muted));
+        body.Children.Add(UI.Text(Localization.Text("Off disconnects Windows media sessions and releases track artwork. It leaves playback in your music app untouched."),12,UI.Muted));
         body.Children.Add(Check("Watch for completed downloads",s.DownloadsEnabled,v=>s.DownloadsEnabled=v));
         var links=new WrapPanel{Margin=new(0,8,0,0)};links.Children.Add(UI.CaptionButton("Clipboard capture",()=>Navigate("Clipboard")));links.Children.Add(UI.CaptionButton("Voice & wake word",()=>Navigate("AI")));body.Children.Add(links);
-        body.Children.Add(UI.Text("Clipboard capture and voice listening have separate switches. Turning a widget off preserves your notes, files and timers. Hidden weather and system pages stop their work; audio capture is released when no visual needs it.",12,UI.Muted));
+        body.Children.Add(UI.Text(Localization.Text("Clipboard capture and voice listening have separate switches. Turning a widget off preserves your notes, files and timers. Hidden weather and system pages stop their work; audio capture is released when no visual needs it."),12,UI.Muted));
         page.Children.Add(Section("Feature usage",body));
     }
 }

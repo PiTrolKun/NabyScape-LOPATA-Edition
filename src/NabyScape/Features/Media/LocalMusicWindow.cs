@@ -119,7 +119,7 @@ internal sealed class LocalMusicWindow : Window
         Title = Localization.Text(SourceName(list));
         try { app.MusicLists.SelectList(list); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        { app.Store.Log(error); app.Notify("Not saved yet", Localization.Text("Could not save the selected music list.")); }
+        { app.Store.Log(error); app.Notify(Localization.Text("Not saved yet"), Localization.Text("Could not save the selected music list.")); }
         foreach (var pair in listTabs)
         {
             bool selected = pair.Key == activeList;

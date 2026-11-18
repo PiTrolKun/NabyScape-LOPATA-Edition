@@ -11,30 +11,30 @@ internal sealed partial class AssistantProviderSettings
     private FrameworkElement InstalledSpeechSettings()
     {
         var service=ai.Speech;var body=new StackPanel();
-        body.Children.Add(UI.Text("Remove listening or speaking models you no longer need. Matching download caches are removed too. Shared speech engines stay installed. You can reinstall a model from Automatic setup.",11,UI.Muted));
-        var empty=UI.Text("No downloaded speech models on this PC.",12,UI.Muted);empty.Margin=new(0,12,0,8);body.Children.Add(empty);
+        body.Children.Add(UI.Text(Localization.Text("Remove listening or speaking models you no longer need. Matching download caches are removed too. Shared speech engines stay installed. You can reinstall a model from Automatic setup."),11,UI.Muted));
+        var empty=UI.Text(Localization.Text("No downloaded speech models on this PC."),12,UI.Muted);empty.Margin=new(0,12,0,8);body.Children.Add(empty);
         var result=UI.Text("",11,UI.Muted);Accessibility.Live(result);body.Children.Add(result);
         bool showReinstall=false;
         var sizes=new Dictionary<string,long>();
-        var reinstall=AssistantWindow.Pill("Reinstall / choose another model",()=>{OpenVoiceSetup();speechModePicker!.SelectedIndex=1;});reinstall.Visibility=Visibility.Collapsed;body.Children.Add(reinstall);
+        var reinstall=AssistantWindow.Pill(Localization.Text("Reinstall / choose another model"),()=>{OpenVoiceSetup();speechModePicker!.SelectedIndex=1;});reinstall.Visibility=Visibility.Collapsed;body.Children.Add(reinstall);
         var rows=new List<(string Id,bool Tts,Border Row,TextBlock Detail,Button Remove)>();
-        var expander=new Expander{Header="Installed models · manage storage",Content=body,Margin=new(0,14,0,10)};
-        UI.Named(expander,"Installed speech models");
+        var expander=new Expander{Header=Localization.Text("Installed models · manage storage"),Content=body,Margin=new(0,14,0,10)};
+        UI.Named(expander,Localization.Text("Installed speech models"));
         foreach(var model in SpeechCatalog.Asr)Add(model.Id,model.Name,false);
         foreach(var model in SpeechCatalog.Tts.Where(m=>m.Id!="windows"))Add(model.Id,model.Name,true);
-        body.Children.Add(UI.Text("Windows voices are managed in Windows Settings. Model files you imported from another folder stay in their original location and are not deleted here.",10,UI.Muted));
+        body.Children.Add(UI.Text(Localization.Text("Windows voices are managed in Windows Settings. Model files you imported from another folder stay in their original location and are not deleted here."),10,UI.Muted));
         void Add(string id,string name,bool tts)
         {
             var row=new StackPanel();row.Children.Add(UI.Text((tts?"TTS · ":"ASR · ")+name,12));
             var detail=UI.Text("",11,UI.Muted);detail.Margin=new(0,4,0,8);row.Children.Add(detail);
-            var remove=AssistantWindow.Pill("Uninstall",()=>{});remove.HorizontalAlignment=HorizontalAlignment.Left;UI.Named(remove,"Uninstall "+name);
+            var remove=AssistantWindow.Pill(Localization.Text("Uninstall"),()=>{});remove.HorizontalAlignment=HorizontalAlignment.Left;UI.Named(remove,"Uninstall "+name);
             remove.Click+=async(_,_)=>
             {
                 if(service.Busy || ai.SpeechCheckBusy){Feedback("Finish the speech check before uninstalling.",true);return;}
                 bool active=service.ModelInUse(ai.Options.LocalVoice,id,tts);
                 string size;try{size=AssistantSpeechInstall.StorageSize(await System.Threading.Tasks.Task.Run(()=>service.ManagedModelBytes(id,tts)));}catch(Exception ex){Feedback("Could not inspect model storage · "+ex.Message,true);return;}
                 string warning="Uninstall "+name+"?\n\nIts downloaded model files and matching cache will be deleted. About "+size+" will be freed. You can reinstall it later."+(active?"\n\nThis is your selected model. Local voice will be unavailable until you select an installed pack or reinstall this one.":"")+(ai.VoiceConnected || ai.Busy || active?"\n\nVoice and wake listening will stop.":"");
-                if(MessageBox.Show(Window.GetWindow(this),warning,"Uninstall speech model",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes)return;
+                if(MessageBox.Show(Window.GetWindow(this),warning,Localization.Text("Uninstall speech model"),MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes)return;
                 try{bool ok=await ai.UninstallSpeechModel(id,tts);result.Text=service.Status;Feedback(result.Text,!ok);if(ok)showReinstall=true;Refresh();}
                 catch(Exception ex){result.Text="Could not uninstall this model. "+ex.Message;Feedback(result.Text,true);}
             };
@@ -65,7 +65,7 @@ internal sealed partial class AssistantProviderSettings
         {
             sizes[key]=-1;
             try{long bytes=await System.Threading.Tasks.Task.Run(()=>service.ManagedModelBytes(id,tts));sizes[key]=bytes;if(label.IsVisible && !service.Busy)label.Text+=" · "+AssistantSpeechInstall.StorageSize(bytes)+" on disk, including cache";}
-            catch{sizes.Remove(key);label.Text+=" · Storage unavailable";}
+            catch{sizes.Remove(key);label.Text+=Localization.Text(" · Storage unavailable");}
         }
         bool subscribed=false,queued=false;
         void StorageChanged(){if(!service.Busy)sizes.Clear();Changed();}

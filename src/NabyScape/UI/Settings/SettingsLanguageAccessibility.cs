@@ -11,9 +11,14 @@ public sealed partial class SettingsWindow
     {
         var settings = app.Settings;
         settings.NormalizeLanguageAccessibility();
+        bool followsLopata = Localization.LopataLanguage is not null;
         var codes = LocalizationCatalog.Languages.Select(l => l.Code).ToArray();
-        var language = new ComboBox { ItemsSource = LocalizationCatalog.Languages.Select(l => l.Name).ToArray(),
-            SelectedIndex = Array.IndexOf(codes, settings.UiLanguage) };
+        var language = new ComboBox
+        {
+            ItemsSource = followsLopata ? new[] { Localization.Culture.NativeName } : LocalizationCatalog.Languages.Select(l => l.Name).ToArray(),
+            SelectedIndex = followsLopata ? 0 : Array.IndexOf(codes, settings.UiLanguage),
+            IsEnabled = !followsLopata
+        };
         UI.LocalizedName(language, "Interface language");
         var scale = new ComboBox { ItemsSource = new[] { "100%", "110%", "125%", "150%" } };
         var sizes = new[] { 1d, 1.1, 1.25, 1.5 };
@@ -21,12 +26,13 @@ public sealed partial class SettingsWindow
         UI.LocalizedName(scale, "Text size");
         var contrast = new CheckBox { Content = UI.Caption("High contrast"), IsChecked = settings.AccessibilityHighContrast };
         UI.LocalizedName(contrast, "High contrast");
-        var notice = UI.Caption("Save these preferences, then quit and reopen NabyScape to apply them.", 12, UI.Muted);
+        var notice = UI.Caption(followsLopata ? "Change the island language in LOPATA settings." :
+            "Save these preferences, then quit and reopen NabyScape to apply them.", 12, UI.Muted);
         Accessibility.Live(notice);
-        var save = UI.CaptionButton("Save language and accessibility", () =>
+        var save = UI.CaptionButton(followsLopata ? "Save accessibility settings" : "Save language and accessibility", () =>
         {
             var previous = (settings.UiLanguage, settings.AccessibilityTextScale, settings.AccessibilityHighContrast);
-            settings.UiLanguage = codes[Math.Max(0, language.SelectedIndex)];
+            if (!followsLopata) settings.UiLanguage = codes[Math.Max(0, language.SelectedIndex)];
             settings.AccessibilityTextScale = sizes[Math.Max(0, scale.SelectedIndex)];
             settings.AccessibilityHighContrast = contrast.IsChecked == true;
             settings.NormalizeLanguageAccessibility();
@@ -35,7 +41,8 @@ public sealed partial class SettingsWindow
                 // ChangeSettings logs persistence failures internally; this explicit write must succeed before announcing success.
                 app.Store.Save("settings", settings);
                 app.ChangeSettings();
-                Accessibility.Announce(notice, Localization.Text("Saved. Quit and reopen NabyScape to apply language, text size and contrast."));
+                Accessibility.Announce(notice, Localization.Text(followsLopata ? "Accessibility settings saved." :
+                    "Saved. Quit and reopen NabyScape to apply language, text size and contrast."));
             }
             catch (Exception ex)
             {

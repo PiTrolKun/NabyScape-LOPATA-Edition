@@ -14,7 +14,7 @@ public sealed partial class OverlayWindow
         var page=new StackPanel();page.Children.Add(UI.Heading(PeekName(id),13));var detail=UI.Text("",id=="clock"?30:12,UI.Muted);detail.Margin=new(0,9,0,8);page.Children.Add(detail);extraPeekLabels[id]=detail;
         if(id=="volume")
         {
-            var slider=new Slider{Minimum=0,Maximum=100,Height=26,Margin=new(0,4,0,4)};UI.Named(slider,"Hover output volume");bool sync=false;slider.ValueChanged+=(_,_)=>{if(!sync)app.Audio.SetVolume(slider.Value/100);};
+            var slider=new Slider{Minimum=0,Maximum=100,Height=26,Margin=new(0,4,0,4)};UI.Named(slider,Localization.Text("Hover output volume"));bool sync=false;slider.ValueChanged+=(_,_)=>{if(!sync)app.Audio.SetVolume(slider.Value/100);};
             page.IsVisibleChanged+=(_,_)=>{if(page.IsVisible){sync=true;slider.Value=app.Audio.Volume*100;sync=false;}};page.Children.Add(slider);
         }
         else if(id=="shortcuts")
@@ -47,7 +47,7 @@ internal sealed class WeatherGlance : UserControl
 {
     private readonly App app;
     private readonly Grid scene=new();
-    private readonly TextBlock temperature=UI.Text("—°",34),detail=UI.Text("Choose a city in Weather",11,UI.Muted);
+    private readonly TextBlock temperature=UI.Text("—°",34),detail=UI.Text(Localization.Text("Choose a city in Weather"),11,UI.Muted);
     private readonly WeatherArtwork art=new(){Width=84,Height=82,DecorativeMotion=false};
     private System.Threading.CancellationTokenSource? lifetime;
     private WeatherSnapshot? shown;
@@ -55,7 +55,7 @@ internal sealed class WeatherGlance : UserControl
     private bool busy;
     internal WeatherGlance(App app)
     {
-        this.app=app;var content=new Grid{Margin=new(14,8,12,8)};content.ColumnDefinitions.Add(new());content.ColumnDefinitions.Add(new(){Width=new GridLength(90)});var info=new StackPanel();info.Children.Add(UI.Text("Weather",10,UI.Muted));info.Children.Add(temperature);info.Children.Add(detail);content.Children.Add(info);Grid.SetColumn(art,1);content.Children.Add(art);scene.Children.Add(content);ThemeInk.SetTone(scene,Tone.Dark);Content=scene;
+        this.app=app;var content=new Grid{Margin=new(14,8,12,8)};content.ColumnDefinitions.Add(new());content.ColumnDefinitions.Add(new(){Width=new GridLength(90)});var info=new StackPanel();info.Children.Add(UI.Text(Localization.Text("Weather"),10,UI.Muted));info.Children.Add(temperature);info.Children.Add(detail);content.Children.Add(info);Grid.SetColumn(art,1);content.Children.Add(art);scene.Children.Add(content);ThemeInk.SetTone(scene,Tone.Dark);Content=scene;
         Loaded+=(_,_)=>{lifetime??=new();app.Updated-=Update;app.SettingsChanged-=Changed;app.Updated+=Update;app.SettingsChanged+=Changed;Watch(IsVisible);Changed();};
         Unloaded+=(_,_)=>{Watch(false);app.Updated-=Update;app.SettingsChanged-=Changed;lifetime?.Cancel();lifetime?.Dispose();lifetime=null;};
         IsVisibleChanged+=(_,_)=>{if(!IsLoaded)return;Watch(IsVisible);if(IsVisible)Changed();};

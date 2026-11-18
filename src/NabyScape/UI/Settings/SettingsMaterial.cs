@@ -44,8 +44,8 @@ public sealed partial class SettingsWindow
     }
     private void MaterialControls()
     {
-        var choice=new ComboBox{ItemsSource=SettingsBackdrop.Choices,SelectedItem=SettingsBackdrop.Requested(app.Settings)};UI.Named(choice,"Settings material");
+        var choice=new ComboBox{ItemsSource=SettingsBackdrop.Choices,SelectedItem=SettingsBackdrop.Requested(app.Settings)};UI.Named(choice,Localization.Text("Settings material"));
         choice.SelectionChanged+=(_,_)=>{app.Settings.SettingsMaterial=choice.SelectedItem?.ToString()??"";ApplyMaterial();Save();};
-        page.Children.Add(Section("Settings material",choice,materialStatus,UI.Text("Mica is an opaque wallpaper/theme-based foundation. Acrylic is a translucent system blur. This illustration is schematic; see the Settings window itself for the active material. Island glass and its shaped corners remain unchanged.",11,UI.Muted)));
+        page.Children.Add(Section("Settings material",choice,materialStatus,UI.Text(Localization.Text("Mica is an opaque wallpaper/theme-based foundation. Acrylic is a translucent system blur. This illustration is schematic; see the Settings window itself for the active material. Island glass and its shaped corners remain unchanged."),11,UI.Muted)));
     }
 }

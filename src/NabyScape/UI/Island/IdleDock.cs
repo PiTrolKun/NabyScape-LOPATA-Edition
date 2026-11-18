@@ -35,7 +35,7 @@ public sealed partial class OverlayWindow
     }
     private string ClosedVoiceLabel=>app.Assistant.State switch
     {
-        AssistantState.Listening=>"Listening",AssistantState.Thinking=>"Thinking…",AssistantState.Speaking=>"Speaking",AssistantState.Connecting=>"Connecting…",AssistantState.Error=>"Voice needs attention",_=>app.Assistant.Desktop.Sharing?"Screen sharing":"Naby voice"
+        AssistantState.Listening=>Localization.Text("Listening"),AssistantState.Thinking=>Localization.Text("Thinking…"),AssistantState.Speaking=>Localization.Text("Speaking"),AssistantState.Connecting=>Localization.Text("Connecting…"),AssistantState.Error=>Localization.Text("Voice needs attention"),_=>Localization.Text(app.Assistant.Desktop.Sharing?"Screen sharing":"Naby voice")
     };
     private void RefreshIdleDock()
     {
@@ -58,13 +58,13 @@ public sealed partial class OverlayWindow
         idleDate.Visibility=idleClosed && app.Settings.ShowDate && compactClock.Visibility==Visibility.Visible && dateRoom.Visible?Visibility.Visible:Visibility.Collapsed;
         if(idleDate.Visibility==Visibility.Visible && idleDateDay!=DateTime.Today)
         {
-            idleDateDay=DateTime.Today;var culture=System.Globalization.CultureInfo.GetCultureInfo("en-US");
+            idleDateDay=DateTime.Today;var culture=Localization.Culture;
             idleDate.Inlines.Clear();
-            idleDate.Inlines.Add(new Run(idleDateDay.ToString("ddd",culture).ToUpperInvariant()){FontSize=9*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#9DA3AD")});
+            idleDate.Inlines.Add(new Run(idleDateDay.ToString("ddd",culture).ToUpper(culture)){FontSize=9*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#9DA3AD")});
             idleDate.Inlines.Add(new Run("  ·  "){FontSize=9*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#626873")});
             idleDate.Inlines.Add(new Run(idleDateDay.ToString("dd",culture)){FontSize=12*Accessibility.TextScale,FontWeight=FontWeights.SemiBold,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#E5E8ED")});
-            idleDate.Inlines.Add(new Run(" "+idleDateDay.ToString("MMM",culture).ToUpperInvariant()){FontSize=10*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#B7BDC7")});
-            idleDate.ToolTip=idleDateDay.ToString("dddd, dd MMMM yyyy",culture);
+            idleDate.Inlines.Add(new Run(" "+idleDateDay.ToString("MMM",culture).ToUpper(culture)){FontSize=10*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#B7BDC7")});
+            idleDate.ToolTip=idleDateDay.ToString("D",culture);
         }
         compact.Width=ClosedContentWidth;assistantCharacterHost.Width=ClosedContentWidth;
         if(!expanded && !peeking && !userHidden && !TuckRequested && !dockEditing)

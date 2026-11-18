@@ -6,7 +6,7 @@ internal static class AssistantRecoveryControls
 {
     internal static FrameworkElement Build(App app)
     {
-        var row=new WrapPanel{Margin=new(0,6,0,0)};var settings=AssistantControls.Action("Check connection","settings",app.ShowAssistantProviders);var voice=AssistantControls.Action("Voice settings","mic",app.ShowVoiceSettings);var mic=AssistantControls.Action("Microphone settings","mic",()=>{try{System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:privacy-microphone"){UseShellExecute=true});}catch{app.Notify("Microphone settings","Open Windows Settings → Privacy → Microphone.");}});
+        var row=new WrapPanel{Margin=new(0,6,0,0)};var settings=AssistantControls.Action("Check connection","settings",app.ShowAssistantProviders);var voice=AssistantControls.Action("Voice settings","mic",app.ShowVoiceSettings);var mic=AssistantControls.Action("Microphone settings","mic",()=>{try{System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:privacy-microphone"){UseShellExecute=true});}catch{app.Notify(Localization.Text("Microphone settings"),Localization.Text("Open Windows Settings → Privacy → Microphone."));}});
         var wake=AssistantControls.Action("Resume wake word","mic",app.Assistant.ToggleWakeListening);foreach(var b in new[]{settings,voice,mic,wake})row.Children.Add(b);
         void Refresh()
         {

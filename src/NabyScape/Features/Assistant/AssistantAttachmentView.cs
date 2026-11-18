@@ -40,7 +40,7 @@ internal sealed class AssistantAttachmentView : UserControl
         if(previewSource.Length>0 && !draft)
         {
             preview.Margin=new(0,8,0,0);body.Children.Add(preview);UI.Named(preview,file.Name+" preview");
-            preview.ToolTip="Click to enlarge";preview.Cursor=System.Windows.Input.Cursors.Hand;preview.MouseLeftButtonUp+=(_,_)=>_=Enlarge();
+            preview.ToolTip=Localization.Text("Click to enlarge");preview.Cursor=System.Windows.Input.Cursors.Hand;preview.MouseLeftButtonUp+=(_,_)=>_=Enlarge();
         }
         if(!draft)
         {
@@ -120,23 +120,23 @@ internal sealed class AssistantAttachmentView : UserControl
             preview.Source=bitmap;
         }
         catch(OperationCanceledException){}
-        catch{if(ReferenceEquals(loading,request)){failed=true;detail.Text=file.Note+" · Preview unavailable";detail.ToolTip="The image may require a different codec, or its link may have expired. Save the file to view it.";}}
+        catch{if(ReferenceEquals(loading,request)){failed=true;detail.Text=file.Note+" · Preview unavailable";detail.ToolTip=Localization.Text("The image may require a different codec, or its link may have expired. Save the file to view it.");}}
         finally{if(ReferenceEquals(loading,request))loading=null;}
     }
     private async Task Copy()
     {
-        try{byte[] bytes=await Read(CancellationToken.None);await AssistantClipboard.CopyImage(bytes);detail.Text="Image copied";}
-        catch{detail.Text="Could not copy this image. Try Save instead.";}
+        try{byte[] bytes=await Read(CancellationToken.None);await AssistantClipboard.CopyImage(bytes);detail.Text=Localization.Text("Image copied");}
+        catch{detail.Text=Localization.Text("Could not copy this image. Try Save instead.");}
     }
     private async Task Save()
     {
         string extension=file.Mime switch{"image/jpeg"=>".jpg","image/webp"=>".webp","image/gif"=>".gif","application/pdf"=>".pdf","video/webm"=>".webm","video/quicktime"=>".mov","video/x-matroska"=>".mkv","video/x-msvideo"=>".avi","video/mp4"=>".mp4","audio/mpeg"=>".mp3","audio/wav"=>".wav","audio/mp4"=>".m4a","audio/ogg"=>".ogg","audio/flac"=>".flac",_=>file.IsImage?".png":file.Text!=null?".txt":".bin"};
         string name=file.Name;foreach(char invalid in Path.GetInvalidFileNameChars())name=name.Replace(invalid,'_');if(name.Length==0)name="Attachment";
         if(!name.EndsWith(extension,StringComparison.OrdinalIgnoreCase))name=Path.GetFileNameWithoutExtension(name)+extension;
-        var dialog=new SaveFileDialog{Title="Save attachment",FileName=name,DefaultExt=extension,Filter="Attachment (*"+extension+")|*"+extension,AddExtension=true,OverwritePrompt=true};
+        var dialog=new SaveFileDialog{Title=Localization.Text("Save attachment"),FileName=name,DefaultExt=extension,Filter="Attachment (*"+extension+")|*"+extension,AddExtension=true,OverwritePrompt=true};
         if(dialog.ShowDialog(Window.GetWindow(this))!=true)return;
-        try{byte[] bytes=await Read(CancellationToken.None);await File.WriteAllBytesAsync(dialog.FileName,bytes);detail.Text="Saved";}
-        catch{detail.Text="Could not save the file. Check its link and the save folder.";}
+        try{byte[] bytes=await Read(CancellationToken.None);await File.WriteAllBytesAsync(dialog.FileName,bytes);detail.Text=Localization.Text("Saved");}
+        catch{detail.Text=Localization.Text("Could not save the file. Check its link and the save folder.");}
     }
     private async Task Enlarge()
     {
@@ -146,6 +146,6 @@ internal sealed class AssistantAttachmentView : UserControl
             var image=new Image{Source=bitmap,Stretch=Stretch.Uniform};var owner=Window.GetWindow(this);var window=new Window{Title=file.Name,Width=Math.Min(960,SystemParameters.WorkArea.Width-60),Height=Math.Min(720,SystemParameters.WorkArea.Height-60),MinWidth=240,MinHeight=200,Background=UI.Brush("#101215"),Content=new ScrollViewer{Content=image,Padding=new(18),HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,VerticalScrollBarVisibility=ScrollBarVisibility.Auto},WindowStartupLocation=WindowStartupLocation.CenterScreen};
             if(owner!=null)window.Owner=owner;window.Show();
         }
-        catch{detail.Text="Could not open the image preview. Try Save instead.";}
+        catch{detail.Text=Localization.Text("Could not open the image preview. Try Save instead.");}
     }
 }

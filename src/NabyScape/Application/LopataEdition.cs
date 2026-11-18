@@ -97,6 +97,7 @@ public partial class App
     private DispatcherTimer? hostSettingsWatcher;
     private IslandPreferences lopataAppearance = new();
     private string lopataLanguage = "";
+    private (DateTime Written, long Bytes)? lastLanguageFile;
     internal bool LopataAboveWindows => lopataAppearance.AboveWindows;
 
     private void PrepareLopataSettings()
@@ -108,16 +109,26 @@ public partial class App
 
     private bool ReadHostLanguage()
     {
-        var language = IslandPreferences.ReadJson<IslandLanguage>("language.json");
+        var file = new FileInfo(Path.Combine(IslandPreferences.Root, "language.json"));
+        var stamp = (file.LastWriteTimeUtc, file.Exists ? file.Length : 0);
+        if (stamp == lastLanguageFile) return false;
+        var language = IslandPreferences.ReadJson<IslandLanguage>("language.json", IslandLanguage.MaximumBytes);
+        if (language is null && file.Exists) return false;
+        lastLanguageFile = stamp;
         string signature = language is null ? "" : System.Text.Json.JsonSerializer.Serialize(language);
         if (signature == lopataLanguage) return false;
         lopataLanguage = signature;
         if (language is not null)
         {
-            Settings.UiLanguage = LocalizationCatalog.IsSupported(language.Code) ? language.Code : "en";
-            Localization.LopataCaptions = language.Captions ?? new Dictionary<string, string>();
+            var baseLanguage = language.Code?.Split('-', 2)[0].ToLowerInvariant() ?? "en";
+            Settings.UiLanguage = LocalizationCatalog.IsSupported(baseLanguage) ? baseLanguage : "en";
+            var captions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (language.Captions is not null)
+                foreach (var (key, value) in language.Captions) captions[key] = value;
+            Localization.LopataCaptions = captions;
         }
         else Localization.LopataCaptions = new Dictionary<string, string>();
+        Localization.LopataLanguage = language?.Code;
         Localization.Configure(Settings);
         return true;
     }
@@ -145,8 +156,7 @@ public partial class App
         {
             settingsWindow?.Close();
             if (tray?.ContextMenuStrip is { } menu)
-                foreach (Forms.ToolStripItem item in menu.Items)
-                    if (item.Tag is string caption) item.Text = Localization.Text(caption);
+                LocalizeTrayItems(menu.Items);
             if (overlay is not null)
             {
                 var old = overlay;
@@ -161,6 +171,15 @@ public partial class App
             }
         }
         ChangeSettings();
+    }
+
+    private static void LocalizeTrayItems(Forms.ToolStripItemCollection items)
+    {
+        foreach (Forms.ToolStripItem item in items)
+        {
+            if (item.Tag is string caption) item.Text = Localization.Text(caption);
+            if (item is Forms.ToolStripDropDownItem child) LocalizeTrayItems(child.DropDownItems);
+        }
     }
 
     internal void ToggleLopataLayer()

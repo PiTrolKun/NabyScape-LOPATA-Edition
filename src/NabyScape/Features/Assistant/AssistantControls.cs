@@ -15,7 +15,7 @@ internal static class AssistantControls
         foreach(var item in new[]{("Chat",false),("Voice",true)})
         {
             bool selected=item.Item2==voice;var button=Action(item.Item1,item.Item2?"mic":"chat",()=>{if(!selected){if(item.Item2)app.OpenVoice();else app.ShowAssistant();}});
-            button.MinWidth=72;if(selected){button.SetResourceReference(Control.BackgroundProperty,"SelectionFill");button.SetResourceReference(Control.ForegroundProperty,"SelectionText");}else button.Foreground=UI.Muted;button.FontWeight=selected?FontWeights.SemiBold:FontWeights.Normal;button.BorderThickness=new(0);button.ToolTip=item.Item2?"Voice conversation · the microphone starts only when you choose Start":"Text conversation";
+            button.MinWidth=72;if(selected){button.SetResourceReference(Control.BackgroundProperty,"SelectionFill");button.SetResourceReference(Control.ForegroundProperty,"SelectionText");}else button.Foreground=UI.Muted;button.FontWeight=selected?FontWeights.SemiBold:FontWeights.Normal;button.BorderThickness=new(0);button.ToolTip=item.Item2?Localization.Text("Voice conversation · the microphone starts only when you choose Start"):Localization.Text("Text conversation");
             if(button.Content is StackPanel content && content.Children[1] is TextBlock label)label.FontWeight=selected?FontWeights.SemiBold:FontWeights.Normal;
             System.Windows.Automation.AutomationProperties.SetHelpText(button,selected?"Current mode":"Switch conversation mode");row.Children.Add(button);
         }

@@ -32,7 +32,7 @@ public sealed partial class App : Application
         int epoch=downloadEpoch;Dispatcher.BeginInvoke(()=>
         {
             if(epoch!=downloadEpoch || !Settings.DownloadsEnabled || Downloads?.Running!=true || paths.Length==0 || !string.Equals(Path.GetDirectoryName(paths[0]),Downloads.Folder,StringComparison.OrdinalIgnoreCase))return;
-            PostNotice(new("downloads",paths.Length==1?"Download ready":$"{paths.Length} downloads ready","Folder arrival inferred · drag originals or add to shelf",paths));
+            PostNotice(new("downloads",paths.Length==1?"Download ready":Localization.Format("{0} downloads ready", paths.Length),"Folder arrival inferred · drag originals or add to shelf",paths));
         });
     }
     private void DownloadFailed(string error)
@@ -46,7 +46,7 @@ public sealed partial class App : Application
     // Shows exactly how an alert appears on the dock and in the notification center.
     internal void SendTestNotification()
     {
-        Notifications.Post(Settings,new("test",Localization.Text("Test notification"),Localization.Text("This is how alerts appear on your dock. Click it, or let it fold away on its own."),null,"NabyScape"),overlay?.ManuallyHidden==true,n=>tray?.ShowBalloonTip(4500,n.Title,n.Detail,Forms.ToolTipIcon.Info),DateTimeOffset.UtcNow);
+        Notifications.Post(Settings,new("test",Localization.Text("Test notification"),Localization.Text("This is how alerts appear on your dock. Click it, or let it fold away on its own."),null,"NabyScape"),overlay?.ManuallyHidden==true,n=>tray?.ShowBalloonTip(4500,n.DisplayTitle,n.DisplayDetail,Forms.ToolTipIcon.Info),DateTimeOffset.UtcNow);
     }
     private void ConfigureDownloads()
     {
@@ -59,7 +59,7 @@ public sealed partial class App : Application
     internal void PostNotice(InternalNotice notice)
     {
         if(diagnosticMode && !Array.Exists(Environment.GetCommandLineArgs(),a=>a=="--stage4-only"))return;
-        Notifications.Post(Settings,notice,overlay?.ManuallyHidden==true,n=>tray?.ShowBalloonTip(4500,n.Title,n.Detail,Forms.ToolTipIcon.Info),DateTimeOffset.UtcNow);
+        Notifications.Post(Settings,notice,overlay?.ManuallyHidden==true,n=>tray?.ShowBalloonTip(4500,n.DisplayTitle,n.DisplayDetail,Forms.ToolTipIcon.Info),DateTimeOffset.UtcNow);
     }
     public Store Store { get; private set; }=null!;
     internal OfficialUpdates Updates {get;private set;}=null!;
@@ -134,7 +134,9 @@ public sealed partial class App : Application
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         bool updatesFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-updates-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
-        if (!diagnosticMode || lopataFixture || musicFixture || updatesFixture) PrepareLopataSettings();
+        bool languageFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-language-only") &&
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
+        if (!diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture) PrepareLopataSettings();
         if (musicFixture) { Settings.MediaIntegrationEnabled = false; Settings.LyricsEnabled = false; }
         if(assistantFixture || isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
         Updates=new(Store,Array.Exists(e.Args,a=>a=="--stage3-only")?new Stage3Diagnostics.Network():null,stagingDirectory:diagnosticPath!=null?Path.Combine(Store.DirectoryPath,"updates"):null);
@@ -157,33 +159,39 @@ public sealed partial class App : Application
         tray=new Forms.NotifyIcon{Text=LopataEdition.Name,Visible=diagnosticPath==null};
         using(var stream=GetResourceStream(new Uri("pack://application:,,,/Assets/lopata-island.ico")).Stream) tray.Icon=new System.Drawing.Icon(stream);
         var menu=new Forms.ContextMenuStrip();
-        menu.Items.Add(Localization.Text("Open island"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.Reveal()));
-        menu.Items.Add(Localization.Text("Command bar"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ShowCommands()));
-        menu.Items.Add(Localization.Text("Notifications"),null,(_,_)=>Dispatcher.Invoke(OpenNotifications));
-        menu.Items.Add(Localization.Text("Send test notification"),null,(_,_)=>Dispatcher.Invoke(SendTestNotification));
-        menu.Items.Add(Localization.Text("Settings"),null,(_,_)=>Dispatcher.Invoke(ShowSettings));
-        menu.Items.Add(Localization.Text("Move & resize island"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleDockEditing()));
-        menu.Items.Add(Localization.Text("LOPATA chat"),null,(_,_)=>Dispatcher.Invoke(ShowLopataChat)).Tag = "LOPATA chat";
-        menu.Items.Add(Localization.Text("LOPATA updates"),null,(_,_)=>Dispatcher.Invoke(ShowLopataUpdates)).Tag = "LOPATA updates";
-        var wakeMenu=menu.Items.Add(Localization.Text("Resume wake word"),null,(_,_)=>Dispatcher.Invoke(()=>Assistant.ToggleWakeListening()));
-        menu.Items.Add(Localization.Text("Stop all microphones"),null,(_,_)=>Dispatcher.Invoke(()=>Assistant.StopSession()));
+        Forms.ToolStripItem AddTray(string caption, Action action, Forms.ToolStripItemCollection? items = null)
+        {
+            var item = (items ?? menu.Items).Add(Localization.Text(caption), null, (_, _) => Dispatcher.Invoke(action));
+            item.Tag = caption;
+            return item;
+        }
+        AddTray("Open island", () => overlay?.Reveal());
+        AddTray("Command bar", () => overlay?.ShowCommands());
+        AddTray("Notifications", OpenNotifications);
+        AddTray("Send test notification", SendTestNotification);
+        AddTray("Settings", ShowSettings);
+        AddTray("Move & resize island", () => overlay?.ToggleDockEditing());
+        AddTray("LOPATA chat", ShowLopataChat);
+        AddTray("LOPATA updates", ShowLopataUpdates);
+        var wakeMenu = AddTray("Resume wake word", () => Assistant.ToggleWakeListening());
+        AddTray("Stop all microphones", () => Assistant.StopSession());
         menu.Opening+=(_,_)=>{wakeMenu.Text=Localization.Text(Assistant.WakeArmed?"Pause wake word":"Resume wake word");wakeMenu.Enabled=Assistant.Options.Enabled && Assistant.Options.WakeWord.Enabled;};
-        menu.Items.Add(Localization.Text("Tuck / Return to automatic"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleTuck()));
-        menu.Items.Add(Localization.Text("Hide / show"),null,(_,_)=>Dispatcher.Invoke(()=>overlay?.ToggleVisibility()));
+        AddTray("Tuck / Return to automatic", () => overlay?.ToggleTuck());
+        AddTray("Hide / show", () => overlay?.ToggleVisibility());
         menu.Items.Add(new Forms.ToolStripSeparator());
-        var support=new Forms.ToolStripMenuItem(Localization.Text("Support NabyScape"));
-        support.DropDownItems.Add(Localization.Text("Donate with Saweria"),null,(_,_)=>Dispatcher.Invoke(()=>SupportLinks.Open(SupportLinks.Saweria,Store.Log)));
-        support.DropDownItems.Add(Localization.Text("Donate with Ko-fi"),null,(_,_)=>Dispatcher.Invoke(()=>SupportLinks.Open(SupportLinks.KoFi,Store.Log)));
+        var support = new Forms.ToolStripMenuItem(Localization.Text("Support NabyScape")) { Tag = "Support NabyScape" };
+        AddTray("Donate with Saweria", () => SupportLinks.Open(SupportLinks.Saweria, Store.Log), support.DropDownItems);
+        AddTray("Donate with Ko-fi", () => SupportLinks.Open(SupportLinks.KoFi, Store.Log), support.DropDownItems);
         menu.Items.Add(support);
-        menu.Items.Add(Localization.Text(LopataEdition.OpenCaption), null, (_, _) => Dispatcher.Invoke(LopataEdition.OpenHost)).Tag = LopataEdition.OpenCaption;
-        menu.Items.Add(Localization.Text(LopataEdition.LayerCaption), null, (_, _) => Dispatcher.Invoke(ToggleLopataLayer)).Tag = LopataEdition.LayerCaption;
-        menu.Items.Add(Localization.Text(LopataEdition.CloseCaption), null, (_, _) => Dispatcher.Invoke(Quit)).Tag = LopataEdition.CloseCaption;
+        AddTray(LopataEdition.OpenCaption, LopataEdition.OpenHost);
+        AddTray(LopataEdition.LayerCaption, ToggleLopataLayer);
+        AddTray(LopataEdition.CloseCaption, Quit);
         tray.ContextMenuStrip=menu;tray.DoubleClick+=(_,_)=>Dispatcher.Invoke(ShowSettings);
         overlay=new OverlayWindow(this);MainWindow=overlay;StartupTrace.Attach(overlay,e.Args,Store.Log);overlay.Show();Previews=new(this,overlay.OpenFeaturePage);
         if (!diagnosticMode) LopataUpdates.Start();
         Assistant.Changed+=RefreshAssistantTray;if(diagnosticPath==null)Assistant.StartBackgroundFeatures();
         Notifications.Changed+=()=>overlay.RefreshNotice();
-        Updates.UpdateAvailable+=release=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates","Update available",release.Version+" · Open Settings > Application to review.")));
+        Updates.UpdateAvailable+=release=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates","Update available",Localization.Format("{0} · Open Settings > Application to review.", release.Version))));
         Updates.DownloadReady+=()=>Dispatcher.BeginInvoke(()=>PostNotice(new("updates",Localization.Text("Update ready to install"),Localization.Text("Open Settings > Application to install and restart when ready."))));
         Downloads=new(DownloadReady,DownloadFailed);
         ExternalNotifications=new(ex=>Store.Log(ex));
@@ -223,10 +231,11 @@ public sealed partial class App : Application
         PrivateDiagnostics.SetServiceState(DiagnosticService.Application,DiagnosticServiceState.Ready);
         PrivateDiagnostics.Record(DiagnosticStage.Application,DiagnosticCode.Completed,startupClock.Elapsed);
         if(diagnosticPath==null)UpdateHandoff.SignalStarted(e.Args);
-        if (!diagnosticMode || lopataFixture) ObserveLopataSettings();
+        if (!diagnosticMode || lopataFixture || languageFixture) ObserveLopataSettings();
         if(musicFixture) _=LopataMusicDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(lopataFixture) _=LopataEditionDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(updateDiagnostics is not null) _=updateDiagnostics.Run(this,overlay,diagnosticPath!);
+        else if(languageFixture) _=LopataLanguageDiagnostics.Run(this,diagnosticPath!);
         else if(diagnosticPath!=null) _=Diagnostics.Run(this,overlay,diagnosticPath);
         else
         {

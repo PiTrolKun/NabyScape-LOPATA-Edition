@@ -26,11 +26,11 @@ internal sealed class ColorPicker : StackPanel
     {
         chosen.SetResourceReference(TextBlock.ForegroundProperty,"ControlText");this.presets=presets;this.changed=changed;this.committed=committed;color=(Color)ColorConverter.ConvertFromString(initial);
         var top=new DockPanel();
-        hex=UI.Input(name+" hex",initial,"Enter a six-digit color such as #182028");hex.Margin=new(0);hex.MaxLength=7;top.Children.Add(hex);
+        hex=UI.Input(name+" hex",initial,Localization.Text("Enter a six-digit color such as #182028"));hex.Margin=new(0);hex.MaxLength=7;top.Children.Add(hex);
         hex.TextChanged+=(_,_)=>{if(updating)return;if(Settings.ValidColor(hex.Text)){Set((Color)ColorConverter.ConvertFromString(hex.Text));hex.SetResourceReference(Control.BorderBrushProperty,"ControlBorder");}else hex.BorderBrush=UI.Brush("#F08C85");};
         hex.LostKeyboardFocus+=(_,_)=>Commit();
-        var numeric=new Expander{Header="Color values · HEX / RGB",Margin=new(0,8,0,10),Foreground=UI.Muted};
-        var detail=new StackPanel{Margin=new(0,0,0,0)};field.Height=136;UI.Named(field,name+" saturation and brightness");field.ToolTip="Drag to choose saturation and brightness. Arrow keys adjust; Shift makes larger changes.";detail.Children.Add(field);
+        var numeric=new Expander{Header=Localization.Text("Color values · HEX / RGB"),Margin=new(0,8,0,10),Foreground=UI.Muted};
+        var detail=new StackPanel{Margin=new(0,0,0,0)};field.Height=136;UI.Named(field,name+" saturation and brightness");field.ToolTip=Localization.Text("Drag to choose saturation and brightness. Arrow keys adjust; Shift makes larger changes.");detail.Children.Add(field);
         var gradient=new LinearGradientBrush();foreach(var stop in new[]{(0d,Colors.Red),(.167,Colors.Yellow),(.333,Colors.Lime),(.5,Colors.Cyan),(.667,Colors.Blue),(.833,Colors.Magenta),(1d,Colors.Red)})gradient.GradientStops.Add(new(stop.Item2,stop.Item1));hue.Background=gradient;
         hue.Template=(ControlTemplate)System.Windows.Markup.XamlReader.Parse("""
         <ControlTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" TargetType="Slider"><Grid Height="24"><Border Height="12" CornerRadius="6" Background="{TemplateBinding Background}"/><Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}"><Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Focusable="False" Opacity="0"/></Track.DecreaseRepeatButton><Track.Thumb><Thumb Width="12" Height="20"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border Background="#1B1D22" BorderBrush="White" BorderThickness="2" CornerRadius="6"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Focusable="False" Opacity="0"/></Track.IncreaseRepeatButton></Track></Grid></ControlTemplate>

@@ -49,7 +49,7 @@ public sealed partial class SettingsWindow
         options.Children.Add(Check("Show during quiet hours",s.ExternalNotificationQuietHours,v=>s.ExternalNotificationQuietHours=v));
         options.Children.Add(appsLabel);options.Children.Add(apps);
         page.Children.Add(Section("Other apps",enable,status,privacy,options,
-            UI.Text("NabyScape reads the alerts Windows already shows from apps such as Claude, ChatGPT or Telegram, checks for new ones every 1.5 seconds while this is on, and keeps them only for this session. Reply buttons from the original notification stay in Windows; use Open app to answer.",11,UI.Muted)));
+            UI.Text(Localization.Text("NabyScape reads the alerts Windows already shows from apps such as Claude, ChatGPT or Telegram, checks for new ones every 1.5 seconds while this is on, and keeps them only for this session. Reply buttons from the original notification stay in Windows; use Open app to answer."),11,UI.Muted)));
         void Changed()=>Dispatcher.BeginInvoke(Refresh);
         // Follow the watcher only while this section is on screen.
         if(app.ExternalNotifications is {} watcher){watcher.StatusChanged+=Changed;status.Unloaded+=(_,_)=>watcher.StatusChanged-=Changed;}

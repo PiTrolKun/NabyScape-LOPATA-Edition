@@ -38,7 +38,7 @@ internal static class Installer
         var row=new DockPanel{Margin=new(0,0,0,6)};
         var browse=UI.Button("Browse…",()=>
         {
-            var picker=new OpenFolderDialog{Title="Choose where to install NabyScape"};
+            var picker=new OpenFolderDialog{Title=Localization.Text("Choose where to install NabyScape")};
             if(picker.ShowDialog(window)==true)folder.Text=string.Equals(Path.GetFileName(picker.FolderName),"NabyScape",StringComparison.OrdinalIgnoreCase)?picker.FolderName:Path.Combine(picker.FolderName,"NabyScape");
         });DockPanel.SetDock(browse,Dock.Right);row.Children.Add(browse);row.Children.Add(folder);panel.Children.Add(row);
         var state=UI.Text("Choose a location you can write to. Your personal settings are kept separately.",11,UI.Muted);state.Margin=new(0,0,0,12);panel.Children.Add(state);

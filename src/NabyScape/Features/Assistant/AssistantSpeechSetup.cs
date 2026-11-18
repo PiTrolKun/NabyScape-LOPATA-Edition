@@ -10,9 +10,9 @@ internal sealed partial class AssistantProviderSettings
     private Func<bool>? saveManagedPack;
     private FrameworkElement AutomaticSpeechSettings(ComboBox mode)
     {
-        var service=ai.Speech;var p=new StackPanel();p.Children.Add(UI.Heading("Voice models for your PC",16));
-        p.Children.Add(UI.Text("Choose a language, use the suggested models, then Install & use. Nothing downloads until you choose to install.",11,UI.Muted));
-        var hardware=UI.Text("Hardware has not been scanned yet.",11,UI.Muted);hardware.Margin=new(0,10,0,6);p.Children.Add(hardware);
+        var service=ai.Speech;var p=new StackPanel();p.Children.Add(UI.Heading(Localization.Text("Voice models for your PC"),16));
+        p.Children.Add(UI.Text(Localization.Text("Choose a language, use the suggested models, then Install & use. Nothing downloads until you choose to install."),11,UI.Muted));
+        var hardware=UI.Text(Localization.Text("Hardware has not been scanned yet."),11,UI.Muted);hardware.Margin=new(0,10,0,6);p.Children.Add(hardware);
         var language=new ComboBox{ItemsSource=new[]{"English","Spanish","French","German","Portuguese","Italian","Japanese","Korean","Russian","Arabic","Dutch","Turkish","Hindi","Vietnamese","Indonesian"}};
         string[] codes={"en","es","fr","de","pt","it","ja","ko","ru","ar","nl","tr","hi","vi","id"};string selectedLanguage=(SpeechCatalog.Tts.FirstOrDefault(v=>v.Id==ai.Options.LocalVoice.ManagedTts)??SpeechCatalog.Tts[0]).Language;
         if(selectedLanguage is "any" or "multi")selectedLanguage=ai.Options.LocalVoice.SpeechLanguage;
@@ -21,40 +21,40 @@ internal sealed partial class AssistantProviderSettings
         var recommendation=UI.Text("",12);recommendation.Margin=new(0,10,0,4);p.Children.Add(recommendation);
         var asr=new ComboBox{ItemsSource=SpeechCatalog.Asr,SelectedItem=SpeechCatalog.Asr.FirstOrDefault(m=>m.Id==ai.Options.LocalVoice.ManagedAsr)??SpeechCatalog.Asr[1]};Label(p,"Listening model",asr);
         var tts=new ComboBox();Label(p,"Speaking voice",tts);
-        var gpu=new CheckBox{Content=UI.Text("Use NVIDIA GPU when supported · CPU fallback included",11),IsChecked=ai.Options.LocalVoice.ManagedGpu,Margin=new(0,12,0,6)};p.Children.Add(gpu);
+        var gpu=new CheckBox{Content=UI.Text(Localization.Text("Use NVIDIA GPU when supported · CPU fallback included"),11),IsChecked=ai.Options.LocalVoice.ManagedGpu,Margin=new(0,12,0,6)};p.Children.Add(gpu);
         var extras=new StackPanel();
-        var profileBody=new StackPanel();var profileList=new Expander{Header="Hardware profiles · CPU / RAM / VRAM",Content=profileBody,Margin=new(0,12,0,8)};extras.Children.Add(profileList);
+        var profileBody=new StackPanel();var profileList=new Expander{Header=Localization.Text("Hardware profiles · CPU / RAM / VRAM"),Content=profileBody,Margin=new(0,12,0,8)};extras.Children.Add(profileList);
         var profileRows=new System.Collections.Generic.List<(SpeechHardwareProfile Profile,TextBlock Text,Button Button)>();
         foreach(var profile in SpeechCatalog.Profiles)
         {
             var body=new StackPanel();body.Children.Add(UI.Text(profile.Name,12));var text=UI.Text("",10,UI.Muted);text.Margin=new(0,4,0,6);body.Children.Add(text);
-            var choose=AssistantWindow.Pill("Use this profile",()=>{});body.Children.Add(choose);profileRows.Add((profile,text,choose));
+            var choose=AssistantWindow.Pill(Localization.Text("Use this profile"),()=>{});body.Children.Add(choose);profileRows.Add((profile,text,choose));
             profileBody.Children.Add(new Border{Child=body,Padding=new(12),Margin=new(0,4,0,4),CornerRadius=new(10),Background=UI.Brush("#22262D")});
         }
         var detail=UI.Text("",11,UI.Muted);detail.Margin=new(0,6,0,8);extras.Children.Add(detail);
-        var actions=new WrapPanel();var scan=AssistantWindow.Pill("Scan hardware",()=>{});var recommended=AssistantWindow.Pill("Use suggested models",()=>{});var install=AssistantWindow.Pill("Install & use",()=>{},true);var cancel=AssistantWindow.Pill("Cancel download",service.Cancel);var openVoice=AssistantWindow.Pill("Open voice mode",app.OpenVoice);
+        var actions=new WrapPanel();var scan=AssistantWindow.Pill(Localization.Text("Scan hardware"),()=>{});var recommended=AssistantWindow.Pill(Localization.Text("Use suggested models"),()=>{});var install=AssistantWindow.Pill(Localization.Text("Install & use"),()=>{},true);var cancel=AssistantWindow.Pill(Localization.Text("Cancel download"),service.Cancel);var openVoice=AssistantWindow.Pill(Localization.Text("Open voice mode"),app.OpenVoice);
         foreach(var button in new[]{scan,recommended,install,cancel,openVoice})actions.Children.Add(button);p.Children.Add(actions);
         var progress=new ProgressBar{Minimum=0,Maximum=100,Height=3,Foreground=Brushes.White,Background=UI.Brush("#30343B"),BorderThickness=new(0),Margin=new(0,4,0,8)};p.Children.Add(progress);
         var message=UI.Text("",11,UI.Muted);p.Children.Add(message);
-        var catalogueBody=new StackPanel();var catalogue=new Expander{Header="ASR & TTS library · curated October 2026",Content=catalogueBody,Margin=new(0,14,0,10)};
+        var catalogueBody=new StackPanel();var catalogue=new Expander{Header=Localization.Text("ASR & TTS library · curated October 2026"),Content=catalogueBody,Margin=new(0,14,0,10)};
         var descriptions=new System.Collections.Generic.Dictionary<string,TextBlock>();
         var modelButtons=new System.Collections.Generic.Dictionary<string,Button>();
         foreach(var model in SpeechCatalog.Asr)
         {
             var entry=new StackPanel();entry.Children.Add(UI.Text(model.Name,12));var text=UI.Text("",10,UI.Muted);text.Margin=new(0,4,0,6);entry.Children.Add(text);descriptions[model.Id]=text;
-            var choose=AssistantWindow.Pill("Choose model",()=>asr.SelectedItem=model);modelButtons[model.Id]=choose;entry.Children.Add(choose);catalogueBody.Children.Add(new Border{Child=entry,Padding=new(10),Margin=new(0,3,0,3),CornerRadius=new(8),Background=UI.Brush("#22262D")});
+            var choose=AssistantWindow.Pill(Localization.Text("Choose model"),()=>asr.SelectedItem=model);modelButtons[model.Id]=choose;entry.Children.Add(choose);catalogueBody.Children.Add(new Border{Child=entry,Padding=new(10),Margin=new(0,3,0,3),CornerRadius=new(8),Background=UI.Brush("#22262D")});
         }
-        catalogueBody.Children.Add(UI.Text("Speaking models",13));
+        catalogueBody.Children.Add(UI.Text(Localization.Text("Speaking models"),13));
         foreach(var voice in SpeechCatalog.Tts)
         {
             catalogueBody.Children.Add(AssistantWindow.Pill(voice.Name,()=>{if(voice.Supports(Language()))tts.SelectedItem=voice;}));
             catalogueBody.Children.Add(UI.Text(SpeechCatalog.VoiceDetails(voice),10,UI.Muted));
         }
         extras.Children.Add(catalogue);
-        var links=new WrapPanel();links.Children.Add(AssistantWindow.Pill("Model details",()=>Process.Start(new ProcessStartInfo(asr.SelectedItem is SpeechAsrModel a?SpeechCatalog.ModelLink(a):"https://github.com/ggml-org/whisper.cpp"){UseShellExecute=true})));
-        var license=AssistantWindow.Pill("Voice details & license",()=>{if(tts.SelectedItem is SpeechTtsModel m && m.Id!="windows")Process.Start(new ProcessStartInfo(SpeechCatalog.VoiceLink(m)){UseShellExecute=true});});links.Children.Add(license);links.Children.Add(AssistantWindow.Pill("Open speech folder",service.OpenFolder));extras.Children.Add(links);
-        extras.Children.Add(UI.Text("Suggestions are memory budgets, not measured speed or a quality ranking. Other apps and local chat share RAM/VRAM. New compatible pack versions arrive through Naby updates. Native TTS uses CPU to leave VRAM available for ASR. AMD/Intel GPUs use the CPU path. AI replies still use your selected chat provider or Hermes.",10,UI.Muted));
-        p.Children.Add(new Expander{Header="Model details & alternatives",Content=extras,Margin=new(0,14,0,10)});
+        var links=new WrapPanel();links.Children.Add(AssistantWindow.Pill(Localization.Text("Model details"),()=>Process.Start(new ProcessStartInfo(asr.SelectedItem is SpeechAsrModel a?SpeechCatalog.ModelLink(a):"https://github.com/ggml-org/whisper.cpp"){UseShellExecute=true})));
+        var license=AssistantWindow.Pill(Localization.Text("Voice details & license"),()=>{if(tts.SelectedItem is SpeechTtsModel m && m.Id!="windows")Process.Start(new ProcessStartInfo(SpeechCatalog.VoiceLink(m)){UseShellExecute=true});});links.Children.Add(license);links.Children.Add(AssistantWindow.Pill(Localization.Text("Open speech folder"),service.OpenFolder));extras.Children.Add(links);
+        extras.Children.Add(UI.Text(Localization.Text("Suggestions are memory budgets, not measured speed or a quality ranking. Other apps and local chat share RAM/VRAM. New compatible pack versions arrive through Naby updates. Native TTS uses CPU to leave VRAM available for ASR. AMD/Intel GPUs use the CPU path. AI replies still use your selected chat provider or Hermes."),10,UI.Muted));
+        p.Children.Add(new Expander{Header=Localization.Text("Model details & alternatives"),Content=extras,Margin=new(0,14,0,10)});
         bool scanning=false,subscribed=false,firstScan=true,refreshQueued=false;string? savedMessage=null;
         string Language()=>codes[Math.Max(0,language.SelectedIndex)];string Preference()=>priority.SelectedItem as string??"Balanced";
         void Voices()
@@ -66,18 +66,18 @@ internal sealed partial class AssistantProviderSettings
         {
             if(asr.SelectedItem is not SpeechAsrModel a || tts.SelectedItem is not SpeechTtsModel t)return;
             var h=service.Hardware;bool useGpu=h?.UseGpu(a)==true && gpu.IsChecked==true;bool busy=service.Busy || scanning,installed=!busy && service.Installed(a,t,useGpu);
-            hardware.ToolTip=h?.Summary;hardware.Text=h==null?"Scan this PC to find models that fit.":"Hardware detected · suggestions available";
-            var pack=h==null?null:SpeechCatalog.RecommendPack(h,Language(),Preference());var suggestion=pack?.Asr;recommendation.ToolTip=pack?.Reason;recommendation.Text=h==null?"Choose a language and scan your hardware.":!h.Supported?AssistantSpeechPlatform.NativePackUnavailable:!h.Fits(SpeechCatalog.Asr[0])?"Memory is low. Close other apps and scan again.":"Suggested pack: "+suggestion!.Name+" + "+pack!.Tts.Name;
+            hardware.ToolTip=h?.Summary;hardware.Text=h==null?Localization.Text("Scan this PC to find models that fit."):Localization.Text("Hardware detected · suggestions available");
+            var pack=h==null?null:SpeechCatalog.RecommendPack(h,Language(),Preference());var suggestion=pack?.Asr;recommendation.ToolTip=pack?.Reason;recommendation.Text=h==null?Localization.Text("Choose a language and scan your hardware."):!h.Supported?AssistantSpeechPlatform.NativePackUnavailable:!h.Fits(SpeechCatalog.Asr[0])?Localization.Text("Memory is low. Close other apps and scan again."):"Suggested pack: "+suggestion!.Name+" + "+pack!.Tts.Name;
             mode.IsEnabled=language.IsEnabled=priority.IsEnabled=asr.IsEnabled=tts.IsEnabled=scan.IsEnabled=!busy;recommended.IsEnabled=!busy && h!=null && h.FitsPack(suggestion!,pack!.Tts);gpu.IsEnabled=!busy && h?.UseGpu(a)==true;
-            install.Content=installed?"Use installed pack":"Install & use";install.IsEnabled=!busy && h!=null && (installed || h.FitsPack(a,t));cancel.Visibility=service.CanCancel?Visibility.Visible:Visibility.Collapsed;catalogue.IsEnabled=profileList.IsEnabled=!busy;
+            install.Content=installed?Localization.Text("Use installed pack"):Localization.Text("Install & use");install.IsEnabled=!busy && h!=null && (installed || h.FitsPack(a,t));cancel.Visibility=service.CanCancel?Visibility.Visible:Visibility.Collapsed;catalogue.IsEnabled=profileList.IsEnabled=!busy;
             bool selected=ai.Options.Enabled && ai.Options.LocalVoice is {Enabled:true,Managed:true,OwnModels:false} active && active.ManagedAsr==a.Id && active.ManagedTts==t.Id && active.ManagedGpu==useGpu && active.SpeechLanguage==Language() && active.SpeechPreference==Preference();
-            openVoice.IsEnabled=installed && selected && ai.Setup.Chat.Configured;openVoice.ToolTip=openVoice.IsEnabled?"Open voice mode. The microphone starts only when you choose Start conversation.":"Install and select this pack, then connect a chat model first.";
+            openVoice.IsEnabled=installed && selected && ai.Setup.Chat.Configured;openVoice.ToolTip=openVoice.IsEnabled?Localization.Text("Open voice mode. The microphone starts only when you choose Start conversation."):Localization.Text("Install and select this pack, then connect a chat model first.");
             long bytes=a.DownloadBytes+(a.Engine=="whisper"?SpeechCatalog.Cpu.Bytes+(useGpu?SpeechCatalog.Gpu.Bytes:0):0)+(a.Native || t.Package!=null?SpeechCatalog.Sherpa.Bytes:0)+(t.Package!=null?t.Bytes:t.Id=="windows"?0:t.Bytes+SpeechCatalog.Piper.Bytes)+(AssistantSpeechInstall.CppRuntimePresent()?0:SpeechCatalog.VisualCpp.Bytes);
             detail.Text=(installed?"Installed · ready to select":"Full pack download: "+(bytes/1000000d).ToString("0")+" MB")+" · "+(useGpu?"NVIDIA GPU with CPU fallback":"CPU")+"\nMemory budget: "+a.RamGb.ToString("0.#")+" GB total, "+SpeechHardware.PackFreeGb(a,t).ToString("0.#")+" GB available.";
             detail.Text+="\n"+SpeechCatalog.AsrDetails(a)+"\n"+SpeechCatalog.VoiceDetails(t);
             if(t.Engine=="supertonic")detail.Text+="\nSynthesis steps: "+(Preference()=="Quality"?12:Preference()=="Light"?4:8)+" · OpenRAIL-M model license (separate from the app's MIT license).";
-            if(h?.Supported==true && !h.FitsPack(a,t))detail.Text+="\nClose other apps or choose a smaller combination before starting.";
-            if(AssistantSpeechPlatform.NativePacksSupported && !AssistantSpeechInstall.CppRuntimePresent())detail.Text+="\nA missing Microsoft C++ runtime is installed too; Windows may request administrator approval.";
+            if(h?.Supported==true && !h.FitsPack(a,t))detail.Text+=Localization.Text("\nClose other apps or choose a smaller combination before starting.");
+            if(AssistantSpeechPlatform.NativePacksSupported && !AssistantSpeechInstall.CppRuntimePresent())detail.Text+=Localization.Text("\nA missing Microsoft C++ runtime is installed too; Windows may request administrator approval.");
             license.Visibility=t.Id=="windows"?Visibility.Collapsed:Visibility.Visible;progress.Visibility=service.Busy?Visibility.Visible:Visibility.Collapsed;progress.Value=service.Progress;message.Text=savedMessage??service.Status;
             if(profileList.IsExpanded && !busy)foreach(var row in profileRows)
             {

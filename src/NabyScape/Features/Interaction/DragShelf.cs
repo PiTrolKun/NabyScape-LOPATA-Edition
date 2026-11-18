@@ -39,7 +39,7 @@ public sealed partial class OverlayWindow
             if(!CanShelfDrop(e))return;
             if(e.Data.GetData(DataFormats.FileDrop) is string[] paths)
             {
-                utilityMutating=true;try{app.Productivity.AddFiles(paths);}catch(Exception ex){app.Store.Log(ex);app.Notify("Could not stage files",ex.Message);}finally{utilityMutating=false;}
+                utilityMutating=true;try{app.Productivity.AddFiles(paths);}catch(Exception ex){app.Store.Log(ex);app.Notify(Localization.Text("Could not stage files"),ex.Message);}finally{utilityMutating=false;}
                 FinishFileDrop(true);
             }
             e.Handled=true;

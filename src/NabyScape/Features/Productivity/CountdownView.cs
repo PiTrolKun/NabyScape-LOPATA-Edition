@@ -35,11 +35,11 @@ internal sealed class CountdownView : StackPanel
         status.HorizontalAlignment=HorizontalAlignment.Right;DockPanel.SetDock(status,Dock.Right);header.Children.Add(status);
         if(heading){var title=UI.Heading(Localization.Text(focus?"Focus":"Timer"),13);title.FontWeight=FontWeights.SemiBold;header.Children.Add(title);}Children.Add(header);
         Typography.SetNumeralAlignment(digits,FontNumeralAlignment.Tabular);digits.FontWeight=FontWeights.Medium;digits.TextWrapping=TextWrapping.NoWrap;digits.HorizontalAlignment=HorizontalAlignment.Center;
-        progress.Accent(focus);UI.Named(progress,focus?"Focus session progress":"Timer progress");
+        progress.Accent(focus);UI.Named(progress,focus?Localization.Text("Focus session progress"):Localization.Text("Timer progress"));
         var instrument=new Grid{Margin=new(0,4,0,14)};instrument.Children.Add(progress);
         var center=new StackPanel{VerticalAlignment=VerticalAlignment.Center,HorizontalAlignment=HorizontalAlignment.Center,IsHitTestVisible=false};center.Children.Add(digits);durationLabel.HorizontalAlignment=HorizontalAlignment.Center;durationLabel.Margin=new(0,4,0,0);center.Children.Add(durationLabel);instrument.Children.Add(center);Children.Add(instrument);
-        minutes=UI.Input(focus?"Focus minutes":"Timer duration in minutes",focus?app.Settings.FocusMinutes.ToString(CultureInfo.CurrentCulture):"5",focus?"1–240 minutes. Reset the session to change its duration.":"0.1–1440 minutes. Reset the timer to change its duration.");
-        breaks=UI.Input("Break minutes",app.Settings.BreakMinutes.ToString(CultureInfo.CurrentCulture),"1–120 minutes. Reset the session to change its duration.");
+        minutes=UI.Input(focus?Localization.Text("Focus minutes"):Localization.Text("Timer duration in minutes"),focus?app.Settings.FocusMinutes.ToString(CultureInfo.CurrentCulture):"5",focus?Localization.Text("1–240 minutes. Reset the session to change its duration."):Localization.Text("0.1–1440 minutes. Reset the timer to change its duration."));
+        breaks=UI.Input(Localization.Text("Break minutes"),app.Settings.BreakMinutes.ToString(CultureInfo.CurrentCulture),Localization.Text("1–120 minutes. Reset the session to change its duration."));
         var fields=new Grid();fields.ColumnDefinitions.Add(new());
         if(focus)fields.ColumnDefinitions.Add(new());
         fields.Children.Add(Field(focus?"Focus · min":"Duration · min",minutes));
@@ -47,7 +47,7 @@ internal sealed class CountdownView : StackPanel
         primary=UI.CaptionButton("Start",Activate,true);AutomationProperties.SetAutomationId(primary,id+"-primary");
         reset=UI.CaptionButton("Reset",()=>{State.Reset();app.SaveSession();});UI.Named(reset,Localization.Text(focus?"Reset focus":"Reset timer"));AutomationProperties.SetAutomationId(reset,id+"-reset");
         var actions=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Center,Margin=new(0,0,0,18)};
-        foreach(var button in new[]{primary,reset}){button.Width=button.Height=36;button.MinHeight=36;button.Margin=new(0);button.Padding=new(9);button.Tag=new CornerRadius(18);button.ToolTip="Tab to select; Space or Enter to activate";}
+        foreach(var button in new[]{primary,reset}){button.Width=button.Height=36;button.MinHeight=36;button.Margin=new(0);button.Padding=new(9);button.Tag=new CornerRadius(18);button.ToolTip=Localization.Text("Tab to select; Space or Enter to activate");}
         primary.Margin=new(0,0,12,0);reset.Background=Brushes.Transparent;reset.Foreground=UI.Muted;reset.BorderThickness=new(1);reset.BorderBrush=UI.Brush("#3C4048");reset.Content=Icons.Create("reset",17,UI.Muted);actions.Children.Add(primary);actions.Children.Add(reset);Children.Add(actions);
         Children.Add(fields);hint.MinHeight=20;hint.Margin=new(0,10,0,0);hint.VerticalAlignment=VerticalAlignment.Top;Children.Add(hint);
         foreach(var input in new[]{minutes,breaks})

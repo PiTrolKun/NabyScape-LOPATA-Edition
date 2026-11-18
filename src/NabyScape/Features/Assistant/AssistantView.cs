@@ -22,7 +22,7 @@ internal sealed partial class AssistantView : UserControl,IDisposable
     private readonly TextBlock status=UI.Caption("",11,UI.Muted);
     private readonly StackPanel messages=new();
     private readonly ScrollViewer transcript;
-    private readonly TextBox input=UI.Input("Message AI companion","");
+    private readonly TextBox input=UI.Input(Localization.Text("Message AI companion"),"");
     private readonly Button send,share,stop,clear,attach;
     private readonly WrapPanel draftFiles=new(){Orientation=Orientation.Horizontal};
     private AssistantAttachment[] shownFiles=Array.Empty<AssistantAttachment>();
@@ -189,7 +189,7 @@ internal sealed partial class AssistantView : UserControl,IDisposable
             if(!shownFiles.SequenceEqual(ai.DraftFiles)){draftFiles.Children.Clear();shownFiles=ai.DraftFiles.ToArray();foreach(var file in shownFiles)draftFiles.Children.Add(new AssistantAttachmentView(ai,file,true));}
             draftFiles.IsEnabled=!ai.Busy && !ai.ImportingFiles;
             draftFiles.Visibility=ai.Busy?Visibility.Collapsed:Visibility.Visible;
-            share.ToolTip=ai.Desktop.Sharing?"Stop sharing "+ai.Desktop.SourceName:"Share a window or display";if(ai.Desktop.Sharing){share.SetResourceReference(Control.BackgroundProperty,"SelectionFill");share.SetResourceReference(Control.ForegroundProperty,"SelectionText");}else{share.Background=Brushes.Transparent;share.SetResourceReference(Control.ForegroundProperty,"ControlText");}
+            share.ToolTip=ai.Desktop.Sharing?"Stop sharing "+ai.Desktop.SourceName:Localization.Text("Share a window or display");if(ai.Desktop.Sharing){share.SetResourceReference(Control.BackgroundProperty,"SelectionFill");share.SetResourceReference(Control.ForegroundProperty,"SelectionText");}else{share.Background=Brushes.Transparent;share.SetResourceReference(Control.ForegroundProperty,"ControlText");}
             screenPreview.Header="Sharing · "+ai.Desktop.SourceName;screenPreview.Visibility=ai.Desktop.Sharing?Visibility.Visible:Visibility.Collapsed;
             bool restoring=restoreScroll,bottom=restoring?followLatest:transcript.ScrollableHeight-transcript.VerticalOffset<30;
             var history=ai.Conversation.Messages;
@@ -203,7 +203,7 @@ internal sealed partial class AssistantView : UserControl,IDisposable
                 var message=history[i];if(message.Role is not ("user" or "assistant") || string.IsNullOrWhiteSpace(message.Text) && message.Attachments is not {Count:>0} || message.Text.StartsWith("Updated shared screen after"))continue;
                 var body=new StackPanel();if(!string.IsNullOrWhiteSpace(message.Text))body.Children.Add(message.Role=="assistant"?AssistantMarkdown.Render(message.Text):UI.Text(message.Text,13));
                 if(message.Attachments!=null)foreach(var file in message.Attachments)body.Children.Add(new AssistantAttachmentView(ai,file));FrameworkElement text=body;text.Margin=message.Role=="user"?new Thickness(12,9,12,9):new Thickness(2,10,2,10);
-                var menu=new ContextMenu();var copy=new MenuItem{Header="Copy message"};copy.Click+=(_,_)=>{try{Clipboard.SetText(message.Text);}catch{}};menu.Items.Add(copy);text.ContextMenu=menu;
+                var menu=new ContextMenu();var copy=new MenuItem{Header=Localization.Text("Copy message")};copy.Click+=(_,_)=>{try{Clipboard.SetText(message.Text);}catch{}};menu.Items.Add(copy);text.ContextMenu=menu;
                 var bubble=new Border{Child=text,CornerRadius=new(12),Background=Brushes.Transparent,Margin=new(message.Role=="user"?42:0,3,message.Role=="user"?0:12,5)};if(message.Role=="user")bubble.SetResourceReference(Border.BackgroundProperty,"ControlFill");messages.Children.Add(bubble);
                 if(IsLoaded && !app.Settings.ReduceMotion && !restoring){bubble.Opacity=0;Motion.Fade(bubble,1,180);}
             }

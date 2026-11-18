@@ -53,7 +53,7 @@ internal sealed partial class AssistantView
             string? text=data.GetData(DataFormats.UnicodeText) as string??data.GetData(DataFormats.Text) as string;
             if(text!=null){int start=input.SelectionStart;input.SelectedText=text;input.CaretIndex=start+text.Length;}
         }
-        catch(Exception ex){status.Text=ex is ExternalException?"The clipboard is busy. Try pasting again.":"Could not paste: "+ex.Message;status.Visibility=Visibility.Visible;}
+        catch(Exception ex){status.Text=ex is ExternalException?Localization.Text("The clipboard is busy. Try pasting again."):"Could not paste: "+ex.Message;status.Visibility=Visibility.Visible;}
         finally{pasting=false;}
     }
 }

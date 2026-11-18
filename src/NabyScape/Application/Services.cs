@@ -59,6 +59,8 @@ public sealed partial class MediaService : IDisposable, ILocalMusicTransport
     }
     public string Title { get; private set; }="Nothing playing";
     public string Artist { get; private set; }="Play something in your favorite app";
+    internal string DisplayTitle => Available ? Title : Localization.Text(Title);
+    internal string DisplayArtist => Available ? Artist : Localization.Text(Artist);
     public ImageSource? Artwork { get; private set; }
     public bool Playing { get; private set; }
     internal bool DiagnosticFixture {get;set;}

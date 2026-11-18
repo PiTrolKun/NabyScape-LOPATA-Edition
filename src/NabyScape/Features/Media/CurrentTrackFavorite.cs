@@ -45,7 +45,7 @@ public sealed partial class OverlayWindow
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             app.Store.Log(error);
-            app.Notify("Not saved yet",Localization.Text("Could not save favorite tracks."));
+            app.Notify(Localization.Text("Not saved yet"),Localization.Text("Could not save favorite tracks."));
         }
     }
 }

@@ -43,12 +43,12 @@ internal sealed record IslandPreferences
     internal static IslandPreferences Read() => (ReadJson<IslandPreferences>("appearance.json") ?? new()).Normalize();
     internal static void Save(IslandPreferences value) => SaveJson("appearance.json", value.Normalize());
 
-    internal static T? ReadJson<T>(string file) where T : class
+    internal static T? ReadJson<T>(string file, int maximumBytes = 128 * 1024) where T : class
     {
         try
         {
             using var stream = new FileStream(Path.Combine(Root, file), FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            return stream.Length <= 128 * 1024 ? JsonSerializer.Deserialize<T>(stream) : null;
+            return stream.Length <= maximumBytes ? JsonSerializer.Deserialize<T>(stream) : null;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { return null; }
     }
@@ -68,5 +68,8 @@ internal sealed record IslandPreferences
     }
 }
 
-internal sealed record IslandLanguage(string Code, System.Collections.Generic.Dictionary<string, string> Captions);
+internal sealed record IslandLanguage(string Code, System.Collections.Generic.Dictionary<string, string> Captions)
+{
+    internal const int MaximumBytes = 4 * 1024 * 1024;
+}
 

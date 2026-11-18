@@ -14,7 +14,7 @@ internal sealed class LopataChatWindow : Window
 {
     private readonly LopataConnection link;
     private readonly List<IslandTurn> history = [];
-    private readonly TextBox draft = UI.Input("LOPATA chat message", "");
+    private readonly TextBox draft = UI.Input(Localization.Text("LOPATA chat message"), "");
     private readonly TextBlock status = UI.Text("", 12, UI.Muted);
     private readonly StackPanel conversation = new();
     private readonly ScrollViewer scroll;

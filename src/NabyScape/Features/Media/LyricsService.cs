@@ -13,7 +13,22 @@ using System.Threading.Tasks;
 namespace NabyScape;
 
 internal sealed record LyricLine(double At,string Text);
-internal sealed record LyricResult(LyricLine[] Lines,string Status,string Plain="");
+internal sealed record LyricResult(LyricLine[] Lines,string Status,string Plain="")
+{
+    private static readonly string[] StatusCaptions =
+        ["Synced lyrics", "Plain lyrics", "No synced lyrics", "Automatic", "Preparing Romaji…", "Romaji"];
+
+    internal string DisplayStatus
+    {
+        get
+        {
+            var localized = Localization.Text(Status);
+            return localized != Status || !Status.Contains(" · ", StringComparison.Ordinal) ? localized
+                : string.Join(" · ", Status.Split(" · ").Select(part =>
+                    StatusCaptions.Contains(part, StringComparer.Ordinal) ? Localization.Text(part) : part));
+        }
+    }
+}
 internal static class LyricTiming
 {
     private static readonly Regex stamps=new(@"\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]",RegexOptions.CultureInvariant,TimeSpan.FromMilliseconds(100));

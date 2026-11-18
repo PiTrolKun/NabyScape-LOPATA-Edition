@@ -19,7 +19,7 @@ internal sealed class MediaControls : Grid
     private readonly Border popover=new(){Tag="media-popover",Background=UI.Brush("#111216"),BorderBrush=UI.Brush("#53565D"),BorderThickness=new(.7),CornerRadius=new(10),Padding=new(8),Margin=new(0,6,0,0),Visibility=Visibility.Collapsed};
     private readonly Grid footer=new(){Margin=new(0,8,0,0)};
     private readonly Button source,level,library;
-    private readonly TextBlock sourceName=UI.Text("Media",11),levelText=UI.Text("—",11,UI.Muted);
+    private readonly TextBlock sourceName=UI.Text(Localization.Text("Media"),11),levelText=UI.Text("—",11,UI.Muted);
     private readonly Grid sourceIcon=new(){Width=16,Height=16,Margin=new(0,0,6,0)},levelIcon=new(){Width=16,Height=16,Margin=new(0,0,6,0)};
     private readonly Func<IReadOnlyList<MediaSourceChoice>> sources;
     private readonly Func<string?> selected;
@@ -40,7 +40,7 @@ internal sealed class MediaControls : Grid
         footer.ColumnDefinitions.Add(new());footer.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         footer.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         source=FooterButton("Choose media source",()=>Toggle("source"));
-        var chevron=Icons.Create("chevron",8,UI.Muted);chevron.Margin=new(7,0,0,0);source.Content=UI.Row(sourceIcon,sourceName,chevron);source.HorizontalAlignment=HorizontalAlignment.Left;source.Visibility=media?Visibility.Visible:Visibility.Collapsed;source.ToolTip="Choose media source · Enter or Space to open";footer.Children.Add(source);
+        var chevron=Icons.Create("chevron",8,UI.Muted);chevron.Margin=new(7,0,0,0);source.Content=UI.Row(sourceIcon,sourceName,chevron);source.HorizontalAlignment=HorizontalAlignment.Left;source.Visibility=media?Visibility.Visible:Visibility.Collapsed;source.ToolTip=Localization.Text("Choose media source · Enter or Space to open");footer.Children.Add(source);
         library=FooterButton("Open music list",()=>{Close(false);openList?.Invoke();});
         UI.LocalizedName(library,"Open music list");
         library.Content=Localization.Text("Track list");
@@ -51,8 +51,8 @@ internal sealed class MediaControls : Grid
         library.Visibility=media && openList!=null?Visibility.Visible:Visibility.Collapsed;
         Grid.SetColumn(library,1);
         footer.Children.Add(library);
-        level=FooterButton("Volume controls",()=>Toggle("volume"));level.Content=UI.Row(levelIcon,levelText);level.HorizontalAlignment=HorizontalAlignment.Right;level.Visibility=volume?Visibility.Visible:Visibility.Collapsed;level.ToolTip="Volume, mute, mixer and audio devices · Enter or Space to open";Grid.SetColumn(level,2);footer.Children.Add(level);
-        if(!media){content.MinHeight=144;var heading=UI.Heading("Volume",18);content.Children.Add(heading);}
+        level=FooterButton("Volume controls",()=>Toggle("volume"));level.Content=UI.Row(levelIcon,levelText);level.HorizontalAlignment=HorizontalAlignment.Right;level.Visibility=volume?Visibility.Visible:Visibility.Collapsed;level.ToolTip=Localization.Text("Volume, mute, mixer and audio devices · Enter or Space to open");Grid.SetColumn(level,2);footer.Children.Add(level);
+        if(!media){content.MinHeight=144;var heading=UI.Heading(Localization.Text("Volume"),18);content.Children.Add(heading);}
         content.Children.Add(footer);RowDefinitions.Add(new(){Height=GridLength.Auto});RowDefinitions.Add(new(){Height=GridLength.Auto});Children.Add(content);Grid.SetRow(popover,1);Children.Add(popover);
         KeyboardNavigation.SetTabNavigation(popover,KeyboardNavigationMode.Cycle);
         SizeChanged+=(_,_)=>Place();popover.SizeChanged+=(_,_)=>Place();
@@ -73,8 +73,8 @@ internal sealed class MediaControls : Grid
         var choices=sources();string? id=selected();var current=choices.FirstOrDefault(item=>item.Id==id);
         string signature=string.Join("\n",choices.Select(item=>item.Id+"\t"+item.Name))+"\nselected:"+id;
         if(IsOpen && kind=="source" && signature!=sourceSignature)Close(popover.IsKeyboardFocusWithin);
-        sourceSignature=signature;sourceName.Text=current?.Name??"Media";sourceName.MaxWidth=Math.Max(48,ActualWidth-(library.Visibility==Visibility.Visible?215:145));sourceName.TextTrimming=TextTrimming.CharacterEllipsis;
-        source.ToolTip=id==MediaSourceSelection.NoneId?"None · media stays hidden until you choose Auto or an app":id==MediaSourceSelection.AutoId?"Auto · follows the current Windows media app":current!=null?"Media source · "+current.Name:"Play media in an app to select its session";
+        sourceSignature=signature;sourceName.Text=current?.Name??Localization.Text("Media");sourceName.MaxWidth=Math.Max(48,ActualWidth-(library.Visibility==Visibility.Visible?215:145));sourceName.TextTrimming=TextTrimming.CharacterEllipsis;
+        source.ToolTip=id==MediaSourceSelection.NoneId?Localization.Text("None · media stays hidden until you choose Auto or an app"):id==MediaSourceSelection.AutoId?Localization.Text("Auto · follows the current Windows media app"):current!=null?"Media source · "+current.Name:Localization.Text("Play media in an app to select its session");
         string key=current?.Id??"";if(key!=iconKey || sourceIcon.Children.Count==0){iconKey=key;sourceIcon.Children.Clear();sourceIcon.Children.Add(SourceGlyph(key));}
     }
     internal void Toggle(string next)
@@ -85,19 +85,19 @@ internal sealed class MediaControls : Grid
         if(next=="volume")popover.Child=volumeContent();
         else
         {
-            var list=new StackPanel();var heading=UI.Text("Media source",11,UI.Muted);heading.Margin=new(3,0,0,8);list.Children.Add(heading);
+            var list=new StackPanel();var heading=UI.Text(Localization.Text("Media source"),11,UI.Muted);heading.Margin=new(3,0,0,8);list.Children.Add(heading);
             var choices=sources();
-            if(!choices.Any(choice=>choice.Id!=MediaSourceSelection.NoneId && choice.Id!=MediaSourceSelection.AutoId && !MediaService.IsLocalSource(choice.Id))){var empty=UI.Text("No active media sessions.\nPlay something in Spotify or your browser.",11,UI.Muted);empty.Margin=new(3,6,3,6);list.Children.Add(empty);}
+            if(!choices.Any(choice=>choice.Id!=MediaSourceSelection.NoneId && choice.Id!=MediaSourceSelection.AutoId && !MediaService.IsLocalSource(choice.Id))){var empty=UI.Text(Localization.Text("No active media sessions.\nPlay something in Spotify or your browser."),11,UI.Muted);empty.Margin=new(3,6,3,6);list.Children.Add(empty);}
             foreach(var item in choices)
             {
                 var button=UI.Button("Use media source "+item.Name,()=>{Close(false);item.Select();source.Focus();});button.Padding=new(6);button.Margin=new(0);button.Background=item.Id==selected()?UI.Brush("#24262B"):Brushes.Transparent;button.HorizontalContentAlignment=HorizontalAlignment.Stretch;
-                if(item.Id==MediaSourceSelection.NoneId)button.ToolTip="Show idle, focus or timer activity. Playback in other apps continues.";else if(item.Id==MediaSourceSelection.AutoId)button.ToolTip="Automatically follow the current Windows media app.";
+                if(item.Id==MediaSourceSelection.NoneId)button.ToolTip=Localization.Text("Show idle, focus or timer activity. Playback in other apps continues.");else if(item.Id==MediaSourceSelection.AutoId)button.ToolTip=Localization.Text("Automatically follow the current Windows media app.");
                 var row=new DockPanel{LastChildFill=true};var check=UI.Text(item.Id==selected()?"✓":"",14);check.Width=22;check.HorizontalAlignment=HorizontalAlignment.Right;DockPanel.SetDock(check,Dock.Right);row.Children.Add(check);
                 var glyph=SourceGlyph(item.Id);glyph.Margin=new(0,0,10,0);DockPanel.SetDock(glyph,Dock.Left);row.Children.Add(glyph);var name=UI.Text(item.Name,12);name.TextTrimming=TextTrimming.CharacterEllipsis;name.TextWrapping=TextWrapping.NoWrap;row.Children.Add(name);button.Content=row;AutomationProperties.SetItemStatus(button,item.Id==selected()?"Selected":"Available");list.Children.Add(button);
             }
             popover.Child=new ScrollViewer{Content=list,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};
         }
-        UI.Named(popover,next=="source"?"Media source popover":"Volume popover");popover.Visibility=Visibility.Visible;Place();LayoutRequested?.Invoke();
+        UI.Named(popover,next=="source"?Localization.Text("Media source popover"):Localization.Text("Volume popover"));popover.Visibility=Visibility.Visible;Place();LayoutRequested?.Invoke();
         var move=new TranslateTransform(0,Motion.Enabled?5:0);popover.RenderTransform=move;Motion.To(move,TranslateTransform.YProperty,0,180);popover.Opacity=Motion.Enabled?0:1;
         Motion.Fade(popover,1,220,completed:()=>{if(popover.RenderTransform==move){move.BeginAnimation(TranslateTransform.YProperty,null);popover.BeginAnimation(OpacityProperty,null);}});
         Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,()=>{if(IsOpen && popover.IsVisible){UpdateLayout();popover.MoveFocus(new TraversalRequest(FocusNavigationDirection.First));UpdateLayout();popover.BringIntoView();}});

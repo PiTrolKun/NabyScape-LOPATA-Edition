@@ -131,10 +131,10 @@ public sealed partial class OverlayWindow
         peekArt.Visibility=media && app.Media.Artwork!=null?Visibility.Visible:Visibility.Collapsed;SwapArtwork(peekArt,media?app.Media.Artwork:null);
         peekFallback.Visibility=peekArt.Visibility==Visibility.Visible?Visibility.Collapsed:Visibility.Visible;
         var now=DateTimeOffset.Now;
-        string caption=media?app.Media.Title:WidgetOn("focus") && app.Session.Focus.Remaining(now)>0?"Focus · "+app.Session.Focus.Display(now):WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?"Timer · "+app.Session.Timer.Display(now):now.ToString("HH:mm");
-        if(activityDetail=="Ending soon")caption=(previewKind=="timer"?"Timer · "+app.Session.Timer.Display(now):"Focus · "+app.Session.Focus.Display(now));
+        string caption=media?app.Media.Title:WidgetOn("focus") && app.Session.Focus.Remaining(now)>0?Localization.Format("Focus · {0}", app.Session.Focus.Display(now)):WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?Localization.Format("Timer · {0}", app.Session.Timer.Display(now)):now.ToString("HH:mm");
+        if(activityDetail=="Ending soon")caption=(previewKind=="timer"?Localization.Format("Timer · {0}", app.Session.Timer.Display(now)):"Focus · "+app.Session.Focus.Display(now));
         if(media)SwapText(peekTitle,caption);else Motion.Text(peekTitle,caption);
-        string detail=media?app.Media.Artist:ActiveCountdown()!=null?"Session running · click for controls":now.ToString("dddd, d MMMM",new System.Globalization.CultureInfo("en-US"));
+        string detail=media?app.Media.Artist:ActiveCountdown()!=null?Localization.Text("Session running · click for controls"):now.ToString("dddd, d MMMM",Localization.Culture);
         if(media)SwapText(peekSubtitle,detail);else Motion.Text(peekSubtitle,detail);
         if(peekPlay!=null){peekPlay.Visibility=media?Visibility.Visible:Visibility.Collapsed;peekPlay.IsEnabled=app.Media.CanToggle;Motion.Icon(peekPlay,app.Media.Playing?"pause":"play",18,Brushes.Black);}
         var position=media?app.Media.Timeline():(ActiveCountdown() is Countdown c?(c.DurationSeconds-c.Remaining(now),c.DurationSeconds):(0d,0d));
@@ -143,7 +143,7 @@ public sealed partial class OverlayWindow
         if(!peekSeeking)peekProgress.Value=position.Item2>0?Math.Clamp(position.Item1/position.Item2,0,1):0;
         var format=position.Item2>=3600?@"h\:mm\:ss":@"m\:ss";
         peekElapsed.Text=TimeSpan.FromSeconds(Math.Max(0,position.Item1)).ToString(format);peekDuration.Text=TimeSpan.FromSeconds(Math.Max(0,position.Item2)).ToString(format);
-        if(position.Item2<=0){peekElapsed.Text=media?Localization.Text("This player doesn't share its position"):"No active session";peekDuration.Text=media?"":"Open →";}
+        if(position.Item2<=0){peekElapsed.Text=media?Localization.Text("This player doesn't share its position"):Localization.Text("No active session");peekDuration.Text=media?"":Localization.Text("Open →");}
         ApplyPeekSeek(media,position.Item2);
         if(media){timelineAt=DateTimeOffset.UtcNow;timelineElapsed=position.Item1;timelineDuration=position.Item2;}
         peekWave.Visibility=peekId=="media" && media && app.Settings.LiveActivity?Visibility.Visible:Visibility.Collapsed;

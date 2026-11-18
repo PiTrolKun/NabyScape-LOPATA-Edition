@@ -27,9 +27,9 @@ public sealed partial class OverlayWindow
     private void InitializeAssistantReply()
     {
         var dismiss=Icons.Button("x","Dismiss reply",Collapse,size:28);dismiss.Content=Icons.Create("x",14);dismiss.Margin=new(8,0,0,0);DockPanel.SetDock(dismiss,Dock.Right);assistantReplyActions.Children.Add(dismiss);
-        var open=AssistantWindow.Pill("Open chat",()=>OpenAssistant());open.HorizontalAlignment=HorizontalAlignment.Left;open.MinHeight=open.Height=28;open.Padding=new(10,3,10,3);open.Margin=new(0);assistantReplyActions.Children.Add(open);
+        var open=AssistantWindow.Pill(Localization.Text("Open chat"),()=>OpenAssistant());open.HorizontalAlignment=HorizontalAlignment.Left;open.MinHeight=open.Height=28;open.Padding=new(10,3,10,3);open.Margin=new(0);assistantReplyActions.Children.Add(open);
         Grid.SetRow(assistantReplyActions,1);assistantPeek.Children.Add(assistantReplyActions);
-        AutomationProperties.SetName(assistantPeek,"Naby reply");
+        AutomationProperties.SetName(assistantPeek,Localization.Text("Naby reply"));
         AutomationProperties.SetLiveSetting(assistantCaption,AutomationLiveSetting.Polite);
     }
 
@@ -49,7 +49,7 @@ public sealed partial class OverlayWindow
     private void RefreshAssistantReplyText()
     {
         if(!assistantReplyShowing || assistantDisplayedReply==null)return;
-        assistantGreeting.Text=app.Assistant.State==AssistantState.Speaking?"Naby · Speaking":"Naby · Reply";
+        assistantGreeting.Text=app.Assistant.State==AssistantState.Speaking?Localization.Text("Naby · Speaking"):Localization.Text("Naby · Reply");
         Motion.Text(assistantCaption,assistantReplyPlain);
     }
 

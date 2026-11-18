@@ -47,8 +47,8 @@ internal sealed partial class AssistantProviderSettings
         Choice("Chat with Naby","Ask questions, paste images and work with your files.","Set up chat",()=>SelectSetupSection("Chat"));
         Choice("Talk hands-free","Choose a voice, check your microphone and set a wake word.","Set up voice",OpenVoiceSetup);
         Choice("Use your Hermes agent","Bring your agent's memory and tools into Naby.","Connect Hermes",OpenHermesSetup);
-        setupMap=UI.Text("",12,UI.Muted);var saved=new Expander{Header="Your current setup",Content=setupMap,IsExpanded=false,Margin=new(0,0,0,20)};overview.Children.Add(saved);
-        nextSetup=AssistantWindow.Pill("Continue setup",NextSetup,true);nextSetup.HorizontalAlignment=HorizontalAlignment.Left;overview.Children.Add(nextSetup);
+        setupMap=UI.Text("",12,UI.Muted);var saved=new Expander{Header=Localization.Text("Your current setup"),Content=setupMap,IsExpanded=false,Margin=new(0,0,0,20)};overview.Children.Add(saved);
+        nextSetup=AssistantWindow.Pill(Localization.Text("Continue setup"),NextSetup,true);nextSetup.HorizontalAlignment=HorizontalAlignment.Left;overview.Children.Add(nextSetup);
         foreach(var body in setupPages.Values)page.Children.Add(body);
         Loaded+=(_,_)=>{if(!setupSubscribed){setupSubscribed=true;ai.Changed+=QueueSetupRefresh;ai.Speech.Changed+=QueueSetupRefresh;}RefreshSetupOverview();};
         Unloaded+=(_,_)=>{setupSubscribed=false;ai.Changed-=QueueSetupRefresh;ai.Speech.Changed-=QueueSetupRefresh;};
@@ -79,7 +79,7 @@ internal sealed partial class AssistantProviderSettings
         setupTitle.Text=Localization.Text(ready.Chat.Verified?"Your companion is ready":"How would you like to use Naby?");
         setupDescription.Text=Localization.Text("Choose what you want to do. Your saved setup stays available when you switch between chat and voice.");
         chatReadiness.Text=ready.Chat.Title;chatDetail.Text=ready.Chat.Detail;
-        if(voiceSetupSummary!=null)voiceSetupSummary.Text=ai.VoiceConnected?"Microphone on · voice connected":ai.Setup.Voice.Title;
+        if(voiceSetupSummary!=null)voiceSetupSummary.Text=ai.VoiceConnected?Localization.Text("Microphone on · voice connected"):ai.Setup.Voice.Title;
         voiceReadiness.Text=ai.VoiceConnected?Localization.Text("Voice connected · microphone on"):ready.Voice.Title;voiceDetail.Text=ready.Voice.Detail;
         string nextCaption=!ai.Options.Enabled?"Enable AI companion":!ready.Chat.Configured?"Set up chat":!ready.Chat.Verified?"Check chat connection":"Open chat";nextSetup.Content=Localization.Text(nextCaption);UI.LocalizedName(nextSetup,nextCaption);
         if(setupMap!=null)setupMap.Text=ai.SetupSummary;

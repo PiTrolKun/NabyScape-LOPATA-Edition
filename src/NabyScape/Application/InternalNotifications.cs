@@ -5,7 +5,11 @@ using System.Linq;
 namespace NabyScape;
 
 // Source/AppId describe alerts mirrored from other Windows apps (Kind "external").
-internal sealed record InternalNotice(string Kind,string Title,string Detail,string[]? Files=null,string? Source=null,string? AppId=null);
+internal sealed record InternalNotice(string Kind,string Title,string Detail,string[]? Files=null,string? Source=null,string? AppId=null)
+{
+    internal string DisplayTitle => Kind == "external" ? Title : Localization.Text(Title);
+    internal string DisplayDetail => Kind == "external" ? Detail : Localization.Text(Detail);
+}
 // One row in the notification center. Session-only: nothing here is written to disk.
 internal sealed class NoticeEntry(InternalNotice notice,DateTimeOffset at)
 {
