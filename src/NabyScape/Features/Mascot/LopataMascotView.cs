@@ -18,6 +18,7 @@ internal sealed class LopataMascotView : FrameworkElement
         monitor.Freeze();
         return new MascotArt(monitor);
     });
+    private readonly DrawingVisual drawing = new();
     private MascotFrame frame;
 
     internal LopataMascotView(bool compact)
@@ -25,20 +26,25 @@ internal sealed class LopataMascotView : FrameworkElement
         Compact = compact;
         IsHitTestVisible = false;
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.Linear);
+        AddVisualChild(drawing);
+        SizeChanged += (_, _) => DrawPose();
     }
 
     internal bool Compact { get; }
     internal MascotFrame Frame => frame;
+    protected override int VisualChildrenCount => 1;
+    protected override Visual GetVisualChild(int index) => index == 0 ? drawing : throw new ArgumentOutOfRangeException(nameof(index));
 
     internal void Present(MascotFrame value)
     {
         if (frame == value) return;
         frame = value;
-        InvalidateVisual();
+        DrawPose();
     }
 
-    protected override void OnRender(DrawingContext dc)
+    private void DrawPose()
     {
+        using var dc = drawing.RenderOpen();
         if (ActualWidth < 1 || ActualHeight < 1) return;
         if (Compact)
         {

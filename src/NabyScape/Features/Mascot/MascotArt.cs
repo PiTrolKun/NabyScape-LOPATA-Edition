@@ -156,11 +156,12 @@ internal sealed class MascotArt(BitmapSource monitor)
         dc.Pop();
     }
 
-    private static double DigStroke(MascotFrame frame)
+    internal static double DigStroke(MascotFrame frame)
     {
         if (frame.Still) return 1;
         double cycle = frame.Seconds % 1.35 / 1.35;
-        double lift = cycle < .42 ? cycle / .42 : Math.Clamp(1 - (cycle - .42) / .32, 0, 1);
+        const double liftEnd = .62;
+        double lift = cycle < liftEnd ? cycle / liftEnd : (1 - cycle) / (1 - liftEnd);
         return 1 - lift * lift * (3 - 2 * lift);
     }
 

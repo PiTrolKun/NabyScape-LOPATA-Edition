@@ -148,24 +148,24 @@ public sealed partial class OverlayWindow
         if(liveRendering || !IsVisible || IsTucked || !app.Settings.LiveActivity || !Motion.Enabled || !HasLiveWork)return;
         lastLive=quietSince=DateTimeOffset.UtcNow;renderedAt=null;livePacer.Reset();liveRendering=true;CompositionTarget.Rendering+=DisplayFrame;
     }
-    private void StopLiveRendering(){if(liveRendering)CompositionTarget.Rendering-=DisplayFrame;liveRendering=false;renderedAt=null;}
+    private void StopLiveRendering(){if(liveRendering)CompositionTarget.Rendering-=DisplayFrame;liveRendering=false;renderedAt=null;ResetMascotPacing();}
     private void DisplayFrame(object? sender,EventArgs args)
     {
-        var stamp=((RenderingEventArgs)args).RenderingTime;if(renderedAt==stamp || !livePacer.Accept(stamp,Motion.FrameLimit))return;renderedAt=stamp;LiveFrames++;FrameTelemetry.Sample(stamp);LiveFrame();
+        var stamp=((RenderingEventArgs)args).RenderingTime;if(renderedAt==stamp || !livePacer.Accept(stamp,Motion.FrameLimit))return;renderedAt=stamp;LiveFrames++;FrameTelemetry.Sample(stamp);LiveFrame(stamp);
     }
     private Countdown? ActiveCountdown()
     {
         var now=DateTimeOffset.UtcNow;
         return WidgetOn("focus") && app.Session.Focus.Remaining(now)>0?app.Session.Focus:WidgetOn("timer") && app.Session.Timer.Remaining(now)>0?app.Session.Timer:null;
     }
-    private void LiveFrame()
+    private void LiveFrame(TimeSpan stamp)
     {
         var now=DateTimeOffset.UtcNow;double dt=Math.Clamp((now-lastLive).TotalSeconds,.001,.5);lastLive=now;
         bool waveformWanted=AudioVisualDemand,sample=false;
         if(waveformWanted || MascotAudioDemand){sampledPeak=app.Audio.MediaPeak(app.Media.AudioMeterSource,includeSpectrum:waveformWanted);sample=audioSequence!=app.Audio.MediaLevel.Sequence;audioSequence=app.Audio.MediaLevel.Sequence;}
         else sampledPeak=0;
         double peak=app.Media.Playing && !app.Audio.MediaMeterMuted?sampledPeak:0;
-        AdvanceMascot(dt, app.Audio.MediaMeterFallback ? 0 : peak, sample);
+        AdvanceMascot(stamp, app.Audio.MediaMeterFallback ? 0 : peak, sample);
         var session=ActiveCountdown();bool running=session?.Running==true;
         if(HasLiveWork)quietSince=now;
         if((now-quietSince).TotalSeconds>1.2){StopLiveRendering();return;}

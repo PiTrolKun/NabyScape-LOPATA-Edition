@@ -18,7 +18,8 @@ public sealed partial class OverlayWindow
     private IslandResponse mascotStatus = new("offline");
     private bool mascotLocalCore, mascotPlaying;
     private string? lastMascotFailure;
-    private double mascotFrameTime;
+    private readonly FramePacer mascotPacer = new();
+    private TimeSpan? lastMascotAdvance;
 
     private bool MascotCanAnimate => app.Settings.LiveActivity && Motion.Enabled && !app.Settings.ReduceMotion;
     private LopataMascotView? VisibleLopataMascot
@@ -143,19 +144,37 @@ public sealed partial class OverlayWindow
     private void TrackMascotPointer(Point screenPoint)
     {
         if (VisibleLopataMascot is not { } view) return;
-        var local = view.PointFromScreen(screenPoint);
-        mascotMotion.LookToward(new Vector((local.X - view.ActualWidth / 2) / 37, (local.Y - view.ActualHeight / 2) / 42));
+        SetMascotGaze(view, screenPoint);
         WakeLiveRendering();
     }
 
-    private void AdvanceMascot(double seconds, double peak, bool fresh)
+    private void SetMascotGaze(LopataMascotView view, Point screenPoint)
     {
-        if (!MascotCanAnimate || VisibleLopataMascot is not { } view) return;
+        var local = view.PointFromScreen(screenPoint);
+        mascotMotion.LookToward(new Vector((local.X - view.ActualWidth / 2) / 37, (local.Y - view.ActualHeight / 2) / 42));
+    }
+
+    private void AdvanceMascot(TimeSpan frameTime, double peak, bool fresh)
+    {
+        if (!MascotCanAnimate || VisibleLopataMascot is not { } view || !mascotMotion.NeedsFrame)
+        {
+            ResetMascotPacing();
+            return;
+        }
+        double seconds = lastMascotAdvance is { } previous
+            ? Math.Clamp((frameTime - previous).TotalSeconds, 0, .075) : 1d / 60;
+        lastMascotAdvance = frameTime;
+        if (!DiagnosticRun && mascotMotion.State == MascotState.Idle && Native.CursorPoint(out var cursor))
+            SetMascotGaze(view, new Point(cursor.X, cursor.Y));
         mascotMotion.Advance(seconds, peak, fresh);
-        mascotFrameTime += seconds;
-        if (mascotFrameTime < 1d / 30 && mascotMotion.NeedsFrame) return;
-        mascotFrameTime = 0;
-        view.Present(mascotMotion.Frame(true));
+        if (mascotPacer.Accept(frameTime, Math.Min(60, Motion.FrameLimit)) || !mascotMotion.NeedsFrame)
+            view.Present(mascotMotion.Frame(true));
+    }
+
+    private void ResetMascotPacing()
+    {
+        lastMascotAdvance = null;
+        mascotPacer.Reset();
     }
 
     private void AddFullMascot(DockPanel header)

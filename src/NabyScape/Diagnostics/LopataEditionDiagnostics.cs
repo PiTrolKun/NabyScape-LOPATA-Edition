@@ -106,6 +106,25 @@ internal static class LopataEditionDiagnostics
         Check(model.Frame(true).Gaze == new Vector(8, -5) && !model.NeedsFrame,
             "gaze stays in bounds and stops repainting when it settles");
 
+        model.SetActivity(false, true, false);
+        double low = 0, high = 0;
+        for (int i = 0; i < 6 * 60; i++)
+        {
+            model.Advance(1d / 60, .12, i % 2 == 0);
+            if (i < 3 * 60) continue;
+            low = Math.Min(low, model.Frame(true).Sway);
+            high = Math.Max(high, model.Frame(true).Sway);
+        }
+        Check(low < -.20 && high > .20, "audible even-level music keeps moving between detectable accents");
+        for (int i = 0; i < 90; i++) model.Advance(1d / 60, 0, i % 2 == 0);
+        Check(model.Frame(true) is { Sway: 0, Accent: 0 }, "silence smoothly returns the shovel to center");
+
+        var lateStroke = new MascotFrame(MascotState.Work, false, Seconds: 1.04);
+        Check(MascotArt.DigStroke(lateStroke) < MascotArt.DigStroke(lateStroke with { Seconds = 1.25 }),
+            "the dig continues through the former frozen part of the cycle");
+        Check(Math.Abs(MascotArt.DigStroke(lateStroke with { Seconds = 1.35 }) -
+            MascotArt.DigStroke(lateStroke with { Seconds = 0 })) < .001, "the digging loop joins smoothly");
+
         float peak = 0;
         app.Audio.DiagnosticPeak = () => peak;
         app.Media.DiagnosticFixture = true;

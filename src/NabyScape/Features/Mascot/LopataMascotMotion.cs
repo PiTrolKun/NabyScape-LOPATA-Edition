@@ -9,8 +9,11 @@ internal readonly record struct MascotFrame(MascotState State, bool Still, Vecto
 internal sealed class LopataMascotMotion
 {
     internal const double ErrorSeconds = 1.55;
-    private double elapsed, baseline, lastPeak, sinceBeat, beatStrength, sway, accent;
-    private int direction = -1;
+    private const double QuietLevel = .008;
+    private const double GuessedBeatInterval = .48;
+    private double elapsed, baseline, lastPeak, sinceBeat, interval, phase, phaseCorrection;
+    private double amplitude, accent, sway;
+    private int beatDirection;
     private Vector gaze, targetGaze;
 
     internal MascotState State { get; private set; }
@@ -22,9 +25,10 @@ internal sealed class LopataMascotMotion
         if (next == State) return false;
         State = next;
         elapsed = 0;
-        baseline = lastPeak = beatStrength = sway = accent = 0;
-        sinceBeat = 1;
-        direction = -1;
+        baseline = lastPeak = amplitude = phase = phaseCorrection = sway = accent = 0;
+        sinceBeat = double.PositiveInfinity;
+        interval = GuessedBeatInterval;
+        beatDirection = 0;
         return true;
     }
 
@@ -46,26 +50,55 @@ internal sealed class LopataMascotMotion
         }
         if (State != MascotState.Music) return;
 
+        AdvanceMusic(seconds, Math.Clamp(peak, 0, 1), fresh);
+    }
+
+    private void AdvanceMusic(double seconds, double peak, bool fresh)
+    {
         sinceBeat += seconds;
         if (fresh)
         {
-            peak = Math.Clamp(peak, 0, 1);
-            // A rising accent must stand above recent energy. The floor and cooldown
-            // keep silence and a steady note from being mistaken for a rhythm.
-            if (sinceBeat >= .16 && peak > Math.Max(.022, baseline * 1.30 + .008) && peak > lastPeak + .009)
-            {
-                direction = -direction;
-                sinceBeat = 0;
-                beatStrength = .62 + Math.Min(.38, peak);
-            }
-            baseline = baseline * .94 + peak * .06;
+            // Peaks correct the direction and pace. The oscillator keeps moving
+            // through audible sections without a clear new attack.
+            if (sinceBeat >= .21 && peak > Math.Max(.022, baseline * 1.30 + .008) && peak > lastPeak + .009)
+                MarkBeat();
+            baseline += (peak - baseline) * .055;
             lastPeak = peak;
         }
-        double kick = sinceBeat < .16 ? beatStrength : beatStrength * Math.Exp(-(sinceBeat - .16) / .14);
-        accent += (kick - accent) * Smooth(seconds, .07);
-        sway += (direction * kick - sway) * Smooth(seconds, .085);
-        if (Math.Abs(sway) < .003) sway = 0;
-        if (accent < .003) accent = 0;
+
+        double target = peak > QuietLevel ? .33 + .62 * Math.Sqrt(peak) : 0;
+        amplitude += (target - amplitude) * Smooth(seconds, target > amplitude ? .10 : .23);
+        if (amplitude < .006 && target == 0)
+        {
+            amplitude = sway = accent = phase = phaseCorrection = 0;
+            return;
+        }
+
+        double correction = phaseCorrection * Smooth(seconds, .14);
+        phaseCorrection -= correction;
+        phase = (phase + Math.PI * seconds / interval + correction) % Math.Tau;
+        double swing = Math.Sin(phase);
+        sway = swing * amplitude;
+        accent = amplitude * (.18 + .82 * Math.Abs(swing));
+    }
+
+    private void MarkBeat()
+    {
+        if (sinceBeat is >= .26 and <= 1.05)
+            interval += (sinceBeat - interval) * .42;
+        if (sinceBeat > 1.6 && amplitude < .025)
+        {
+            phase = phaseCorrection = 0;
+            beatDirection = 0;
+        }
+        else
+        {
+            // Catch up gradually so a late accent never teleports the shovel.
+            beatDirection = 1 - beatDirection;
+            phaseCorrection = Math.Clamp(Math.IEEERemainder(beatDirection * Math.PI - phase, Math.Tau),
+                -Math.PI * .5, Math.PI * .5);
+        }
+        sinceBeat = 0;
     }
 
     internal MascotFrame Frame(bool animate) => !animate ? new(State, true) : State switch
