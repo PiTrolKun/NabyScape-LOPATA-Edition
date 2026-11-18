@@ -4,7 +4,7 @@
 
 **[Скачать ЛОПАТУ для Windows x64](https://github.com/PiTrolKun/LOPATA/releases/download/installer/LOPATA_Setup.exe)** · [Выпуски ЛОПАТЫ](https://github.com/PiTrolKun/LOPATA/releases)
 
-Код редакции опубликован. Пользовательская поставка острова начнётся с выпуска ЛОПАТЫ, который включает этот компонент. В таком выпуске утилита открывается через **Обработка / утилиты → Экран → NabyScape — LOPATA Edition (Остров)**.
+Остров входит в подписанное файловое обновление [ЛОПАТА 0.8.46-beta](https://github.com/PiTrolKun/LOPATA/releases/tag/v0.8.46-beta). После обновления откройте **Обработка / утилиты → Экран → NabyScape — LOPATA Edition (Остров)**.
 
 ## Возможности редакции
 
@@ -27,7 +27,7 @@
 
 ## Сборка для разработчиков
 
-Нужны Windows x64, PowerShell 7, .NET 10 SDK и две рабочие копии Git. Выберите ревизию [ЛОПАТЫ](https://github.com/PiTrolKun/LOPATA) с инструментом сборки острова, общим кодом Коллекции и обновлений. Эти инструменты пока доступны в локальной рабочей копии ЛОПАТЫ. В чистой рабочей копии форка выполните команду.
+Нужны Windows x64, PowerShell 7, .NET 10 SDK и две рабочие копии Git. Для воспроизведения выпущенной сборки используйте тег [v0.8.46-beta ЛОПАТЫ](https://github.com/PiTrolKun/LOPATA/tree/v0.8.46-beta) и тег редакции [lopata-v0.8.46-beta](https://github.com/PiTrolKun/NabyScape-LOPATA-Edition/tree/lopata-v0.8.46-beta). В чистой рабочей копии форка выполните команду.
 
 ~~~powershell
 ./build.ps1 -LopataRepositoryRoot ../LOPATA -OutputDirectory ./artifacts-edition
