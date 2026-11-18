@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -43,6 +44,7 @@ internal static class LopataEditionDiagnostics
                 throw new InvalidOperationException("Expanded island missing LOPATA actions.");
             Capture(island, Path.Combine(directory, "island-open.png"));
 
+            await CheckActionToolbar(app, island, directory);
             await CheckScrollEdges(app, island, directory);
             await CheckWorkAndChat(island, directory);
             var saved = IslandPreferences.Read();
@@ -65,6 +67,64 @@ internal static class LopataEditionDiagnostics
             Environment.ExitCode = 1;
         }
         finally { app.Quit(); }
+    }
+
+    private static async Task CheckActionToolbar(App app, OverlayWindow island, string directory)
+    {
+        var saved = IslandPreferences.Read();
+        double scale = app.Settings.PanelScale;
+        var order = new[]
+        {
+            LopataEdition.OpenCaption, LopataEdition.LayerCaption, LopataEdition.CloseCaption,
+            "LOPATA tasks", "LOPATA chat", "LOPATA updates", "VK", "YouTube"
+        };
+        void CheckRow()
+        {
+            island.UpdateLayout();
+            var panel = Diagnostics.Descendants(island).OfType<LopataWorkPanel>().Single();
+            var buttons = order.Select(id => Find(panel, id)).ToArray();
+            var mascot = Find(panel, "Lopata.Chat.Mascot");
+            Rect Bounds(Button button) => button.TransformToAncestor(panel)
+                .TransformBounds(new Rect(button.RenderSize));
+            var figure = Bounds(mascot);
+            double previousRight = figure.Right;
+            foreach (var button in buttons)
+            {
+                var bounds = Bounds(button);
+                var center = new Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
+                var hit = panel.InputHitTest(center) as DependencyObject;
+                while (hit is not null && hit != button) hit = VisualTreeHelper.GetParent(hit);
+                if (button.Content is not Grid || !button.IsVisible || bounds.Width < 20 ||
+                    bounds.Left < previousRight - .1 || bounds.Right > panel.ActualWidth + .1 ||
+                    Math.Abs(center.Y - figure.Top - figure.Height / 2) > 1 ||
+                    hit != button || !button.Focusable || !button.IsTabStop ||
+                    AutomationProperties.GetName(button) != Localization.Text(UI.Identity(button)) ||
+                    string.IsNullOrWhiteSpace(button.ToolTip as string))
+                    throw new InvalidOperationException($"Action is missing, clipped or inaccessible at {panel.ActualWidth:0.#}: {UI.Identity(button)}.");
+                previousRight = bounds.Right;
+            }
+        }
+        async Task Apply(IslandPreferences appearance, double contentScale)
+        {
+            IslandPreferences.Save(appearance);
+            for (int i = 0; i < 30 && app.Settings.PanelWidth != (appearance.Advanced ? appearance.PanelWidth : new IslandPreferences().PanelWidth); i++)
+                await Task.Delay(100);
+            app.Settings.PanelScale = contentScale;
+            app.ChangeSettings();
+            await Task.Delay(370);
+        }
+
+        CheckRow();
+        try
+        {
+            await Apply(saved with { Advanced = true, PanelWidth = 320, PanelHeight = 270 }, 1.25);
+            if (app.Settings.PanelWidth != 320) throw new InvalidOperationException("Minimum panel width was not applied.");
+            CheckRow();
+            Capture(island, Path.Combine(directory, "island-actions-narrow.png"));
+        }
+        finally { await Apply(saved, scale); }
+        File.WriteAllText(Path.Combine(directory, "action-toolbar-check.txt"),
+            "PASS eight accessible icons and the mascot share a row; all icon centers hit their buttons at default width and 320 DIP with 125% content scale.");
     }
 
     private static async Task CheckMascot(App app, OverlayWindow island, string directory)
@@ -279,7 +339,8 @@ internal static class LopataEditionDiagnostics
         Click(Find(panel, "LOPATA tasks"));
         island.UpdateLayout();
         var labels = Diagnostics.Descendants(panel).OfType<TextBlock>().Select(value => value.Text).ToArray();
-        if (!labels.Contains(jobs[0].Title) || !labels.Contains(jobs[1].Title)
+        if (AutomationProperties.GetItemStatus(Find(panel, "LOPATA tasks")) != "2" ||
+            !labels.Contains(jobs[0].Title) || !labels.Contains(jobs[1].Title)
             || !labels.Any(text => text.Contains("40")) || Find(panel, "resume.a").Visibility != Visibility.Visible
             || Find(panel, "pause.b").Visibility != Visibility.Visible)
             throw new InvalidOperationException("The expanded island did not show both jobs, selected actions and progress.");
@@ -343,11 +404,12 @@ internal static class LopataEditionDiagnostics
             }
         }
 
-        static Button Find(DependencyObject scope, string id) => Diagnostics.Descendants(scope).OfType<Button>()
-            .Single(button => System.Windows.Automation.AutomationProperties.GetAutomationId(button) == id);
         static void Click(Button button) =>
             button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent, button));
     }
+
+    private static Button Find(DependencyObject scope, string id) => Diagnostics.Descendants(scope).OfType<Button>()
+        .Single(button => AutomationProperties.GetAutomationId(button) == id);
 
     private static async Task CheckScrollEdges(App app, OverlayWindow island, string directory)
     {

@@ -2,7 +2,9 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Lopata.Island;
 
 namespace NabyScape;
@@ -40,7 +42,9 @@ public sealed partial class OverlayWindow
     private void AddLopataWork(Panel panel)
     {
         compactPageHost.Visibility = showLopataJobs ? Visibility.Collapsed : Visibility.Visible;
-        lopataWork = new LopataWorkPanel(app, showLopataJobs, open =>
+        var toolbar = new DockPanel();
+        if (app.UsesLopataEdition) AddFullMascot(toolbar);
+        lopataWork = new LopataWorkPanel(app, toolbar, showLopataJobs, open =>
         {
             showLopataJobs = open;
             compactPageHost.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
@@ -58,54 +62,51 @@ internal sealed class LopataWorkPanel : StackPanel
     private readonly StackPanel rows = new();
     private readonly ScrollViewer details;
     private readonly Button toggle;
+    private readonly Border taskCount;
     private readonly TextBlock warning = UI.Text("", 11, UI.Muted);
     private bool commanding;
 
-    internal LopataWorkPanel(App app, bool open, Action<bool> changed)
+    internal LopataWorkPanel(App app, DockPanel toolbar, bool open, Action<bool> changed)
     {
         this.app = app;
         this.changed = changed;
         Margin = new(0, 0, 0, 8);
-        var row = new Grid();
-        var actions = new System.Windows.Controls.Primitives.UniformGrid { Rows = 1, MinWidth = 0 };
-        var links = new StackPanel { Orientation = Orientation.Horizontal };
-        row.ColumnDefinitions.Add(new());
-        row.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
-        toggle = UI.CaptionButton("LOPATA tasks", () => ShowDetails(details!.Visibility != Visibility.Visible));
-        var chat = UI.CaptionButton("LOPATA chat", app.ShowLopataChat);
-        toggle.Content = Localization.Text("Tasks");
-        toggle.ToolTip = Localization.Text("LOPATA tasks");
-        chat.Content = Localization.Text("Chat");
-        chat.ToolTip = Localization.Text("LOPATA chat");
-        var updates = UI.CaptionButton("LOPATA updates", app.ShowLopataUpdates);
-        updates.ToolTip = Localization.Text("LOPATA updates");
-        void RefreshUpdates()
+        var launch = LopataActions.Button(LopataEdition.OpenCaption, "open-lopata", LopataEdition.OpenHost);
+        var layer = LopataActions.Button(LopataEdition.LayerCaption, "pin", app.ToggleLopataLayer);
+        var close = LopataActions.Button(LopataEdition.CloseCaption, "x", app.Quit);
+        toggle = LopataActions.Button("LOPATA tasks", "tasks", () => ShowDetails(details!.Visibility != Visibility.Visible));
+        taskCount = LopataActions.AddBadge(toggle);
+        var chat = LopataActions.Button("LOPATA chat", "chat", app.ShowLopataChat);
+        var updates = LopataActions.Button("LOPATA updates", "updates", app.ShowLopataUpdates);
+        var updateCount = LopataActions.AddBadge(updates);
+        var vk = SocialButton("VK", "vk", LopataEdition.VkUrl);
+        var youtube = SocialButton("YouTube", "youtube", LopataEdition.YouTubeUrl);
+        youtube.Margin = new(0);
+        void RefreshLayer() => LopataActions.SetLayer(layer, app.LopataAboveWindows);
+        void RefreshUpdates() => LopataActions.SetCount(updates, updateCount,
+            app.LopataUpdates.Versions.Length, singleAsDot: true);
+        Loaded += (_, _) =>
         {
-            var count = app.LopataUpdates.Versions.Length;
-            var suffix = count switch { 0 => "", 1 => " ↑", _ => " ↑" + count };
-            updates.Content = Localization.Text(row.ActualWidth < 320 ? "Updates…" : "Updates") + suffix;
-        }
-        row.SizeChanged += (_, _) => RefreshUpdates();
-        updates.Loaded += (_, _) => { app.LopataUpdates.Changed += RefreshUpdates; RefreshUpdates(); };
-        updates.Unloaded += (_, _) => app.LopataUpdates.Changed -= RefreshUpdates;
-        var vk = SocialButton("VK", LopataEdition.VkUrl);
-        var youtube = SocialButton("YouTube", LopataEdition.YouTubeUrl);
-        foreach (var action in new[] { toggle, chat, updates, vk, youtube })
+            app.SettingsChanged += RefreshLayer;
+            app.LopataUpdates.Changed += RefreshUpdates;
+            RefreshLayer();
+            RefreshUpdates();
+        };
+        Unloaded += (_, _) =>
         {
-            action.FontSize = 11;
-            action.MinHeight = 26;
-            action.Margin = new(0, 0, 4, 0);
-            action.Padding = new(4, 3, 4, 3);
-        }
-        actions.Children.Add(toggle);
-        actions.Children.Add(chat);
-        actions.Children.Add(updates);
-        links.Children.Add(vk);
-        links.Children.Add(youtube);
-        Grid.SetColumn(links, 1);
-        row.Children.Add(actions);
-        row.Children.Add(links);
-        Children.Add(row);
+            app.SettingsChanged -= RefreshLayer;
+            app.LopataUpdates.Changed -= RefreshUpdates;
+        };
+        var actions = UI.Row(launch, layer, close, toggle, chat, updates, vk, youtube);
+        actions.VerticalAlignment = VerticalAlignment.Center;
+        toolbar.Children.Add(actions);
+        Children.Add(new Viewbox
+        {
+            Child = toolbar,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Stretch = Stretch.Uniform,
+            StretchDirection = StretchDirection.DownOnly
+        });
         details = UI.Scroll(rows);
         details.MaxHeight = 150;
         details.Margin = new(0, 6, 0, 0);
@@ -115,10 +116,10 @@ internal sealed class LopataWorkPanel : StackPanel
         Children.Add(warning);
     }
 
-    private Button SocialButton(string label, string url)
+    private Button SocialButton(string label, string icon, string url)
     {
-        var button = UI.CaptionButton(label, () => SupportLinks.Open(url, app.Store.Log));
-        button.ToolTip = url;
+        var button = LopataActions.Button(label, icon, () => SupportLinks.Open(url, app.Store.Log));
+        AutomationProperties.SetHelpText(button, url);
         return button;
     }
 
@@ -131,8 +132,7 @@ internal sealed class LopataWorkPanel : StackPanel
     internal void Refresh(IslandResponse state)
     {
         var jobs = state.Jobs ?? [];
-        var name = Localization.Text("Tasks");
-        toggle.Content = jobs.Length == 0 ? name : name + " · " + jobs.Length;
+        LopataActions.SetCount(toggle, taskCount, jobs.Length);
         var focused = System.Windows.Input.Keyboard.FocusedElement as Button;
         var focusedId = focused is null ? null : UI.Identity(focused);
         var hadFocus = IsKeyboardFocusWithin;

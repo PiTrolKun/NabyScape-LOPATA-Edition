@@ -154,8 +154,8 @@ public sealed partial class OverlayWindow
         if(timelinePanel.Parent is Panel old)old.Children.Remove(timelinePanel);
         title.FontSize=18;artist.FontSize=12;artwork.Width=artwork.Height=88;clock.FontSize=26;
         var navigation=new Grid{Tag="panel-navigation",Margin=new(0,0,0,app.Settings.SectionGap)};
-        // Equal side columns keep the page dots centered: Naby on the left, notifications and Settings on the right.
-        navigation.ColumnDefinitions.Add(new(){Width=new GridLength(app.UsesLopataEdition ? 0 : 60)});navigation.ColumnDefinitions.Add(new());navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});
+        // Equal side columns keep the page dots centered between the two ends.
+        navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});navigation.ColumnDefinitions.Add(new());navigation.ColumnDefinitions.Add(new(){Width=new GridLength(60)});
         if (!app.UsesLopataEdition)
         {
             var launcher=AssistantLauncher();launcher.HorizontalAlignment=HorizontalAlignment.Left;navigation.Children.Add(launcher);
@@ -164,21 +164,7 @@ public sealed partial class OverlayWindow
         var trailing=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};trailing.Children.Add(NotificationBell(28));trailing.Children.Add(settings);Grid.SetColumn(trailing,2);navigation.Children.Add(trailing);
         int categoryCount=Math.Max(1,PanelWidgets.Select(w=>PageFor(w.Id)).Distinct().Count());
         var tabRow=new System.Windows.Controls.Primitives.UniformGrid{Columns=categoryCount,Rows=1,Width=categoryCount*18,HorizontalAlignment=HorizontalAlignment.Center};var navScroll=new ScrollViewer{Content=tabRow,HorizontalScrollBarVisibility=ScrollBarVisibility.Hidden,VerticalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalContentAlignment=HorizontalAlignment.Center};Grid.SetColumn(navScroll,1);KeyboardNavigation.SetDirectionalNavigation(tabRow,KeyboardNavigationMode.Cycle);navScroll.PanningMode=PanningMode.HorizontalOnly;navScroll.ToolTip=Localization.Text("Panel navigation · scroll for more panels");navScroll.PreviewMouseWheel+=(_,e)=>{if(navScroll.ScrollableWidth>0){navScroll.ScrollToHorizontalOffset(navScroll.HorizontalOffset-e.Delta*.5);e.Handled=true;}};navigation.Children.Add(navScroll);
-        if (app.UsesLopataEdition)
-        {
-            var header = new DockPanel();
-            AddFullMascot(header);
-            var controls = new StackPanel();
-            controls.Children.Add(navigation);
-            AddLopataWindowActions(controls);
-            header.Children.Add(controls);
-            body.Children.Add(header);
-        }
-        else
-        {
-            body.Children.Add(navigation);
-            AddLopataWindowActions(body);
-        }
+        body.Children.Add(navigation);
         AddLopataWork(body);
         body.Children.Add(compactPageHost);
         bodyReflow.Add(()=>

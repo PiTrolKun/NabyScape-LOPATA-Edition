@@ -14,6 +14,7 @@ internal static class Icons
         ["search"]="M10,2 A8,8 0 1 0 10,18 A8,8 0 1 0 10,2 Z M16,16 L22,22 23,21 17,15 Z",
         ["copy"]="M8,7 L21,7 21,22 8,22 Z M3,2 L16,2 16,5 6,5 6,17 3,17 Z",
         ["heart-filled"]="M20.7,5.1 C18.7,3.1 15.5,3.1 13.5,5.1 L12,6.6 10.5,5.1 C8.5,3.1 5.3,3.1 3.3,5.1 C1.2,7.2 1.2,10.4 3.3,12.5 L12,21 20.7,12.5 C22.8,10.4 22.8,7.2 20.7,5.1 Z",
+        ["vk"]="M2,6 H5.3 C5.6,10.6 7.4,13.4 10,14.1 V6 H13.1 V10.7 C15.5,10.4 17.8,8.3 18.4,6 H21.7 C21.1,8.8 19.1,11 17.5,12 C19.2,12.9 21.3,14.9 22,18 H18.6 C17.8,15.6 15.8,13.9 13.1,13.6 V18 H12.7 C6.1,18 2.3,13.4 2,6 Z",
         ["stop-filled"]="M6,6 H18 V18 H6 Z",
         ["play"]="M7,4 L20,12 7,20 Z",
         ["chevron"]="M4,7 L12,15 20,7 22,9 12,19 2,9 Z",
@@ -54,6 +55,11 @@ internal static class Icons
         ["mic"]="M9,5 A3,3 0 0 1 15,5 V12 A3,3 0 0 1 9,12 Z M5,11 V12 A7,7 0 0 0 19,12 V11 M12,19 V22 M8,22 H16",
         ["mic-off"]="M3,3 L21,21 M9,8 V12 Q9,15 12,15 M15,9 V5 A3,3 0 0 0 10,3 M5,11 V12 A7,7 0 0 0 17,17 M19,12 V11 M12,19 V22 M8,22 H16",
         ["screen"]="M4,4 H20 V17 H4 Z M8,21 H16 M12,17 V21",
+        ["open-lopata"]="M13,4 H5 Q3,4 3,6 V16 Q3,18 5,18 H19 Q21,18 21,16 V12 M8,22 H16 M12,18 V22 M15,3 H21 V9 M21,3 L13,11",
+        ["pin"]="M15,3 L21,9 L16,10 L13,14 L13,17 L7,11 L10,11 L14,8 Z M10,14 L4,20",
+        ["tasks"]="M9,5 H6 Q4,5 4,7 V20 Q4,22 6,22 H18 Q20,22 20,20 V7 Q20,5 18,5 H15 M9,3 H15 V7 H9 Z M8,12 H16 M8,16 H16",
+        ["updates"]="M12,3 V15 M7,10 L12,15 17,10 M4,16 V20 Q4,21 5,21 H19 Q20,21 20,20 V16",
+        ["youtube"]="M3,5 H21 Q23,5 23,8 V16 Q23,19 21,19 H3 Q1,19 1,16 V8 Q1,5 3,5 Z M10,9 L15,12 10,15 Z",
         ["send"]="M12,20 V4 M6,10 L12,4 18,10",
         ["trash"]="M3,6 H21 M9,6 V3 H15 V6 M6,6 L7,21 H17 L18,6 M10,10 V17 M14,10 V17",
         ["stop"]="M6,6 H18 V18 H6 Z",
@@ -78,7 +84,7 @@ internal static class Icons
     };
     private static readonly System.Collections.Generic.Dictionary<string,Geometry> geometries=new();
     private static Geometry IconGeometry(string data){lock(geometries){if(geometries.TryGetValue(data,out var geometry))return geometry;geometry=Geometry.Parse(data);geometry.Freeze();geometries.Add(data,geometry);return geometry;}}
-    public static FrameworkElement Create(string name,double size=20,Brush? color=null)
+    public static FrameworkElement Create(string name,double size=20,Brush? color=null,string? foregroundResource=null)
     {
         if(Accessibility.HighContrast)color=SystemColors.WindowTextBrush;
         if(NavigationPaths.TryGetValue(name,out var outline))
@@ -86,14 +92,16 @@ internal static class Icons
             var canvas=new Canvas{Width=24,Height=24};
             var stroke=new Path{Data=IconGeometry(outline),Stroke=color??Brushes.White,StrokeThickness=1.6,StrokeStartLineCap=PenLineCap.Round,StrokeEndLineCap=PenLineCap.Round,StrokeLineJoin=PenLineJoin.Round};
             if(Accessibility.HighContrast)stroke.Loaded+=(_,_)=>Accessibility.FollowContentForeground(stroke,Shape.StrokeProperty);
-            if(ReferenceEquals(color,Brushes.Black) && UI.ThemeResources)stroke.SetResourceReference(Shape.StrokeProperty,"AccentText");
+            if(foregroundResource!=null)stroke.SetResourceReference(Shape.StrokeProperty,foregroundResource);
+            else if(ReferenceEquals(color,Brushes.Black) && UI.ThemeResources)stroke.SetResourceReference(Shape.StrokeProperty,"AccentText");
             canvas.Children.Add(stroke);
             return new Viewbox{Width=size,Height=size,Child=canvas,IsHitTestVisible=false};
         }
         var path=new Path{Data=IconGeometry(Paths.TryGetValue(name,out var data)?data:Paths["arrow"]),Fill=color??Brushes.White,Stretch=Stretch.Uniform,Width=size,Height=size};
         if(Accessibility.HighContrast)path.Loaded+=(_,_)=>Accessibility.FollowContentForeground(path,Shape.FillProperty);
         // Black glyphs sit on the accent fill (primary buttons); follow its contrast ink in every theme.
-        if(ReferenceEquals(color,Brushes.Black) && UI.ThemeResources)path.SetResourceReference(Shape.FillProperty,"AccentText");
+        if(foregroundResource!=null)path.SetResourceReference(Shape.FillProperty,foregroundResource);
+        else if(ReferenceEquals(color,Brushes.Black) && UI.ThemeResources)path.SetResourceReference(Shape.FillProperty,"AccentText");
         return path;
     }
     public static Button Button(string icon,string name,System.Action action,bool primary=false,double size=42)

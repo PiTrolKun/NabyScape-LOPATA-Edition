@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -54,11 +55,17 @@ internal sealed class LopataUpdateDiagnostics
             await Task.Delay(650);
             var buttons = Diagnostics.Descendants(island).OfType<Button>().Where(button => button.IsVisible).ToArray();
             foreach (var (label, url) in new[] { ("VK", LopataEdition.VkUrl), ("YouTube", LopataEdition.YouTubeUrl) })
-                Require(buttons.Any(button => Equals(button.Content, Localization.Text(label)) && Equals(button.ToolTip, url)),
+                Require(buttons.Any(button => UI.Identity(button) == label && button.Content is Grid &&
+                    Equals(button.ToolTip, Localization.Text(label)) && AutomationProperties.GetHelpText(button) == url),
                     label + " is visible and targets the official page");
-            Capture(island, Path.Combine(directory, "island-community.png"));
 
             var open = buttons.Single(button => UI.Identity(button) == "LOPATA updates");
+            var badge = ((Grid)open.Content).Children.OfType<Border>().Single();
+            var count = (TextBlock)badge.Child;
+            Require(badge.IsVisible && count.IsVisible && count.Text == "2" &&
+                AutomationProperties.GetItemStatus(open) == "2", "Expanded update icon displays the total and exposes it to assistive tools");
+            Capture(island, Path.Combine(directory, "island-community.png"));
+
             open.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await Task.Delay(200);
             var list = app.Windows.Cast<Window>().Single(window => window.Title == Localization.Text("LOPATA updates"));
@@ -77,9 +84,12 @@ internal sealed class LopataUpdateDiagnostics
             target = target with { Channel = UpdateDelivery.FilePatch, Version = "1.0.1" };
             await Refresh();
             Require(Badge().IsVisible && Badge().Text == "↑", "An intermediate installation drops only the installed patch even offline");
+            Require(badge.Visibility == Visibility.Visible && count.Visibility == Visibility.Collapsed,
+                "One patch shows a dot on the expanded update icon");
             target = target with { Version = "1.0.2" };
             await Refresh();
-            Require(Badge().Visibility == Visibility.Collapsed, "The current installed version clears the badge even offline");
+            Require(Badge().Visibility == Visibility.Collapsed && badge.Visibility == Visibility.Collapsed,
+                "The current installed version clears both badges even offline");
             using var afterInstall = CreateMonitor(app.Store.Log);
             await afterInstall.RefreshAsync(manual: true);
             Require(afterInstall.Versions.Length == 0, "The cleared count survives a restart");
