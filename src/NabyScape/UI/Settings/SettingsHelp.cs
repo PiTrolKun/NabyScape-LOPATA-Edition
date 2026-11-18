@@ -88,7 +88,9 @@ public sealed partial class SettingsWindow
         ["Visibility hotkey modifiers"]="First keys of the shortcut that hides or restores the entire island.",
         ["Visibility hotkey key"]="Letter to press with the modifier keys to hide or restore the island.",
     };
-    internal static string SettingDescription(string name)=>name.EndsWith(" tool")
+    internal static string SettingDescription(string name)=>name=="Stopwatch" && EditionSettingsActive
+        ? Localization.Text("Use Start, Pause, Resume and Reset. The stopwatch counts time during sleep and restores its state after restart.")
+        : name.EndsWith(" tool")
         ? Localization.Format("Show {0} in Tools and its enabled hover pages. Hiding keeps saved data.", Localization.Text(name[..^5]))
         : SettingDescriptions.TryGetValue(name,out var help)?Localization.Text(help):"";
 }

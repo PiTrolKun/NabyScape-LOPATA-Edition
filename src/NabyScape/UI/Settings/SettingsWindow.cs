@@ -79,7 +79,13 @@ public sealed partial class SettingsWindow : Window
         var previewColumn=new StackPanel{Margin=new(18,18,18,16)};var previewTitle=UI.Caption("Preview",11);previewTitle.FontFamily=SettingsTheme.Display;previewTitle.FontWeight=FontWeights.Bold;previewTitle.Foreground=SettingsTheme.Quiet;previewColumn.Children.Add(previewTitle);previewFocus.Margin=new(0,4,0,0);previewFocus.Foreground=SettingsTheme.Bone;previewColumn.Children.Add(previewFocus);
         var modes=new Grid{Margin=new(0,12,0,12)};for(int i=0;i<3;i++)modes.ColumnDefinitions.Add(new());int modeColumn=0;foreach(string mode in new[]{"Closed","Hover","Panel"}){var button=UI.CaptionButton(mode,()=>{previewMode=mode;RefreshPreview();});button.FontSize=11;button.Padding=new(3,6,3,6);button.Margin=new(0,0,4,0);button.MinHeight=30;button.Tag=new CornerRadius(15);UI.Named(button,"Preview "+mode);Grid.SetColumn(button,modeColumn++);modes.Children.Add(button);previewModeButtons[mode]=button;}previewColumn.Children.Add(modes);
         previewStage=new Border{Height=StageHeight,Background=Brushes.Transparent,ClipToBounds=true,Child=new System.Windows.Controls.Viewbox{Stretch=Stretch.Uniform,StretchDirection=StretchDirection.DownOnly,Child=preview,VerticalAlignment=VerticalAlignment.Top,Margin=new(16,3,16,10)}};
-        previewDimensions.Margin=new(0,0,0,12);previewColumn.Children.Add(previewDimensions);var sample=UI.Caption("Preview content",11,UI.Muted);sample.Margin=new(0,0,0,5);previewColumn.Children.Add(sample);var examples=new ComboBox{SelectedValuePath=nameof(FrameworkElement.Tag)};previewExamples=examples;foreach(string item in new[]{"Music","Timer","Focus","Stopwatch","Calendar","Note","Shelf","Tools","System","Launch","Navigation","Volume feedback","Drop zone","Detached preview","Cover gestures","Smart clipboard","Control colors","Typography","Panel navigation","Visibility","Tasks","Startup","AI"})examples.Items.Add(new ComboBoxItem{Content=Localization.Text(app.UsesLopataEdition && item=="AI"?"LOPATA chat":item),Tag=item});examples.SelectedIndex=0;UI.LocalizedName(examples,"Preview content");examples.SelectionChanged+=(_,_)=>{previewContent=examples.SelectedValue as string??"Music";RefreshPreview();};previewColumn.Children.Add(examples);var hint=previewHelp;hint.Margin=new(0,10,0,0);previewColumn.Children.Add(hint);
+        previewDimensions.Margin=new(0,0,0,12);previewColumn.Children.Add(previewDimensions);var sample=UI.Caption("Preview content",11,UI.Muted);sample.Margin=new(0,0,0,5);previewColumn.Children.Add(sample);var examples=new ComboBox{SelectedValuePath=nameof(FrameworkElement.Tag)};previewExamples=examples;
+        foreach(string item in new[]{"Music","Timer","Focus","Stopwatch","Calendar","Note","Shelf","Tools","System","Launch","Navigation","Volume feedback","Drop zone","Detached preview","Cover gestures","Smart clipboard","Control colors","Typography","Panel navigation","Visibility","Tasks","Startup","AI"})
+        {
+            if(item=="Focus" && !app.SupportsWidget("focus"))continue;
+            examples.Items.Add(new ComboBoxItem{Content=Localization.Text(app.UsesLopataEdition && item=="AI"?"LOPATA chat":item),Tag=item});
+        }
+        examples.SelectedIndex=0;UI.LocalizedName(examples,"Preview content");examples.SelectionChanged+=(_,_)=>{previewContent=examples.SelectedValue as string??"Music";RefreshPreview();};previewColumn.Children.Add(examples);var hint=previewHelp;hint.Margin=new(0,10,0,0);previewColumn.Children.Add(hint);
         var stage=StageFrame(previewStage,previewColumn);
         var previewExpander=new Expander{Header=UI.Caption("Live preview",12,UI.Muted),Foreground=UI.Muted,Margin=new(0,0,0,20),Content=stage,IsExpanded=true};
         var rail=new Border{Child=previewExpander};column.Children.Add(rail);
@@ -272,11 +278,22 @@ public sealed partial class SettingsWindow : Window
         widgets.Children.Add(WidgetOrder(s.Widgets,"widgets",RefreshFeatureUsage));
         page.Children.Add(Section("Enabled widgets & order",widgets));
         page.Children.Add(UI.Caption("Each tool has its own panel above. Enable and reorder Notes, Tasks, Shelf, Clipboard, Calendar, Keep awake and Clean links alongside your other widgets. Saved content is preserved.",11,UI.Muted));
-        var focus=new StackPanel();AddSlider(focus,"Focus duration",s.FocusMinutes,1,240,v=>s.FocusMinutes=(int)v," min");AddSlider(focus,"Break duration",s.BreakMinutes,1,120,v=>s.BreakMinutes=(int)v," min");
-        focus.Children.Add(UI.Caption("New durations apply to the next session.",11,UI.Muted));page.Children.Add(Section("Focus sessions",focus));
-        page.Children.Add(Section("Stopwatch",new StopwatchView(app),UI.Caption("Count elapsed time with Start, Pause, Resume and Reset. Sleep is counted, and the session survives restart. Tab to a button and press Space or Enter. Enable Stopwatch above to show it in Focus.",11,UI.Muted)));
+        if (app.SupportsWidget("focus"))
+        {
+            var focus=new StackPanel();AddSlider(focus,"Focus duration",s.FocusMinutes,1,240,v=>s.FocusMinutes=(int)v," min");AddSlider(focus,"Break duration",s.BreakMinutes,1,120,v=>s.BreakMinutes=(int)v," min");
+            focus.Children.Add(UI.Caption("New durations apply to the next session.",11,UI.Muted));page.Children.Add(Section("Focus sessions",focus));
+        }
+        page.Children.Add(Section("Stopwatch",new StopwatchView(app),UI.Caption(app.UsesLopataEdition?"Use Start, Pause, Resume and Reset. The stopwatch counts time during sleep and restores its state after restart.":"Count elapsed time with Start, Pause, Resume and Reset. Sleep is counted, and the session survives restart. Tab to a button and press Space or Enter. Enable Stopwatch above to show it in Focus.",11,UI.Muted)));
         HoverPageSettings();
-        page.Children.Add(Section("Clipboard history",Check("Save text & image history locally",s.ClipboardHistory,v=>s.ClipboardHistory=v),UI.Caption("Off by default. Capture starts only when enabled. Turning it off clears saved history and images. Pause and pin items in Tools → Clipboard.",12,UI.Muted)));
+        var history = new StackPanel();
+        history.Children.Add(Check("Save text & image history locally",s.ClipboardHistory,v=>s.ClipboardHistory=v));
+        history.Children.Add(UI.Caption("Turn on history, then copy text or an image with Ctrl+C. Open Clipboard in the island to find saved items. Turning history off clears it from this device.",12,UI.Muted));
+        history.Children.Add(UI.CaptionButton("Open clipboard history",()=>
+        {
+            if(saveTimer.IsEnabled)CommitSettings();
+            app.OpenClipboardHistory();
+        }));
+        page.Children.Add(Section("Clipboard history",history));
     }
     private void Move<T>(System.Collections.Generic.List<T> list,int index,int delta)
     {int to=index+delta;if(to<0 || to>=list.Count)return;(list[index],list[to])=(list[to],list[index]);Save();Navigate(current);}
@@ -356,6 +373,12 @@ public sealed partial class SettingsWindow : Window
         page.Children.Add(Section("Local storage",UI.Caption("Preferences and timers stay on this device. No account required.",12,UI.Muted),UI.CaptionButton("Open settings folder",()=>ShortcutService.Open(new(){Target=app.Store.DirectoryPath})),UI.CaptionButton(LopataEdition.CloseCaption,app.Quit)));
         var resetCategory=new ComboBox{ItemsSource=PreferenceReset.Categories.Where(pair=>pair.Value.Length>0).Select(pair=>CategoryTitle(pair.Key)).ToArray(),SelectedIndex=0};UI.LocalizedName(resetCategory,"Preference reset category");
         page.Children.Add(Section("Reset preferences",UI.Text(PreferenceReset.Summary(null),11,UI.Muted),UI.Caption("Choose a category to reset only its preferences; for example Appearance keeps your current layout.",11,UI.Muted),resetCategory,UI.CaptionButton("Reset this category",()=>ResetPreferences(CategoryId(resetCategory.SelectedItem?.ToString()??"Look & colors"))),UI.CaptionButton("Reset all preferences",()=>ResetPreferences(null)),UI.CaptionButton("Restore last preference backup",RestorePreferences)));
-        page.Children.Add(Section("About NabyScape",UI.Text(Localization.Format("Version {0} · Windows · {1}",typeof(App).Assembly.GetName().Version!.ToString(3),RuntimePlatform.Rid),14),UI.Caption("Media controls depend on support from your media app. Battery appears on devices with a battery. Transparency controls opacity; glass uses a dark gradient and reflections.",12,UI.Muted),UI.Caption("Focus sessions run in NabyScape and do not change Windows Do Not Disturb.",12,UI.Muted),AboutSupport()));
+        var about=new System.Collections.Generic.List<UIElement>
+        {
+            UI.Text(Localization.Format("Version {0} · Windows · {1}",typeof(App).Assembly.GetName().Version!.ToString(3),RuntimePlatform.Rid),14),
+            UI.Caption("Media controls depend on support from your media app. Battery appears on devices with a battery. Transparency controls opacity; glass uses a dark gradient and reflections.",12,UI.Muted)
+        };
+        if(app.SupportsWidget("focus"))about.Add(UI.Caption("Focus sessions run in NabyScape and do not change Windows Do Not Disturb.",12,UI.Muted));
+        about.Add(AboutSupport());page.Children.Add(Section("About NabyScape",about.ToArray()));
     }
 }

@@ -57,10 +57,10 @@ public sealed partial class OverlayWindow
         yield return ("Notifications","See every recent alert, including Downloads · Enter",()=>{CloseCommands();OpenNotificationCenter();});
         yield return ("Tuck / Return to automatic","Toggle the manual tuck latch; hover the edge to preview",()=>{CloseCommands();ToggleTuck();});
         yield return ("Open Settings","Appearance, widgets, and interaction",app.ShowSettings);
-        foreach(var pair in new[]{("media","Media controls"),("focus","Timers & focus"),("status","System status"),("access","Quick launch")})
+        foreach(var pair in new[]{("media","Media controls"),("focus",app.SupportsWidget("focus")?"Timers & focus":"Timer"),("status","System status"),("access","Quick launch")})
         {
-            var page=pair.Item1;if(!app.Settings.Widgets.Any(w=>w.Enabled && PageFor(w.Id)==page))continue;
-            yield return (pair.Item2,"Open this island page",()=>{CloseCommands();if(app.Settings.CompactLayout)SelectPage(page);});
+            var page=pair.Item1;if(!PanelWidgets.Any(w=>PageFor(w.Id)==page))continue;
+            yield return (Localization.Text(pair.Item2),"Open this island page",()=>{CloseCommands();if(app.Settings.CompactLayout)SelectPage(page);});
         }
         if(Settings.ToolNames.Keys.Any(ToolOn))
         {
@@ -96,12 +96,52 @@ public sealed partial class OverlayWindow
     }
     private void BuildCleanLinks(StackPanel panel)
     {
-        panel.Children.Add(UI.Heading(Localization.Text("Clean links"),18));var hint=UI.Text(Localization.Text("Preview a link without common tracking. Copy it when you're ready."),11,UI.Muted);hint.Margin=new(0,8,0,8);panel.Children.Add(hint);
-        var input=UI.Input(Localization.Text("Link to clean"),"",Localization.Text("Paste an http or https URL"));input.MaxLength=8192;input.Height=36;input.MinHeight=0;input.Padding=new(10,3,10,3);input.Margin=new(0,0,0,4);panel.Children.Add(input);
-        var status=UI.Text("",11,UI.Muted);status.Margin=new(0,8,0,8);panel.Children.Add(status);
-        var result=UI.Input(Localization.Text("Cleaned link"),"");result.IsReadOnly=true;result.TextWrapping=TextWrapping.Wrap;result.Height=44;result.Padding=new(10,3,10,3);result.Margin=new(0,0,0,4);result.VerticalScrollBarVisibility=ScrollBarVisibility.Auto;panel.Children.Add(result);
-        var copy=UI.Button(Localization.Text("Copy cleaned link"),()=>{try{Clipboard.SetText(result.Text);status.Text=Localization.Text("Copied cleaned link.");}catch(Exception ex){app.Store.Log(ex);status.Text=Localization.Text("Could not copy. Try again.");}finally{ResizeToolPanel();}},true);copy.IsEnabled=false;panel.Children.Add(copy);
-        input.TextChanged+=(_,_)=>{try{if(string.IsNullOrWhiteSpace(input.Text)){result.Text="";status.Text="";copy.IsEnabled=false;return;}result.Text=CleanLink.Clean(input.Text);copy.IsEnabled=true;status.Text=result.Text==input.Text.Trim()?Localization.Text("Unchanged · already clean or signature protected"):Localization.Text("Tracking parameters removed · check the result below");}catch(ArgumentException){result.Text="";copy.IsEnabled=false;status.Text=$"Enter a complete HTTP or HTTPS URL without credentials (up to {input.MaxLength} characters).";}finally{ResizeToolPanel();}};
+        panel.Children.Add(UI.Heading(Localization.Text("Clean links"),18));
+        var hint=UI.Caption("Paste a web link to remove tracking tags such as utm_source. The page and its other parameters stay the same.",11,UI.Muted);
+        hint.Margin=new(0,4,0,6);panel.Children.Add(hint);
+        var input=UI.Input(Localization.Text("Link to clean"),"",Localization.Text("Paste an http or https URL"));
+        input.MaxLength=8192;input.MinHeight=30;input.Padding=new(10,3,10,3);input.Margin=new(0,0,0,5);
+        AddField("Link to clean",input);
+        var result=UI.Input(Localization.Text("Cleaned link"),"");
+        result.IsReadOnly=true;result.TextWrapping=TextWrapping.Wrap;result.MinHeight=30;result.MaxHeight=66;
+        result.Padding=new(10,3,10,3);result.Margin=new(0,0,0,5);result.VerticalScrollBarVisibility=ScrollBarVisibility.Auto;
+        AddField("Cleaned link",result);
+        var status=UI.Text("",10,UI.Muted);status.Visibility=Visibility.Collapsed;
+
+        var copy=UI.CaptionButton("Copy cleaned link",()=>
+        {
+            try {Clipboard.SetText(result.Text);ShowStatus("Copied cleaned link.");}
+            catch(Exception ex){app.Store.Log(ex);ShowStatus("Could not copy. Try again.");}
+            ResizeToolPanel();
+        },true);
+        copy.IsEnabled=false;copy.FontSize=11;copy.Padding=new(10,5,10,5);copy.MinHeight=30;
+        copy.Margin=new(0,0,8,0);DockPanel.SetDock(copy,Dock.Left);
+        var actions=new DockPanel();actions.Children.Add(copy);actions.Children.Add(status);panel.Children.Add(actions);
+        input.TextChanged+=(_,_)=>
+        {
+            result.Text="";copy.IsEnabled=false;
+            if(string.IsNullOrWhiteSpace(input.Text))ShowStatus("");
+            else
+            {
+                try
+                {
+                    result.Text=CleanLink.Clean(input.Text);copy.IsEnabled=true;
+                    ShowStatus(result.Text==input.Text.Trim()?"Unchanged · already clean or signature protected":"Tracking tags removed.");
+                }
+                catch(ArgumentException){ShowStatus("Enter a complete link starting with http:// or https://.");}
+            }
+            ResizeToolPanel();
+        };
+        void AddField(string caption,TextBox field)
+        {
+            var label=new Label{Content=Localization.Text(caption),Target=field,FontSize=11,Foreground=UI.Muted,Padding=new(0,0,0,3)};
+            panel.Children.Add(label);panel.Children.Add(field);
+        }
+        void ShowStatus(string caption)
+        {
+            status.Text=Localization.Text(caption);
+            status.Visibility=caption.Length==0?Visibility.Collapsed:Visibility.Visible;
+        }
     }
     private void BuildCalendar(StackPanel panel)
     {

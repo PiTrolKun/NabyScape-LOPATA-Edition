@@ -83,7 +83,7 @@ public sealed partial class SettingsWindow
         var actions=new WrapPanel();
         foreach(int minutes in new[]{15,30,60})actions.Children.Add(UI.Button(Localization.Format("Snooze {0} min",minutes),()=>{s.NotificationsSnoozedUntil=DateTimeOffset.UtcNow.AddMinutes(minutes);app.Notifications.Clear();Save();Status();}));
         actions.Children.Add(UI.Button(Localization.Text("Resume notifications"),()=>{s.NotificationsSnoozedUntil=null;Save();Status();}));controls.Children.Add(actions);
-        controls.Children.Add(UI.Text(Localization.Text("Snooze ends automatically. It does not stop Timer or Focus. Resume removes the snooze; any scheduled quiet hours still apply."),11,UI.Muted));
+        controls.Children.Add(UI.Caption(app.UsesLopataEdition?"Snoozing notifications leaves the timer running. Notifications resume when the snooze ends or you select Resume, subject to quiet hours.":"Snooze ends automatically. It does not stop Timer or Focus. Resume removes the snooze; any scheduled quiet hours still apply.",11,UI.Muted));
         page.Children.Add(Section("Notification presentation",controls));
     }
 }

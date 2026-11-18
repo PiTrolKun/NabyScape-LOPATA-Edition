@@ -19,7 +19,8 @@ internal sealed class SettingsScene : FrameworkElement
     internal sealed record WidgetTile(Rect Bounds,FormattedText Label);
     internal static WidgetTile[] WidgetTiles(Settings settings,double pixelsPerDip=1)
     {
-        var labels=settings.Widgets.Where(widget=>widget.Enabled).Select(widget=>new FormattedText(Settings.Names[widget.Id],CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),10,UI.Brush("#F3F4F6"),pixelsPerDip){MaxTextWidth=60,Trimming=TextTrimming.None}).ToArray();
+        var app=Application.Current as App;
+        var labels=settings.Widgets.Where(widget=>widget.Enabled && (app?.SupportsWidget(widget.Id)??true)).Select(widget=>new FormattedText(Settings.Names[widget.Id],CultureInfo.InvariantCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),10,UI.Brush("#F3F4F6"),pixelsPerDip){MaxTextWidth=60,Trimming=TextTrimming.None}).ToArray();
         var result=new WidgetTile[labels.Length];double y=15;
         for(int row=0;row<labels.Length;row+=5)
         {
@@ -96,7 +97,7 @@ internal sealed class SettingsScene : FrameworkElement
             case "Typography":
                 Text("Song title",24,23,21,s.BoldMediaTitle);Text("Artist name",24,54,12,false,muted);Text("Panel heading",232,27,16,s.BoldHeadings);Text("Body text stays regular",232,56,11,false,muted);Note("Current title weights; body text stays the same");break;
             case "Text and navigation":
-                foreach(var item in new[]{("Media",22d),("Focus",112d),("Status",202d),("Tools",292d)}){Box(item.Item2,22,76,46);if(s.CategoryStyle=="Dots"){dc.DrawEllipse(white,null,new Point(item.Item2+38,44),3,3);continue;}if(s.CategoryStyle!="Text")dc.DrawEllipse(null,new Pen(white,1.4),new Point(item.Item2+38,36),6,6);if(s.CategoryStyle!="Icons")Text(item.Item1,item.Item2+14,s.CategoryStyle=="Text"?38:49,11);}Note("Navigation · "+s.CategoryStyle.Replace("IconsLabels","Icons + labels"));break;
+                foreach(var item in new[]{("Media",22d),(Application.Current is App {UsesLopataEdition:true}?"Timer":"Focus",112d),("Status",202d),("Tools",292d)}){Box(item.Item2,22,76,46);if(s.CategoryStyle=="Dots"){dc.DrawEllipse(white,null,new Point(item.Item2+38,44),3,3);continue;}if(s.CategoryStyle!="Text")dc.DrawEllipse(null,new Pen(white,1.4),new Point(item.Item2+38,36),6,6);if(s.CategoryStyle!="Icons")Text(item.Item1,item.Item2+14,s.CategoryStyle=="Text"?38:49,11);}Note("Navigation · "+s.CategoryStyle.Replace("IconsLabels","Icons + labels"));break;
             case "Motion":
                 Box(23,28,68,22,Brushes.Black);Text("Music",34,33,9);Line(108,40,176,40);Box(193,16,135,63,Brushes.Black);Cover(203,25,22);Text("Song title",234,28,10,true);Bar(204,65,112,.4);Text(s.ReduceMotion?"Instant state change":$"{s.AnimationMs:0} ms transition",23,78,11);Text("Closed → open",193,87,11,false,muted);break;
             case "Animation performance":
@@ -119,7 +120,7 @@ internal sealed class SettingsScene : FrameworkElement
             case "Individual tools":
                 int ti=0;foreach(var item in s.Tools.Take(7)){double x=16+ti%4*100,y=10+ti/4*40;Text(Settings.ToolNames[item.Id],x,y,10,false,item.Enabled?white:muted,92);Toggle(x,y+18,item.Enabled);ti++;}Note("Disabled tools disappear; their saved data stays");break;
             case "Hover pages":
-                var available=HoverPagePolicy.Pages(s);var enabled=available.Take(4).ToArray();for(int i=0;i<enabled.Length;i++)
+                var available=HoverPagePolicy.Pages(s).Where(id=>(Application.Current as App)?.SupportsWidget(id)??true).ToArray();var enabled=available.Take(4).ToArray();for(int i=0;i<enabled.Length;i++)
                 {
                     double x=18+i*99;string id=enabled[i];Box(x,12,88,72,Brushes.Black);
                     Text(id switch{"media"=>"Music","files"=>"Shelf","notes"=>"Notes","clips"=>"Clipboard",_=>CultureInfo.InvariantCulture.TextInfo.ToTitleCase(id)},x+8,20,10,true,null,72);
@@ -168,7 +169,7 @@ internal sealed class SettingsScene : FrameworkElement
             case "Move & resize":
                 Island(95,22,220,36);Line(88,18,66,18);Line(66,18,66,83);Line(66,83,88,83);Text("↔",180,70,20);Toggle(352,28,s.DockUnlocked);Note("Drag the top grip to move · lower corners resize each state");break;
             case "Completion sound":
-                Text(s.CountdownSound=="Off"?"Silent":"♪",25,18,28,true);Wave(119,50);Text(s.CountdownSound,264,25,16,true);Text((s.CountdownSoundVolume*100).ToString("0")+"%",264,53,12,false,muted);Note("Timer & Focus · audible without Windows notifications");break;
+                Text(s.CountdownSound=="Off"?"Silent":"♪",25,18,28,true);Wave(119,50);Text(s.CountdownSound,264,25,16,true);Text((s.CountdownSoundVolume*100).ToString("0")+"%",264,53,12,false,muted);Note(Application.Current is App {UsesLopataEdition:true}?"Timer sound":"Timer & Focus · audible without Windows notifications");break;
             case "Live feedback":
                 Island(24,23,208,34);Bar(54,47,146,.66);Text("Volume / brightness",252,27,12);Text("Temporary feedback",252,50,11,false,muted);Note(Localization.Format("Volume {0} · brightness {1} · quiet motion {2}",OnOff(s.VolumeFeedback),OnOff(s.BrightnessFeedback),OnOff(s.WaveformIdleMotion)));break;
             case "Volume mixer":case "Audio behavior":

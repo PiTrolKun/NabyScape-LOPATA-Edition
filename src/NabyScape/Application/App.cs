@@ -81,7 +81,7 @@ public sealed partial class App : Application
     // Countdown completions route through the shared notification manager.
     internal void OpenVoice(){if(!UsesLopataEdition)overlay?.OpenFeaturePage("voice");}
     internal bool UsesLopataEdition { get; private set; }
-    internal bool SupportsWidget(string id) => !UsesLopataEdition || id != "voice";
+    internal bool SupportsWidget(string id) => !UsesLopataEdition || id is not ("voice" or "focus");
     public event Action? SettingsChanged;
     public event Action? Updated;
     internal RuntimeChange CurrentUpdate {get;private set;}=RuntimeChange.All;
@@ -219,7 +219,7 @@ public sealed partial class App : Application
             CheckCountdowns();if(NotificationPolicy.Quiet(Settings,DateTimeOffset.UtcNow) && Notifications.Count>0 && Notifications.Current?.Kind!="preview" && !(Notifications.Current?.Kind=="external" && Settings.ExternalNotificationQuietHours))Notifications.Clear();else Notifications.Tick(DateTimeOffset.UtcNow,overlay.NotificationBusy,Settings.NotificationSeconds);
             try{Awake.Tick(DateTimeOffset.UtcNow);}catch(Exception ex){Store.Log(ex);Notify("Could not update keep awake",ex.Message);}
             var changed=RuntimeChange.Clock;
-            if(Session.Timer.Running || Session.Focus.Running || Session.Stopwatch.Running)changed|=RuntimeChange.Countdown;
+            if(Session.Timer.Running || SupportsWidget("focus") && Session.Focus.Running || Session.Stopwatch.Running)changed|=RuntimeChange.Countdown;
             if(++counter%2==0)
             {
                 Audio.Poll();Audio.TrimIdleMedia();bool system=overlay.SystemSummaryVisible || Previews.AnyVisible("system") || settingsWindow?.NeedsSystemSample==true;
@@ -258,7 +258,7 @@ public sealed partial class App : Application
         var now=DateTimeOffset.UtcNow;bool changed=false;
         if(Session.Timer.Complete(now)) { changed=true;PostNotice(new("timer","Timer finished","Your timer has finished."));if(Settings.NotifyTimer && !NotificationPolicy.Quiet(Settings,now))CountdownAudio.Play(Settings); }
         var focusDeadline=Session.Focus.Deadline;
-        if(Session.Focus.Complete(now))
+        if(SupportsWidget("focus") && Session.Focus.Complete(now))
         {
             changed=true;
 
@@ -275,6 +275,7 @@ public sealed partial class App : Application
         if(changed) SaveSession();
     }
     internal void OpenMixer()=>overlay?.OpenMixer();
+    internal void OpenClipboardHistory()=>overlay?.ShowTools("clips");
     public void SaveSession() { try { Session.Stopwatch.Checkpoint();Store.Save("session",Session); } catch(Exception ex) { Store.Log(ex);Notify("Not saved yet", "Could not save the timer state."); } PublishUpdate(RuntimeChange.Countdown); }
     internal bool SettingsSaveSucceeded {get;private set;}
     public void ChangeSettings()

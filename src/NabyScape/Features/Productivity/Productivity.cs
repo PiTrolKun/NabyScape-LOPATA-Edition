@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace NabyScape;
 
@@ -63,7 +64,10 @@ public sealed class ProductivityService : IDisposable
     private uint _lastWriteSequence;
     private string _note="";
     private bool _paused;
-    private readonly uint[] _excludedFormats;
+    private readonly uint _excludeFromHistoryFormat, _allowHistoryFormat;
+    private readonly DispatcherTimer _clipboardRetry = new() { Interval = TimeSpan.FromMilliseconds(55) };
+    private uint _pendingClipboardSequence;
+    private int _clipboardRetries;
     public event Action? Changed;
     public List<TaskItem> Tasks { get; } = new();
     public List<ShelfItem> Shelf { get; } = new();
@@ -88,7 +92,12 @@ public sealed class ProductivityService : IDisposable
     {
         _store=store; _log=log; _nativeClipboard=nativeClipboard;
         _cache=System.IO.Path.GetFullPath(System.IO.Path.Combine(store.DirectoryPath,"clipboard-images"));
-        _excludedFormats=nativeClipboard ? new[]{RegisterClipboardFormat("ExcludeClipboardContentFromMonitorProcessing"),RegisterClipboardFormat("CanIncludeInClipboardHistory"),RegisterClipboardFormat("CanUploadToCloudClipboard")} : Array.Empty<uint>();
+        if(nativeClipboard)
+        {
+            _excludeFromHistoryFormat=RegisterClipboardFormat("ExcludeClipboardContentFromMonitorProcessing");
+            _allowHistoryFormat=RegisterClipboardFormat("CanIncludeInClipboardHistory");
+            _clipboardRetry.Tick+=(_,_)=>{_clipboardRetry.Stop();CaptureClipboard();};
+        }
         var data=store.Load<ProductivityData>("productivity");
         _note=Bound(data.Note,50000);
         Tasks.AddRange(data.Tasks ?? new()); Shelf.AddRange(data.Shelf ?? new()); Clips.AddRange(data.Clips ?? new());
@@ -276,30 +285,66 @@ public sealed class ProductivityService : IDisposable
     private IntPtr ClipboardMessage(IntPtr hwnd,int message,IntPtr wparam,IntPtr lparam,ref bool handled)
     {
         if(message!=0x031D || !ClipboardEnabled || _paused || _writingClipboard || _disposed)return IntPtr.Zero;
+        _clipboardRetry.Stop();
+        _pendingClipboardSequence=GetClipboardSequenceNumber();
+        _clipboardRetries=3;
+        CaptureClipboard();
+        return IntPtr.Zero;
+    }
+
+    private void CaptureClipboard()
+    {
+        if(!ClipboardEnabled || _paused || _writingClipboard || _disposed)return;
+        uint sequence=_pendingClipboardSequence;
+        if(sequence!=GetClipboardSequenceNumber() || sequence!=0 && sequence==_lastWriteSequence)return;
         try
         {
-            var sequence=GetClipboardSequenceNumber();
-            if(sequence!=0 && sequence==_lastWriteSequence)return IntPtr.Zero;
-            if(_excludedFormats.Any(f=>f!=0 && IsClipboardFormatAvailable(f)))return IntPtr.Zero;
+            if(!CanCaptureClipboard())return;
             var data=System.Windows.Clipboard.GetDataObject();
-            if(data==null)return IntPtr.Zero;
+            if(data==null)return;
             string? text=null; byte[]? png=null;
             if(data.GetDataPresent(DataFormats.UnicodeText))text=data.GetData(DataFormats.UnicodeText) as string;
             else if(data.GetDataPresent(DataFormats.Bitmap) && data.GetData(DataFormats.Bitmap) is BitmapSource bitmap)
             {
-                if((long)bitmap.PixelWidth*bitmap.PixelHeight>25000000)return IntPtr.Zero;
+                if((long)bitmap.PixelWidth*bitmap.PixelHeight>25000000)return;
                 var encoder=new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                 using var stream=new MemoryStream(); encoder.Save(stream);
                 if(stream.Length<=MaxImageBytes)png=stream.ToArray();
             }
             // Delayed-rendering clipboard owners can change while data is fetched.
             // Reject that notification instead of recording a new owner's protected data.
-            if(sequence!=GetClipboardSequenceNumber() || _excludedFormats.Any(f=>f!=0 && IsClipboardFormatAvailable(f)))return IntPtr.Zero;
+            if(sequence!=GetClipboardSequenceNumber() || !CanCaptureClipboard() || sequence!=GetClipboardSequenceNumber())return;
             if(text!=null)IngestText(text);
             else if(png!=null)IngestImage(png);
         }
+        catch (ExternalException ex) when (ex.ErrorCode==unchecked((int)0x800401D0))
+        {
+            ScheduleClipboardRetry();
+        }
         catch(Exception ex) { ReportError(ex); }
-        return IntPtr.Zero;
+    }
+
+    private void ScheduleClipboardRetry()
+    {
+        if(_clipboardRetries>0){_clipboardRetries--;_clipboardRetry.Start();}
+    }
+
+    private bool CanCaptureClipboard()
+    {
+        if(!OpenClipboard(IntPtr.Zero)){ScheduleClipboardRetry();return false;}
+        try
+        {
+            if(_excludeFromHistoryFormat!=0 && IsClipboardFormatAvailable(_excludeFromHistoryFormat))return false;
+            if(_allowHistoryFormat==0 || !IsClipboardFormatAvailable(_allowHistoryFormat))return true;
+            // Windows stores permission as a DWORD. Cloud synchronization permission is independent.
+            IntPtr handle=GetClipboardData(_allowHistoryFormat);
+            if(handle==IntPtr.Zero || GlobalSize(handle)<4)return false;
+            IntPtr bytes=GlobalLock(handle);
+            if(bytes==IntPtr.Zero)return false;
+            try {return Marshal.ReadInt32(bytes)==1;}
+            finally {GlobalUnlock(handle);}
+        }
+        finally {CloseClipboard();}
     }
 
     private void Touch(ClipItem item) { item.Timestamp=DateTimeOffset.UtcNow; Clips.Remove(item); Clips.Insert(0,item); Commit(); }
@@ -395,6 +440,7 @@ public sealed class ProductivityService : IDisposable
     }
     private void DetachListener()
     {
+        _clipboardRetry.Stop();
         if(_source==null)return;
         try { RemoveClipboardFormatListener(_source.Handle); _source.RemoveHook(ClipboardMessage); _source.Dispose(); }
         catch(Exception ex) { ReportError(ex); }
@@ -410,4 +456,10 @@ public sealed class ProductivityService : IDisposable
     [DllImport("user32.dll")] private static extern uint GetClipboardSequenceNumber();
     [DllImport("user32.dll",CharSet=CharSet.Unicode)] private static extern uint RegisterClipboardFormat(string name);
     [DllImport("user32.dll")] [return:MarshalAs(UnmanagedType.Bool)] private static extern bool IsClipboardFormatAvailable(uint format);
+    [DllImport("user32.dll")] [return:MarshalAs(UnmanagedType.Bool)] private static extern bool OpenClipboard(IntPtr owner);
+    [DllImport("user32.dll")] [return:MarshalAs(UnmanagedType.Bool)] private static extern bool CloseClipboard();
+    [DllImport("user32.dll")] private static extern IntPtr GetClipboardData(uint format);
+    [DllImport("kernel32.dll")] private static extern nuint GlobalSize(IntPtr handle);
+    [DllImport("kernel32.dll")] private static extern IntPtr GlobalLock(IntPtr handle);
+    [DllImport("kernel32.dll")] [return:MarshalAs(UnmanagedType.Bool)] private static extern bool GlobalUnlock(IntPtr handle);
 }

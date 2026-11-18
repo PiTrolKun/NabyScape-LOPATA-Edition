@@ -15,11 +15,12 @@ public sealed partial class OverlayWindow
     private readonly StackPanel monitorRows=new();
     private string monitorTab="overview";
     private ScrollViewer? monitorDetailScroll;
+    private Grid? monitorFrame;
     private readonly Dictionary<string,Button> monitorTabs=new();
     internal string MonitorTab=>monitorTab;
     internal void SelectMonitorTab(string id)
     {
-        if(!monitorTabs.ContainsKey(id))return;if(monitorTab!=id){monitorGeneration++;monitorReadAt=0;monitorPrevious=monitorLatest=null;if(id=="hardware")HardwareMonitor.ResetSampling();}monitorTab=id;RenderSystemMonitor();monitorDetailScroll?.ScrollToTop();
+        if(!monitorTabs.ContainsKey(id))return;if(monitorTab!=id){monitorGeneration++;monitorReadAt=0;monitorPrevious=monitorLatest=null;if(id=="hardware")HardwareMonitor.ResetSampling();}monitorTab=id;AttachMonitorRows();RenderSystemMonitor();monitorDetailScroll?.ScrollToTop();
         foreach(var pair in monitorTabs){pair.Value.Background=pair.Key==id?UI.Brush(IslandPalette.SelectionFill(app.Settings)):Brushes.Transparent;pair.Value.Foreground=pair.Key==id?UI.ContrastText(IslandPalette.SelectionFill(app.Settings)):UI.Muted;}
         UpdateSystemMonitor();
     }
@@ -45,19 +46,40 @@ public sealed partial class OverlayWindow
     private FrameworkElement BuildSystemMonitor()
     {
         DetachMonitorRows(monitorRows);
-        var panel=new Grid();panel.RowDefinitions.Add(new(){Height=GridLength.Auto});panel.RowDefinitions.Add(new());
+        var panel=monitorFrame=new Grid();panel.RowDefinitions.Add(new(){Height=GridLength.Auto});panel.RowDefinitions.Add(new());
+        if(app.UsesLopataEdition)panel.Margin=new(3,0,3,0);
         var tabs=new WrapPanel{Margin=new(0,0,0,10)};monitorTabs.Clear();
         foreach(var (id,label) in new[]{("overview","Overview"),("hardware","Hardware"),("network","Network"),("storage","Storage"),("processes","Processes")})
         {
             if(id=="network" && !app.Settings.MonitorNetwork || id=="storage" && !app.Settings.MonitorStorage || id=="processes" && !app.Settings.MonitorProcesses)continue;
             var button=UI.CaptionButton(label,()=>SelectMonitorTab(id));button.FontSize=10;button.Padding=new(7,5,7,5);button.MinHeight=28;button.Margin=new(0,0,3,3);System.Windows.Automation.AutomationProperties.SetAutomationId(button,"Monitor "+label);monitorTabs[id]=button;tabs.Children.Add(button);
         }
-        panel.Children.Add(tabs);monitorDetailScroll=UI.Scroll(monitorRows);monitorDetailScroll.VerticalScrollBarVisibility=ScrollBarVisibility.Hidden;ScrollChrome.SetEnabled(monitorDetailScroll,false);monitorDetailScroll.Padding=new(0,0,2,0);UI.Named(monitorDetailScroll,Localization.Text("System details · scroll or use Page Down"));
+        panel.Children.Add(tabs);monitorDetailScroll=UI.Scroll(monitorRows);monitorDetailScroll.VerticalScrollBarVisibility=app.UsesLopataEdition?ScrollBarVisibility.Auto:ScrollBarVisibility.Hidden;ScrollChrome.SetEnabled(monitorDetailScroll,false);monitorDetailScroll.Padding=new(0,0,2,0);UI.Named(monitorDetailScroll,Localization.Text("System details · scroll or use Page Down"));
+        monitorHistory.Height=app.UsesLopataEdition?26:42;
         tabs.Measure(new Size(Math.Max(1,bodyWidth),double.PositiveInfinity));
         double reserved=(WidgetOn("clock")?80:0)+49+tabs.DesiredSize.Height;
         monitorDetailScroll.Height=Math.Clamp((app.Settings.PanelMaxHeight-app.Settings.Height-32)/app.Settings.PanelScale-reserved,92,240);
         bodyReflow.Add(()=>{tabs.Measure(new Size(Math.Max(1,bodyWidth),double.PositiveInfinity));double reserved=(WidgetOn("clock")?80:0)+49+tabs.DesiredSize.Height;monitorDetailScroll.Height=Math.Clamp((app.Settings.PanelMaxHeight-app.Settings.Height-32)/app.Settings.PanelScale-reserved,92,240);});
         Grid.SetRow(monitorDetailScroll,1);panel.Children.Add(monitorDetailScroll);SelectMonitorTab(monitorTabs.ContainsKey(monitorTab)?monitorTab:"overview");return panel;
+    }
+
+    private void AttachMonitorRows()
+    {
+        if(!app.UsesLopataEdition || monitorFrame is null || monitorDetailScroll is null)return;
+        bool overview=monitorTab=="overview";
+        if(overview && monitorRows.Parent!=monitorFrame)
+        {
+            DetachMonitorRows(monitorRows);
+            Grid.SetRow(monitorRows,1);
+            monitorFrame.Children.Add(monitorRows);
+        }
+        else if(!overview && monitorDetailScroll.Content!=monitorRows)
+        {
+            DetachMonitorRows(monitorRows);
+            monitorDetailScroll.Content=monitorRows;
+        }
+        // Short overview content scrolls with the rest of the island. Detailed lists keep their own viewport.
+        monitorDetailScroll.Visibility=overview?Visibility.Collapsed:Visibility.Visible;
     }
 
     private bool SystemMonitorVisible=>!monitorClosed && expanded && (app.Settings.CompactLayout || hoverPanelWidget=="system") && !commandOpen && activePage=="status" && WidgetOn("system") && IsVisible && monitorRows.IsVisible && monitorRows.IsDescendantOf(body);
@@ -192,6 +214,10 @@ public sealed partial class OverlayWindow
     private void MonitorValue(string label,string value,bool prominent=false)
     {
         var row=GetMonitorRow();var name=(TextBlock)row.Children[0];var text=(TextBlock)row.Children[1];
-        Motion.Text(name,label);name.ToolTip=label;Motion.Text(text,value);text.FontSize=prominent?15:11;text.MaxWidth=Math.Max(90,bodyWidth*.61);text.ToolTip=value;AddMonitorElement(row);
+        bool compactOverview=app.UsesLopataEdition && monitorTab=="overview";
+        row.Margin=new(0,compactOverview?2:3,0,compactOverview?2:3);
+        Motion.Text(name,label);name.ToolTip=label;Motion.Text(text,value);text.FontSize=prominent?(compactOverview?13:15):11;
+        text.TextWrapping=compactOverview?TextWrapping.Wrap:TextWrapping.NoWrap;
+        text.MaxWidth=Math.Max(90,bodyWidth*.61);text.ToolTip=value;AddMonitorElement(row);
     }
 }

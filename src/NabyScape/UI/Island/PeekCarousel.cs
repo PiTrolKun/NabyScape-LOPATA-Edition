@@ -56,7 +56,7 @@ public sealed partial class OverlayWindow
     private void InvalidateHoverDeck(){hoverDeckCache=null;if(peekInitialized && peeking && !assistantPeeking){PreparePeekDeck();UpdatePeek();}}
     private string[] PeekPages()
     {
-        var ids=hoverDeckCache??=HoverPagePolicy.Pages(app.Settings);
+        var ids=hoverDeckCache??=HoverPagePolicy.Pages(app.Settings).Where(app.SupportsWidget).ToArray();
 
         if((fileDragActive || shelfDropBrowsing) && !ids.Contains("files"))ids=ids.Append("files").ToArray();
         return ids;

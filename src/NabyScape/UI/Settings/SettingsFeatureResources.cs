@@ -14,7 +14,7 @@ public sealed partial class SettingsWindow
         var actions=new WrapPanel{Margin=new(0,10,0,8)};
         actions.Children.Add(UI.CaptionButton("Use essentials",()=>
         {
-            string[] keep={"media","clock","timer","focus"};
+            string[] keep=app.UsesLopataEdition?["media","clock","timer"]:["media","clock","timer","focus"];
             foreach(var widget in s.Widgets)widget.Enabled=keep.Contains(widget.Id);
             foreach(var view in s.HoverViews)view.Enabled=keep.Contains(view.Id);
             s.HoverFollowsWidgets=true;Save();Navigate("Content");SetSaveFeedback("Essentials selected · music, clock, timer and focus. Saved content and running sessions are preserved.");

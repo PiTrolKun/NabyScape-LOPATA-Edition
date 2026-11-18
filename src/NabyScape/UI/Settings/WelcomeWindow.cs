@@ -50,7 +50,7 @@ internal sealed class WelcomeWindow : Window
         if(step==0)
         {
             body.Children.Add(UI.Text(Localization.Text("Choose a starting point. You can change every choice later."),13,UI.Muted));
-            foreach(var choice in new[]{("Music","Playback, volume, clock and weather"),("Productivity","Focus, timer, notes, tasks and calendar"),("AI","Naby voice, clock and notes · connect your provider next"),("Custom","Recommended NabyScape setup · keep the complete default experience")})
+            foreach(var choice in new[]{("Music","Playback, volume, clock and weather"),("Productivity",app.UsesLopataEdition?"Timer, notes, tasks and calendar":"Focus, timer, notes, tasks and calendar"),("AI","Naby voice, clock and notes · connect your provider next"),("Custom","Recommended NabyScape setup · keep the complete default experience")})
             {
                 if(app.UsesLopataEdition && choice.Item1=="AI")continue;
                 string caption=Localization.Text(choice.Item1=="Custom"?"Recommended":choice.Item1);

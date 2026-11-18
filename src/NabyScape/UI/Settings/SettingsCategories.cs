@@ -31,7 +31,11 @@ public sealed partial class SettingsWindow
     private static readonly SettingsCategory[] LopataSettingsCategories = OriginalSettingsCategories.Select(category => category.Id == "AI"
         ? new SettingsCategory("AI", "LOPATA chat", "Features", "Talk to LOPATA through its installed local core.",
             "chat local core lopata чат локальное ядро если накипело", new[] { "LOPATA chat" })
-        : category).ToArray();
+        : category.Id == "Content" ? category with
+        {
+            Description = "Choose which widgets to show and arrange them.",
+            Terms = "widget tools notes tasks timer stopwatch clipboard"
+        } : category).ToArray();
     private static bool EditionSettingsActive => Application.Current is App { UsesLopataEdition: true };
     private static SettingsCategory[] SettingsCategories => EditionSettingsActive ? LopataSettingsCategories : OriginalSettingsCategories;
     private static SettingsCategory Category(string id)=>SettingsCategories.FirstOrDefault(c=>c.Id==id)??SettingsCategories[0];
@@ -41,6 +45,7 @@ public sealed partial class SettingsWindow
     private static string FriendlySection(string title)=>title switch
     {
         "Move & resize" when EditionSettingsActive => "Move island",
+        "Completion sound" when EditionSettingsActive => "Timer sound",
         "Shape"=>"Dock shape","Color & material"=>"Colors","Settings material"=>"Settings window","Surface"=>"Glass appearance","Controls & outlines"=>"Buttons & input fields","Typography"=>"Text weight","Text and navigation"=>"Panel dots","Animation performance"=>"Smoothness & power","Display"=>"Screen","Closed island"=>"Compact dock","Open panel"=>"Expanded dock","Enabled widgets & order"=>"Your widgets","Notch gestures"=>"Mouse actions","Global hotkey"=>"Open dock shortcut","Automatic activity"=>"Automatic previews","Clipboard history"=>"Clipboard capture","Completion sound"=>"Timer & focus sound",_=>title
     };
     private void FilterSettingsCategory(string id)

@@ -9,7 +9,7 @@ namespace NabyScape;
 
 public sealed partial class OverlayWindow
 {
-    internal (string Id,string Name,string Widget)[] AssistantWidgetPages=>app.Settings.Widgets.Where(w=>w.Enabled).GroupBy(w=>PageFor(w.Id)).Select(g=>(g.Key,PageName(g.Key),g.First().Id)).ToArray();
+    internal (string Id,string Name,string Widget)[] AssistantWidgetPages=>app.Settings.Widgets.Where(w=>w.Enabled && app.SupportsWidget(w.Id)).GroupBy(w=>PageFor(w.Id)).Select(g=>(g.Key,PageName(g.Key),g.First().Id)).ToArray();
     internal string AssistantNavigate(string requested)
     {
         var pages=AssistantWidgetPages;if(pages.Length==0)return JsonSerializer.Serialize(new{ok=false,error="No widget pages are enabled. Enable widgets in Settings first."});
@@ -18,7 +18,7 @@ public sealed partial class OverlayWindow
         else
         {
             string? widget=app.Settings.Widgets.FirstOrDefault(w=>w.Enabled && w.Id==page)?.Id;
-            index=Array.FindIndex(pages,p=>p.Id==page || widget!=null && p.Id==PageFor(widget));
+            index=app.SupportsWidget(page)?Array.FindIndex(pages,p=>p.Id==page || widget!=null && p.Id==PageFor(widget)):-1;
         }
         if(index<0)return JsonSerializer.Serialize(new{ok=false,error="That page is disabled or unavailable. Use naby_list_widget_pages for enabled pages."});
         var chosen=pages[index];

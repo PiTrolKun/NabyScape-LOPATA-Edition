@@ -59,11 +59,12 @@ internal sealed class CpuHistoryVisual : FrameworkElement,IInkAware
     internal void SetValues(IEnumerable<double?> history,Brush accent){count=0;foreach(var value in history)values[count++]=value;color=accent;InvalidateVisual();}
     protected override void OnRender(DrawingContext dc)
     {
-        bool light=ThemeInk.LightAt(this);dc.DrawLine(light?new Pen(ThemeInk.Remap(baseline.Brush,ThemeInk.Role.Surface),1):baseline,new Point(0,41),new Point(ActualWidth,41));var geometry=new StreamGeometry();
+        bool light=ThemeInk.LightAt(this);double bottom=Math.Max(0,ActualHeight-1);
+        dc.DrawLine(light?new Pen(ThemeInk.Remap(baseline.Brush,ThemeInk.Role.Surface),1):baseline,new Point(0,bottom),new Point(ActualWidth,bottom));var geometry=new StreamGeometry();
         using(var path=geometry.Open())
         {
             bool started=false;
-            for(int i=0;i<count;i++){if(values[i] is not double value){started=false;continue;}var point=new Point(ActualWidth*(30-count+i)/29,40-value*.38);if(!started){path.BeginFigure(point,false,false);started=true;}else path.LineTo(point,true,false);}
+            for(int i=0;i<count;i++){if(values[i] is not double value){started=false;continue;}var point=new Point(ActualWidth*(30-count+i)/29,bottom-1-value*Math.Max(0,ActualHeight-4)/100);if(!started){path.BeginFigure(point,false,false);started=true;}else path.LineTo(point,true,false);}
         }
         geometry.Freeze();dc.DrawGeometry(null,new Pen(light?ThemeInk.Remap(color,ThemeInk.Role.Ink):color,1.6),geometry);
     }

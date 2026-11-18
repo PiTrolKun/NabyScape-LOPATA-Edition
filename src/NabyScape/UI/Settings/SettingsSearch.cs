@@ -87,7 +87,8 @@ public sealed partial class SettingsWindow
         Add("Launch at Windows startup","Application","Behavior","Start automatically when signing in to Windows","startup autostart windows mulai otomatis login");
         if (EditionSettingsActive)
         {
-            items.RemoveAll(item => item.Category == "AI" && item.Section is "AI companion" or "Naby in the dock"
+            items.RemoveAll(item => item.Section == "Focus sessions"
+                || item.Category == "AI" && item.Section is "AI companion" or "Naby in the dock"
                 || item.Title == "Uninstall NabyScape"
                 || item.Category == "Appearance" && item.Section is "Theme" or "Surface"
                 || item.Category == "Layout" && item.Section == "Hover preview"

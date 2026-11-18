@@ -48,6 +48,7 @@ internal static class LopataEditionDiagnostics
             await CheckScrollEdges(app, island, directory);
             await CheckWorkAndChat(island, directory);
             await LopataSideDockDiagnostics.Check(app,island,directory,Capture);
+            await LopataWidgetReviewDiagnostics.Check(app,island,directory,Capture);
             var saved = IslandPreferences.Read();
             await CheckSharedPreferences(app, island, saved, directory);
             var originalLanguage = IslandPreferences.ReadJson<IslandLanguage>("language.json");
