@@ -49,7 +49,7 @@ public sealed partial class OverlayWindow
         double destination=0,destinationX=0;
         if(value)
         {
-            if(app.Settings.DockEdge is "Left" or "Right")destinationX=(app.Settings.Width-app.Settings.TuckEdge)*(app.Settings.DockEdge=="Left"?-1:1);
+            if(app.Settings.DockEdge is "Left" or "Right")destinationX=((PortraitDock?ClosedSurfaceWidth:app.Settings.Width)-app.Settings.TuckEdge)*(app.Settings.DockEdge=="Left"?-1:1);
             else destination=AutoTuckPolicy.Offset(app.Settings.Height,app.Settings.TuckEdge)*(app.Settings.DockEdge=="Bottom"?-1:1);
         }
         // Manual hide must cancel an in-flight reveal even when its destination is already zero.
@@ -59,8 +59,8 @@ public sealed partial class OverlayWindow
         if(value && changed)
         {
             // Contract and translate from the current display state, including a rapid reversal.
-            motion.Go(surface,IslandSurface.SurfaceWidthProperty,app.Settings.Width,app.Settings.AnimationMs);
-            motion.Go(surface,IslandSurface.SurfaceHeightProperty,app.Settings.Height,app.Settings.AnimationMs);
+            motion.Go(surface,IslandSurface.SurfaceWidthProperty,PortraitDock?ClosedSurfaceWidth:app.Settings.Width,app.Settings.AnimationMs);
+            motion.Go(surface,IslandSurface.SurfaceHeightProperty,ClosedSurfaceHeight,app.Settings.AnimationMs);
             motion.Go(surface,IslandSurface.GlassLiftProperty,0,app.Settings.AnimationMs);
             scroll.Visibility=peekPanel.Visibility=Visibility.Collapsed;
             compact.BeginAnimation(OpacityProperty,null);compact.Opacity=1;compact.IsHitTestVisible=true;

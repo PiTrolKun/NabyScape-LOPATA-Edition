@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -44,6 +45,17 @@ public sealed partial class OverlayWindow
         if(line.Length>0){var body=UI.Text(line,12,UI.Muted);body.TextWrapping=TextWrapping.NoWrap;body.TextTrimming=TextTrimming.CharacterEllipsis;body.Margin=new(0,1,0,0);text.Children.Add(body);}
         grid.Children.Add(text);
         var more=Icons.Button("chevron-right","View all notifications",()=>{CloseBanner(false);OpenNotificationCenter();},false,26);more.Background=Brushes.Transparent;more.Margin=new(8,0,0,0);more.Opacity=.6;more.VerticalAlignment=VerticalAlignment.Center;Grid.SetColumn(more,2);grid.Children.Add(more);
+        if(PortraitDock)
+        {
+            for (int i=0;i<3;i++) grid.RowDefinitions.Add(new(){Height=GridLength.Auto});
+            glyph.HorizontalAlignment=more.HorizontalAlignment=HorizontalAlignment.Center;
+            glyph.Margin=new(0,0,0,10);more.Margin=new(0,8,0,0);
+            Grid.SetColumnSpan(glyph,3);
+            Grid.SetRow(text,1);Grid.SetColumn(text,0);Grid.SetColumnSpan(text,3);
+            foreach(var label in text.Children.OfType<TextBlock>())
+            {label.TextWrapping=TextWrapping.Wrap;label.TextAlignment=TextAlignment.Center;}
+            Grid.SetRow(more,2);Grid.SetColumn(more,0);Grid.SetColumnSpan(more,3);
+        }
         bannerProgress=new Border{Height=2,CornerRadius=new(1),Background=UI.Brush(IslandPalette.Accent(app.Settings)),HorizontalAlignment=HorizontalAlignment.Left,Margin=new(52,10,0,0),Opacity=.85,RenderTransformOrigin=new(0,.5),RenderTransform=new ScaleTransform(1,1)};
         var content=new StackPanel();content.Children.Add(grid);content.Children.Add(bannerProgress);
         var hit=new Border{Child=content,Background=Brushes.Transparent,Cursor=Cursors.Hand,Padding=new(2,0,2,0)};
@@ -53,14 +65,16 @@ public sealed partial class OverlayWindow
         hit.MouseEnter+=(_,_)=>PauseBanner(true);hit.MouseLeave+=(_,_)=>PauseBanner(false);
         var screen=Native.ChooseScreen(app.Settings);double scale=Native.Scale(screen);
         // Banners use the hover width from Position & size.
-        double width=Math.Max(260,PeekSurfaceWidth);
+        double width=PortraitDock?Math.Min(PeekSurfaceWidth,222):Math.Max(260,PeekSurfaceWidth);
         double inset=surface.Notch?30:18;
         noticeCard=new(){Child=hit,Width=width-inset*2,Margin=new(0,surface.Notch?10:12,0,0),VerticalAlignment=VerticalAlignment.Top,HorizontalAlignment=HorizontalAlignment.Center};
         visuals.Children.Add(noticeCard);compact.IsHitTestVisible=false;compact.Opacity=0;Show();Dimensions();
         hit.Measure(new Size(noticeCard.Width,double.PositiveInfinity));
         bannerProgress.Width=Math.Max(0,noticeCard.Width-52);
         motion.Go(surface,IslandSurface.SurfaceWidthProperty,width,app.Settings.AnimationMs);
-        motion.Go(surface,IslandSurface.SurfaceHeightProperty,hit.DesiredSize.Height+(surface.Notch?24:26),app.Settings.AnimationMs);
+        double height=hit.DesiredSize.Height+(surface.Notch?24:26);
+        motion.Go(surface,IslandSurface.SurfaceHeightProperty,PortraitDock
+            ?Math.Min(portraitAvailableHeight,Math.Max(width+16,height)):height,app.Settings.AnimationMs);
         ControlFeedback.Notice(noticeCard,app.Settings.NotificationAnimation);
         bannerTimer.Interval=TimeSpan.FromSeconds(BannerSeconds(app.Settings));StartBannerCountdown();
     }

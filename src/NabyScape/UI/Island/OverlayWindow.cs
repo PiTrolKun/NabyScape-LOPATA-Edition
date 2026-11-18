@@ -53,7 +53,7 @@ public sealed partial class OverlayWindow : Window
         AllowsTransparency=true;Background=Brushes.Transparent;ShowInTaskbar=false;Topmost=app.LopataAboveWindows;ShowActivated=false;
         FontFamily=new FontFamily("Segoe UI Variable Text, Segoe UI, Malgun Gothic");FontSize=13;UseLayoutRounding=false;SnapsToDevicePixels=false;
         TextOptions.SetTextFormattingMode(this,TextFormattingMode.Display);
-        var header=new Grid();header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});header.ColumnDefinitions.Add(new());header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
+        var header=horizontalClosed;header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});header.ColumnDefinitions.Add(new());header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         activity.Margin=new(0,0,9,0);header.Children.Add(activity);closedCover.Child=WrapArtwork(closedCoverImage);header.Children.Add(closedCover);header.Children.Add(feedbackIcon);
         header.ColumnDefinitions.Add(new(){Width=GridLength.Auto});Grid.SetColumn(feedbackLevel,3);header.Children.Add(feedbackLevel);
         summary.TextWrapping=TextWrapping.NoWrap;summary.TextTrimming=TextTrimming.CharacterEllipsis;summary.FontWeight=FontWeights.Medium;
@@ -97,8 +97,14 @@ public sealed partial class OverlayWindow : Window
         UpdateAmbientMotion();
         var screen=Native.ChooseScreen(app.Settings);var scale=Native.Scale(screen);
         bool voiceRoom=VoiceRoomOpen && !showLopataJobs;
-        expandedWidth=assistantOpen || voiceRoom?AssistantView.PanelSize(app.Settings,voiceRoom).Width:MediaLyricsLayout.Width(app.Settings,screen.WorkingArea.Width/scale-24,ShowLyricsLayout && !showLopataJobs);
         double available=screen.WorkingArea.Height/scale-16;
+        double availableWidth=screen.WorkingArea.Width/scale-24;
+        portraitAvailableHeight=available;
+        if(PortraitDock)portraitPeekWidth=SideDockLayout.PeekWidth(app.Settings.HoverWidth,availableWidth,available);
+        expandedWidth=assistantOpen || voiceRoom?AssistantView.PanelSize(app.Settings,voiceRoom).Width
+            :PortraitDock?SideDockLayout.PanelWidth(app.Settings.PanelWidth,availableWidth,available)
+            :MediaLyricsLayout.Width(app.Settings,availableWidth,ShowLyricsLayout && !showLopataJobs);
+        ConfigureClosedDock();
         bodyWidth=Math.Max(140,(expandedWidth-app.Settings.PanelPadding*2)/app.Settings.PanelScale);
         body.Width=bodyWidth;
         ArrangeMediaLyrics();SizeClipboardViewport();SizeWeatherViewport();
@@ -120,6 +126,7 @@ public sealed partial class OverlayWindow : Window
             }
             desired=Math.Clamp(contentHeight*app.Settings.PanelScale+PanelFramePadding,184,app.Settings.PanelMaxHeight);
         }
+        if(PortraitDock)desired=Math.Max(desired,expandedWidth*1.62);
         expandedHeight=Math.Max(app.Settings.Height,Math.Min(desired,available));
         scroll.Width=expandedWidth-app.Settings.PanelPadding*2;scroll.Height=Math.Max(0,expandedHeight-PanelFramePadding);scroll.Margin=new(0,PanelFramePadding==44?20:10,0,0);
         SizeVoiceViewport();
@@ -140,10 +147,10 @@ public sealed partial class OverlayWindow : Window
         FlushNotes();ConfigureHotkey();var s=app.Settings;refreshHz=Native.RefreshRate(Native.ChooseScreen(s));Motion.Configure(s);Opacity=Accessibility.HighContrast?1:s.Opacity;surface.GlassStyle=s.GlassStyle;RefreshIslandAppearance();surface.Notch=s.Preset=="Mac" && s.DockEdge=="Top";surface.Radius=s.Radius;
         hoverDelay.Interval=TimeSpan.FromMilliseconds(app.Settings.HoverDelayMs);detailDelay.Interval=TimeSpan.FromMilliseconds(app.Settings.HoverDetailDelayMs);
         HideNotice();EndPeekGesture();peeking=false;peekPanel.BeginAnimation(OpacityProperty,null);peekPanel.Opacity=0;peekPanel.Visibility=Visibility.Collapsed;compact.BeginAnimation(OpacityProperty,null);compact.Opacity=1;compact.IsHitTestVisible=true;StopHoverTimers();
-        compact.Width=Math.Max(120,Math.Min(s.Width,expandedWidth)-(surface.Notch?32:12));compact.Height=s.Height;compact.MinHeight=s.Height;Dimensions();if(expanded)EnsureBody();Dimensions();motion.Dispose();Width=WindowHostWidth;Height=Math.Max(HostHeight,s.Height);
+        Dimensions();if(expanded)EnsureBody();Dimensions();motion.Dispose();Width=WindowHostWidth;Height=Math.Max(HostHeight,ClosedSurfaceHeight);
         scroll.BeginAnimation(OpacityProperty,null);scroll.Opacity=expanded?1:0;scroll.Visibility=expanded?Visibility.Visible:Visibility.Collapsed;
         bodySlide.BeginAnimation(TranslateTransform.YProperty,null);bodySlide.Y=expanded?0:-8;
-        motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:s.Height);
+        motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:ClosedSurfaceHeight);
         motion.Snap(surface,IslandSurface.GlassLiftProperty,expanded?1:0);
         surface.Refresh();ApplyEnvironmentTuck();Position();Update();ConfigureLiveActivity();RestoreEditorState(editorState);
     }
@@ -209,13 +216,14 @@ public sealed partial class OverlayWindow : Window
                 case "tools":card=UI.Card(Localization.Text("Tools"),BuildToolsPage());break;
                 default:if(Settings.ToolNames.ContainsKey(widget.Id)){string toolId=widget.Id;card=UI.Card(Settings.ToolNames[toolId],UI.Button("Open "+Settings.ToolNames[toolId],()=>ShowTools(toolId)));}else continue;break;
             }
-            card.Width=small?half:full;card.Margin=new(0,0,small?10:0,10);
+            card.Width=small && !PortraitDock?half:full;card.Margin=new(0,0,small && !PortraitDock?10:0,10);
             if(small)card.MinHeight=widget.Id is "timer" or "focus"?184:120;
-            widgets.Children.Add(card);bodyReflow.Add(()=>{card.Width=small?(bodyWidth-10)/2:bodyWidth;widgets.Width=bodyWidth+10;});
+            widgets.Children.Add(card);bodyReflow.Add(()=>{bool paired=small && !PortraitDock;card.Width=paired?(bodyWidth-10)/2:bodyWidth;card.Margin=new(0,0,paired?10:0,10);widgets.Width=bodyWidth+10;});
         }
     }
     public void Reveal(bool activate=true)
     {
+        portraitHoverPointer=null;
         mediaControls?.Close(false);assistantPendingReply=null;HideAssistantPeek();
         EnsureBody();Dimensions();
         HideNotice();EndPeekGesture();StopHoverTimers();automaticPreview=false;activityDismiss.Stop();previewKind=activityTitle=activityDetail="";userHidden=false;app.Previews?.SetHidden(false);RememberExternalForeground();visibilityOverride=lastExternalForeground;revealOverride=visibilityOverride!=IntPtr.Zero;environmentHidden=false;SetTucked(false);Show();Position();if(expanded){if(activate)Activate();return;}expanded=true;peeking=false;RefreshNoticeEdge();peekPanel.Visibility=Visibility.Collapsed;compact.IsHitTestVisible=true;Motion.Fade(compact,1,120);Dimensions();
@@ -229,12 +237,13 @@ public sealed partial class OverlayWindow : Window
     }
     public void Collapse()
     {
+        portraitHoverPointer=null;
         mediaControls?.Close(false);HideAssistantPeek();ReleaseRevealOverride();
         shelfDropBrowsing=false;
         if(hoverPanelWidget!=null){hoverPanelWidget=null;bodyDirty=true;}
         InvalidateSystemMonitor();
         HideNotice();EndPeekGesture();StopHoverTimers();FlushNotes();automaticPreview=false;activityDismiss.Stop();previewKind=activityTitle=activityDetail="";foreach(var label in marqueeLabels.Values)label.Reset();if(!expanded && !peeking){ApplyEnvironmentTuck();return;}expanded=false;peeking=false;UpdateAmbientMotion();UpdateClosedMediaIcon();outside?.Dispose();outside=null;peekPanel.IsHitTestVisible=false;Motion.Fade(peekPanel,0,90);compact.IsHitTestVisible=true;Motion.Fade(compact,1,120);scroll.IsHitTestVisible=false;Motion.Fade(scroll,0,100);Motion.To(bodySlide,TranslateTransform.YProperty,-8,150);
-        motion.Go(surface,IslandSurface.SurfaceWidthProperty,ClosedSurfaceWidth,Math.Max(160,app.Settings.AnimationMs*.78));motion.Go(surface,IslandSurface.SurfaceHeightProperty,app.Settings.Height,Math.Max(160,app.Settings.AnimationMs*.78));
+        motion.Go(surface,IslandSurface.SurfaceWidthProperty,ClosedSurfaceWidth,Math.Max(160,app.Settings.AnimationMs*.78));motion.Go(surface,IslandSurface.SurfaceHeightProperty,ClosedSurfaceHeight,Math.Max(160,app.Settings.AnimationMs*.78));
         motion.Go(surface,IslandSurface.GlassLiftProperty,0,Math.Max(160,app.Settings.AnimationMs*.78));
         CloseMixer();
         RefreshAssistantCharacter();
@@ -286,7 +295,11 @@ public sealed partial class OverlayWindow : Window
             // belongs to placement, display, settings and follow events, not each frame.
             if(!contourOnly || !positionContextReady){var screen=Native.ChooseScreen(s);positionScale=Native.Scale(screen);positionBounds=s.DockEdge=="Top"?screen.Bounds:screen.WorkingArea;positionContextReady=true;}
             var scale=positionScale;var b=positionBounds;var width=(int)Math.Ceiling(ActualWidth*scale);var height=(int)Math.Ceiling(ActualHeight*scale);if(width<1 || height<1)return;
-            var point=MonitorFollowPolicy.Place(s,b,scale,width,Math.Min(height,(int)Math.Ceiling(PaintedHeight*scale)),TuckRequested,(int)Math.Ceiling(PaintedWidth*scale));Native.GetWindowRect(hwnd,out var current);if(followMoving){followTarget=point;return;}if(current.Left!=point.X || current.Top!=point.Y)Native.SetWindowPos(hwnd, IntPtr.Zero, point.X, point.Y, 0, 0, 0x0010 | 0x0001 | 0x0004);
+            int paintedHeight=Math.Min(height,(int)Math.Ceiling(PaintedHeight*scale));
+            var point=MonitorFollowPolicy.Place(s,b,scale,width,paintedHeight,TuckRequested,(int)Math.Ceiling(PaintedWidth*scale));
+            if(PortraitDock && peeking && portraitHoverPointer is int y && y>=b.Top && y<b.Bottom && paintedHeight>40)
+                point.Y=Math.Clamp(Math.Clamp(point.Y,y-paintedHeight+20,y-20),b.Top,Math.Max(b.Top,b.Bottom-paintedHeight));
+            Native.GetWindowRect(hwnd,out var current);if(followMoving){followTarget=point;return;}if(current.Left!=point.X || current.Top!=point.Y)Native.SetWindowPos(hwnd, IntPtr.Zero, point.X, point.Y, 0, 0, 0x0010 | 0x0001 | 0x0004);
         }finally{positioning=false;}
     }
     public void CheckEnvironment()

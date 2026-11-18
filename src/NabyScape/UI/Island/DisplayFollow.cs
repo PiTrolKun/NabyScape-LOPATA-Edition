@@ -80,11 +80,12 @@ public sealed partial class OverlayWindow
         if(!HiddenTuckHover || !Native.CursorPoint(out var point))return;
         var screen=IslandScreen;double scale=Native.Scale(screen);var b=app.Settings.DockEdge=="Top"?screen.Bounds:screen.WorkingArea;
         double center=b.Left+(b.Width-app.Settings.Width*scale)*app.Settings.Horizontal/100+app.Settings.Width*scale/2;
-        double cy=b.Top+(b.Height-app.Settings.Height*scale)*app.Settings.DockVertical/100+app.Settings.Height*scale/2;
+        double sideHeight=ClosedSurfaceHeight*scale;
+        double cy=b.Top+(b.Height-sideHeight)*app.Settings.DockVertical/100+sideHeight/2;
         bool hit=app.Settings.DockEdge switch
         {
-            "Left"=>Math.Abs(point.X-b.Left)<3 && Math.Abs(point.Y-cy)<app.Settings.Height*scale/2,
-            "Right"=>Math.Abs(point.X-(b.Right-1))<3 && Math.Abs(point.Y-cy)<app.Settings.Height*scale/2,
+            "Left"=>Math.Abs(point.X-b.Left)<3 && Math.Abs(point.Y-cy)<sideHeight/2,
+            "Right"=>Math.Abs(point.X-(b.Right-1))<3 && Math.Abs(point.Y-cy)<sideHeight/2,
             "Bottom"=>Math.Abs(point.Y-(b.Bottom-1))<3 && Math.Abs(point.X-center)<app.Settings.Width*scale/2,
             _=>Math.Abs(point.Y-b.Top)<3 && Math.Abs(point.X-center)<app.Settings.Width*scale/2
         };
@@ -110,10 +111,10 @@ public sealed partial class OverlayWindow
     {
         // Reflow existing controls: relocating never navigates or rebuilds an editor.
         Dimensions();foreach(var reflow in bodyReflow)reflow();Dimensions();
-        if(peeking)ApplyPeekGeometry();
-        Width=WindowHostWidth;Height=Math.Max(HostHeight,app.Settings.Height);
+        if(peeking && !noticeShowing)ApplyPeekGeometry();
+        Width=WindowHostWidth;Height=Math.Max(HostHeight,ClosedSurfaceHeight);
         refreshHz=Native.RefreshRate(IslandScreen);
-        surface.BeginUpdate();try{motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:peeking?PeekSurfaceWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:peeking?(assistantPeeking?AssistantPeekHeight:peekDetailed?PeekExpandedHeight:100):app.Settings.Height);}finally{surface.EndUpdate();}
+        surface.BeginUpdate();try{if(!noticeShowing){motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:peeking?PeekSurfaceWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:peeking?CurrentPeekHeight:ClosedSurfaceHeight);}}finally{surface.EndUpdate();}
         Position();CheckEnvironment();SyncAssistantVisibility();
     }
 }

@@ -23,6 +23,9 @@ public sealed partial class OverlayWindow
     private readonly TextBlock peekElapsed=UI.Caption("",11,UI.Muted),peekDuration=UI.Caption("",11,UI.Muted);
     private readonly TranslateTransform peekArtSlide=new();
     private readonly System.Windows.Controls.Grid peekCoverContent=new();
+    private Border peekCoverFrame=null!;
+    private StackPanel peekMediaInfo=null!;
+    private DockPanel peekMediaTimes=null!;
     private FrameworkElement peekFallback=null!;
     private readonly ActivityVisual peekWave=new(){Width=58,Height=16,WaveOnly=true};
     private Button? peekPlay;
@@ -34,6 +37,7 @@ public sealed partial class OverlayWindow
         get
         {
             if(assistantOpen || VoiceRoomOpen)return AssistantView.PanelSize(app.Settings,VoiceRoomOpen).Height;
+            if(PortraitDock)return Math.Max(expandedHeight,PeekExpandedHeight);
             if(!app.Settings.CompactLayout)return expandedHeight;
             var screen=Native.ChooseScreen(app.Settings);return Math.Min(app.Settings.PanelMaxHeight,screen.WorkingArea.Height/Native.Scale(screen)-16);
         }
@@ -81,15 +85,15 @@ public sealed partial class OverlayWindow
         peekMedia.ColumnDefinitions.Add(new(){Width=GridLength.Auto});peekMedia.ColumnDefinitions.Add(new());peekMedia.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
         peekArt.RenderTransform=peekArtSlide;
         peekCoverContent.Children.Add(WrapArtwork(peekArt));peekFallback=Icons.Create("activity",28);peekCoverContent.Children.Add(peekFallback);
-        var cover=new Border{CornerRadius=new(14),Child=peekCoverContent,Background=UI.Brush("#16FFFFFF"),Width=56,Height=56,Margin=new(0,0,16,0)};
+        var cover=peekCoverFrame=new Border{CornerRadius=new(14),Child=peekCoverContent,Background=UI.Brush("#16FFFFFF"),Width=56,Height=56,Margin=new(0,0,16,0)};
         cover.Clip=new RectangleGeometry(new Rect(0,0,56,56),14,14);peekMedia.Children.Add(cover);
         peekTitle.FontSize=15;peekSubtitle.FontSize=12;peekSubtitle.Margin=new(0,6,0,0);
         peekTitle.TextWrapping=TextWrapping.NoWrap;peekTitle.TextTrimming=TextTrimming.CharacterEllipsis;peekTitle.FontWeight=FontWeights.SemiBold;
         peekSubtitle.TextWrapping=TextWrapping.NoWrap;peekSubtitle.TextTrimming=TextTrimming.CharacterEllipsis;
-        var info=new StackPanel{VerticalAlignment=VerticalAlignment.Center};info.Children.Add(WrapTitle(peekTitle));info.Children.Add(WrapTitle(peekSubtitle));Grid.SetColumn(info,1);peekMedia.Children.Add(info);
+        var info=peekMediaInfo=new StackPanel{VerticalAlignment=VerticalAlignment.Center};info.Children.Add(WrapTitle(peekTitle));info.Children.Add(WrapTitle(peekSubtitle));Grid.SetColumn(info,1);peekMedia.Children.Add(info);
         peekPlay=Icons.Button("play","Play or pause from preview",()=>_=app.Media.Command("toggle"),true,38);peekPlay.Margin=new(16,0,0,0);Grid.SetColumn(peekPlay,2);peekMedia.Children.Add(peekPlay);
         Grid.SetRow(peekProgress,1);Grid.SetColumnSpan(peekProgress,3);peekProgress.Margin=new(0,12,0,0);peekMedia.Children.Add(peekProgress);
-        var peekTimes=new DockPanel{Margin=new(0,6,0,0)};DockPanel.SetDock(peekDuration,Dock.Right);peekTimes.Children.Add(peekDuration);peekTimes.Children.Add(peekElapsed);Grid.SetRow(peekTimes,2);Grid.SetColumnSpan(peekTimes,3);peekMedia.Children.Add(peekTimes);
+        var peekTimes=peekMediaTimes=new DockPanel{Margin=new(0,6,0,0)};DockPanel.SetDock(peekDuration,Dock.Right);peekTimes.Children.Add(peekDuration);peekTimes.Children.Add(peekElapsed);Grid.SetRow(peekTimes,2);Grid.SetColumnSpan(peekTimes,3);peekMedia.Children.Add(peekTimes);
         Grid.SetRow(peekWave,2);Grid.SetColumn(peekWave,1);peekWave.HorizontalAlignment=HorizontalAlignment.Center;peekWave.Margin=new(0,6,0,0);peekMedia.Children.Add(peekWave);
 
         timelinePanel.RowDefinitions.Add(new(){Height=GridLength.Auto});timelinePanel.RowDefinitions.Add(new(){Height=GridLength.Auto});
@@ -116,12 +120,13 @@ public sealed partial class OverlayWindow
     {
         if(app.Notifications.Current!=null && !expanded && !peeking && !fileDragActive && !userHidden){OpenNotice();return;}
         if(PeekPages().Length==0 || (!app.Settings.CompactLayout && !tuckPreview && !fileDragActive) || (!app.Settings.HoverPeek && !automaticPreview && !tuckPreview && !fileDragActive) || expanded || peeking || userHidden || (TuckRequested && !tuckPreview && !fileDragActive))return;
+        if(PortraitDock && !DiagnosticRun && PointerInside() && Native.CursorPoint(out var pointer))portraitHoverPointer=pointer.Y;
         peeking=true;RefreshNoticeEdge();SyncAssistantVisibility();Show();Dimensions();ConfigurePerformance();peekDetailed=!app.Settings.TwoStageHover || automaticPreview;detailDelay.Stop();if(!peekDetailed)detailDelay.Start();
         scroll.Visibility=Visibility.Collapsed;compact.IsHitTestVisible=false;Motion.Fade(compact,0,80);
         PreparePeekDeck();
         peekPanel.Visibility=Visibility.Visible;peekPanel.IsHitTestVisible=true;Motion.Fade(peekPanel,1,160);
         motion.Go(surface,IslandSurface.SurfaceWidthProperty,PeekSurfaceWidth,app.Settings.AnimationMs);
-        motion.Go(surface,IslandSurface.SurfaceHeightProperty,peekDetailed?PeekExpandedHeight:100,app.Settings.AnimationMs);motion.Go(surface,IslandSurface.GlassLiftProperty,1,app.Settings.AnimationMs);motion.OnComplete(()=>{});UpdatePeek();WakeLiveRendering();
+        motion.Go(surface,IslandSurface.SurfaceHeightProperty,CurrentPeekHeight,app.Settings.AnimationMs);motion.Go(surface,IslandSurface.GlassLiftProperty,1,app.Settings.AnimationMs);motion.OnComplete(()=>{});UpdatePeek();WakeLiveRendering();
     }
     private void UpdatePeek()
     {
@@ -232,8 +237,22 @@ public sealed partial class OverlayWindow
             if(WidgetOn("media"))
             {
                 var info=new StackPanel{VerticalAlignment=VerticalAlignment.Center};title.TextWrapping=TextWrapping.NoWrap;title.TextTrimming=TextTrimming.CharacterEllipsis;artist.TextWrapping=TextWrapping.NoWrap;artist.TextTrimming=TextTrimming.CharacterEllipsis;artist.Margin=new(0,4,0,0);info.Children.Add(WrapTitle(title));info.Children.Add(WrapTitle(artist));
-                var cover=new Border{Child=WrapArtwork(artwork),Width=88,Height=88,Margin=new(0,0,20,0),Clip=new RectangleGeometry(new Rect(0,0,88,88),15,15)};
-                var row=new Grid{Margin=new(0,0,0,6)};row.ColumnDefinitions.Add(new(){Width=GridLength.Auto});row.ColumnDefinitions.Add(new());row.Children.Add(cover);
+                var artworkPlaceholder=new Border{Child=Icons.Create("music",36,UI.Muted),Opacity=.58};
+                artworkPlaceholder.SetResourceReference(Border.BackgroundProperty,"SelectionFill");
+                var placeholderStyle=new Style(typeof(Border));
+                placeholderStyle.Setters.Add(new Setter(VisibilityProperty,Visibility.Collapsed));
+                var missingArt=new DataTrigger
+                {
+                    Binding=new System.Windows.Data.Binding(nameof(Visibility)){Source=artwork},
+                    Value=Visibility.Collapsed
+                };
+                missingArt.Setters.Add(new Setter(VisibilityProperty,Visibility.Visible));
+                placeholderStyle.Triggers.Add(missingArt);
+                artworkPlaceholder.Style=placeholderStyle;
+                var artworkContent=new Grid{Children={artworkPlaceholder,WrapArtwork(artwork)}};
+                var cover=new Border{Child=artworkContent,Width=88,Height=88,Margin=new(0,0,20,0),Clip=new RectangleGeometry(new Rect(0,0,88,88),15,15)};
+                var row=new Grid{Margin=new(0,0,0,6)};row.ColumnDefinitions.Add(new(){Width=GridLength.Auto});row.ColumnDefinitions.Add(new());
+                row.RowDefinitions.Add(new(){Height=GridLength.Auto});row.RowDefinitions.Add(new(){Height=GridLength.Auto});row.Children.Add(cover);
                 previous=Icons.Button("previous","Previous track",()=>_=app.Media.Command("previous"),false,38);play=Icons.Button("play","Play or pause",()=>_=app.Media.Command("toggle"),true,46);playIcon="";next=Icons.Button("next","Next track",()=>_=app.Media.Command("next"),false,38);previous.Background=next.Background=Brushes.Transparent;
                 previous.Margin=new(0,0,8,0);play.Margin=new(0);next.Margin=new(8,0,0,0);
                 lyricsButton=PlaybackSideButton("lyrics","Show or hide synced lyrics",ToggleLyrics);
@@ -250,13 +269,22 @@ public sealed partial class OverlayWindow
                 Grid.SetColumn(info,1);row.Children.Add(info);panel.Children.Add(row);panel.Children.Add(playbackRow);row.Loaded+=(_,_)=>QueueMediaLayout();row.IsVisibleChanged+=(_,_)=>{if(row.IsVisible)QueueMediaLayout();};
                 void ResizePlayer()
                 {
+                    bool portrait = PortraitDock;
                     bool narrow = (row.ActualWidth > 0 ? row.ActualWidth : bodyWidth) < 310;
                     bool compactCover = narrow || app.UsesLopataEdition && app.Settings.PanelMaxHeight / app.Settings.PanelScale <= 400;
-                    double size = compactCover ? 64 : 88;
+                    double size = portrait ? Math.Clamp(bodyWidth*.54,96,160) : compactCover ? 64 : 88;
                     double radius = compactCover ? 11 : 15;
                     cover.Width = cover.Height = artwork.Width = artwork.Height = size;
-                    cover.Margin = new Thickness(0, 0, compactCover ? 14 : 20, 0);
+                    cover.Margin = portrait ? new Thickness(0, 6, 0, 10) : new Thickness(0, 0, compactCover ? 14 : 20, 0);
                     cover.Clip = new RectangleGeometry(new Rect(0, 0, size, size), radius, radius);
+                    cover.HorizontalAlignment = portrait ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+                    Grid.SetColumnSpan(cover, portrait ? 2 : 1);
+                    Grid.SetColumn(info, portrait ? 0 : 1);
+                    Grid.SetColumnSpan(info, portrait ? 2 : 1);
+                    Grid.SetRow(info, portrait ? 1 : 0);
+                    title.TextAlignment = artist.TextAlignment = portrait ? TextAlignment.Center : TextAlignment.Left;
+                    if (portrait) artworkPlaceholder.ClearValue(VisibilityProperty);
+                    else artworkPlaceholder.Visibility=Visibility.Collapsed;
                     if (previousArtwork.TryGetValue(artwork, out var outgoing)) outgoing.Width = outgoing.Height = size;
                     musicWave.Width = narrow ? 112 : 164;
                     previous.Width = previous.Height = next.Width = next.Height = narrow ? 28 : 38;

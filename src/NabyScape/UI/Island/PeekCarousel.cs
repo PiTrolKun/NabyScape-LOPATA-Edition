@@ -12,10 +12,14 @@ namespace NabyScape;
 
 public sealed partial class OverlayWindow
 {
-    private double PeekExpandedHeight=>Math.Max(app.Settings.HoverHeight,PeekLayout.MinimumDetailedHeight);
-    private double PeekSurfaceWidth=>Math.Min(app.Settings.HoverWidth,IslandScreen.WorkingArea.Width/Native.Scale(IslandScreen)-24);
-    private double WindowHostWidth {get{double scale=Native.Scale(IslandScreen);return Math.Ceiling(Math.Max(Math.Max(expandedWidth,app.Settings.Width),PeekSurfaceWidth)*scale)/scale;}}
-    private double PeekWidth=>PeekSurfaceWidth-64;
+    private double PeekExpandedHeight=>PortraitDock
+        ? Math.Min(portraitAvailableHeight,Math.Max(Math.Max(PeekSurfaceWidth+36,312),app.Settings.HoverHeight+128))
+        : Math.Max(app.Settings.HoverHeight,PeekLayout.MinimumDetailedHeight);
+    private double PeekPreviewHeight=>PortraitDock?Math.Min(portraitAvailableHeight,PeekSurfaceWidth+16):100;
+    private double CurrentPeekHeight=>assistantPeeking?AssistantPeekHeight:peekDetailed?PeekExpandedHeight:PeekPreviewHeight;
+    private double PeekSurfaceWidth=>PortraitDock?portraitPeekWidth:Math.Min(app.Settings.HoverWidth,IslandScreen.WorkingArea.Width/Native.Scale(IslandScreen)-24);
+    private double WindowHostWidth {get{double scale=Native.Scale(IslandScreen);return Math.Ceiling(Math.Max(Math.Max(expandedWidth,PortraitDock?ClosedSurfaceWidth:app.Settings.Width),PeekSurfaceWidth)*scale)/scale;}}
+    private double PeekWidth=>PeekSurfaceWidth-(PortraitDock?32:64);
     private readonly Grid peekMedia=new(),peekViewport=new(){ClipToBounds=true,Height=124,Background=Brushes.Transparent};
     private readonly Dictionary<string,FrameworkElement> peekViews=new();
     private readonly Dictionary<string,TranslateTransform> peekMoves=new();
@@ -33,6 +37,9 @@ public sealed partial class OverlayWindow
     private double peekOffset,peekDragOrigin;
     private readonly PeekWheelAccumulator peekWheel=new();
     private Grid peekFooter=null!;
+    private Grid peekMediaControls=null!;
+    private Button peekDetach=null!;
+    private bool peekMediaPortrait;
     private bool peekSuppressClick;
     internal bool PeekDetailed=>peekDetailed;
     internal Rect PeekContentBounds=>new((ActualWidth-PeekWidth)/2,peekPanel.Margin.Top,PeekWidth,peekPanel.Height);
@@ -63,7 +70,7 @@ public sealed partial class OverlayWindow
         peekPanel.HorizontalAlignment=HorizontalAlignment.Center;peekPanel.VerticalAlignment=VerticalAlignment.Top;peekPanel.Width=PeekWidth;peekPanel.Height=148;peekPanel.Margin=new(0,20,0,0);peekPanel.Visibility=Visibility.Collapsed;
         peekPanel.RowDefinitions.Add(new(){Height=new GridLength(124)});peekPanel.RowDefinitions.Add(new(){Height=new GridLength(24)});peekPanel.Children.Add(peekViewport);
         peekMedia.Height=124;peekMedia.Width=PeekWidth;peekMedia.Visibility=Visibility.Visible;peekMedia.RowDefinitions.Add(new(){Height=new GridLength(32)});
-        var controls=new Grid{Margin=new(0,2,0,0)};controls.ColumnDefinitions.Add(new(){Width=new GridLength(34)});controls.ColumnDefinitions.Add(new(){Width=new GridLength(34)});controls.ColumnDefinitions.Add(new(){Width=new GridLength(34)});controls.ColumnDefinitions.Add(new());controls.ColumnDefinitions.Add(new(){Width=new GridLength(28)});
+        var controls=peekMediaControls=new Grid{Margin=new(0,2,0,0)};controls.ColumnDefinitions.Add(new(){Width=new GridLength(34)});controls.ColumnDefinitions.Add(new(){Width=new GridLength(34)});controls.ColumnDefinitions.Add(new(){Width=new GridLength(34)});controls.ColumnDefinitions.Add(new());controls.ColumnDefinitions.Add(new(){Width=new GridLength(28)});
         controls.ColumnDefinitions.Add(new(){Width=new GridLength(28)});
         var previous=PeekIcon("previous","Previous track in preview",()=>_=app.Media.Command("previous"));var next=PeekIcon("next","Next track in preview",()=>_=app.Media.Command("next"));var mute=PeekIcon("volume","Mute preview audio",()=>{app.Audio.ToggleMute();app.Audio.Read();Update();});var output=PeekIcon("chevron","Choose preview audio output",OpenAudioMenu);
         peekTrackPrevious=previous;peekTrackNext=next;peekMute=mute;peekOutput=output;controls.Children.Add(previous);Grid.SetColumn(next,1);controls.Children.Add(next);Grid.SetColumn(mute,2);controls.Children.Add(mute);
@@ -76,7 +83,7 @@ public sealed partial class OverlayWindow
         }
         var arrows=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};peekPrevious=PeekArrow(false,()=>NavigatePeek(-1));peekNext=PeekArrow(true,()=>NavigatePeek(1));arrows.Children.Add(peekPrevious);arrows.Children.Add(peekNext);Grid.SetColumn(arrows,2);footer.Children.Add(arrows);var detachTools=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};
         var handle=new Thumb{Width=18,Height=22,Cursor=Cursors.SizeAll,Background=Brushes.Transparent,ToolTip="Drag to detach this preview"};var grip=new FrameworkElementFactory(typeof(Border));grip.SetValue(WidthProperty,12d);grip.SetValue(HeightProperty,3d);grip.SetValue(Border.CornerRadiusProperty,new CornerRadius(1.5));grip.SetValue(Border.BackgroundProperty,UI.Brush("#8B8D94"));handle.Template=new ControlTemplate(typeof(Thumb)){VisualTree=grip};UI.Named(handle,Localization.Text("Drag preview out"));Point detachStart=default;bool detached=false;handle.DragStarted+=(_,_)=>{detachStart=Mouse.GetPosition(this);detached=false;};handle.DragDelta+=(_,_)=>{if(!detached && (Mouse.GetPosition(this)-detachStart).Length>10){detached=true;var location=PointToScreen(Mouse.GetPosition(this));var kind=peekId;handle.CancelDrag();Collapse();app.Previews?.OpenAt(kind,location,true);}};detachTools.Children.Add(handle);
-        var detach=PlainPeekButton("Detach preview",()=>{var location=PointToScreen(new Point((ActualWidth-PeekWidth)/2+24,app.Settings.Height+24));var kind=peekId;Collapse();app.Previews?.OpenAt(kind,location,false);});detach.Content=Localization.Text("Detach");detach.FontSize=10;detach.Width=52;detachTools.Children.Add(detach);Grid.SetColumn(detachTools,3);footer.Children.Add(detachTools);detachTools.Tag="detach";
+        var detach=peekDetach=PlainPeekButton("Detach preview",()=>{var location=PointToScreen(new Point((ActualWidth-PeekWidth)/2+24,app.Settings.Height+24));var kind=peekId;Collapse();app.Previews?.OpenAt(kind,location,false);});detach.Content=Localization.Text("Detach");detach.FontSize=10;detach.Width=52;detach.ToolTip=Localization.Text("Detach preview");detachTools.Children.Add(detach);Grid.SetColumn(detachTools,3);footer.Children.Add(detachTools);detachTools.Tag="detach";
         Grid.SetRow(footer,1);peekPanel.Children.Add(footer);visuals.Children.Add(peekPanel);
         peekPanel.Focusable=true;peekPanel.PreviewMouseLeftButtonDown+=(_,e)=>{if(peeking){Activate();if(!PeekGestureBlocked(e.OriginalSource as DependencyObject))peekPanel.Focus();}};
         peekViewport.PreviewTouchDown+=(_,e)=>peekTouchBlocked=PeekGestureBlocked(e.OriginalSource as DependencyObject);
@@ -174,14 +181,27 @@ public sealed partial class OverlayWindow
     private void ApplyPeekGeometry()
     {
         if(assistantPeeking){LayoutAssistantPeek();return;}
-        double height=peekDetailed?PeekExpandedHeight:100;
-        var safe=PeekLayout.SafeBounds(PeekSurfaceWidth,height,app.Settings.Radius,surface.Notch);
+        double height=CurrentPeekHeight;
+        bool portrait=PortraitDock;
+        ConfigurePeekMediaLayout();
+        var safe=PeekLayout.SafeBounds(PeekSurfaceWidth,height,app.Settings.Radius,surface.Notch,portrait);
         peekPanel.Width=peekViewport.Width=safe.Width;peekPanel.Height=safe.Height;
-        peekPanel.Margin=new(0,safe.Top,0,0);
-        double contentHeight=peekDetailed?PeekLayout.DetailedContentHeight:Math.Min(64,safe.Height);
+        double contentHeight=peekDetailed
+            ? Math.Max(0,Math.Min(portrait && peekId=="media"?226:PeekLayout.DetailedContentHeight,safe.Height-PeekLayout.FooterHeight))
+            : Math.Min(portrait && peekId=="media"?164:64,safe.Height);
+        double footerHeight=peekDetailed?PeekLayout.FooterHeight:0;
+        double top=portrait?safe.Top+Math.Max(0,(safe.Height-contentHeight-footerHeight)/2):safe.Top;
+        peekPanel.Margin=new(0,top,0,0);
+        if(portrait)peekPanel.Height=contentHeight+footerHeight;
         peekFooter.ColumnDefinitions[0].Width=new(peekDetailed && safe.Width>=270?50:0);peekPageName.Visibility=safe.Width>=270?Visibility.Visible:Visibility.Collapsed;
-        bool detachable=app.Settings.DetachablePreviews && peekId is "media" or "timer" or "focus" or "stopwatch" or "calendar" or "notes" or "files" or "system";peekFooter.ColumnDefinitions[3].Width=new(detachable?74:0);foreach(FrameworkElement child in peekFooter.Children)if(child.Tag as string=="detach")child.Visibility=detachable?Visibility.Visible:Visibility.Collapsed;
-        foreach(var dot in peekDots.Values)dot.Width=Math.Min(14,Math.Max(7,(safe.Width-48-(app.Settings.DetachablePreviews?74:0)-(safe.Width>=270?50:0))/Math.Max(1,PeekPages().Length)));peekViewport.Height=contentHeight;peekPanel.RowDefinitions[0].Height=new(contentHeight);
+        bool detachable=app.Settings.DetachablePreviews && peekId is "media" or "timer" or "focus" or "stopwatch" or "calendar" or "notes" or "files" or "system";
+        double detachWidth=detachable?(portrait?50:74):0;
+        peekFooter.ColumnDefinitions[3].Width=new(detachWidth);foreach(FrameworkElement child in peekFooter.Children)if(child.Tag as string=="detach")child.Visibility=detachable?Visibility.Visible:Visibility.Collapsed;
+        double footerInset=portrait?8:0;
+        peekFooter.Margin=new(footerInset,2,footerInset,0);
+        double dotsWidth=safe.Width-2*footerInset-48-detachWidth-(safe.Width>=270?50:0);
+        foreach(var dot in peekDots.Values)dot.Width=Math.Min(14,Math.Max(portrait?5:7,dotsWidth/Math.Max(1,PeekPages().Length)));
+        peekViewport.Height=contentHeight;peekPanel.RowDefinitions[0].Height=new(contentHeight);
         peekPanel.RowDefinitions[1].Height=new(peekDetailed?PeekLayout.FooterHeight:0);peekFooter.Visibility=peekDetailed?Visibility.Visible:Visibility.Collapsed;
         foreach(var pair in peekViews)
         {
@@ -189,14 +209,16 @@ public sealed partial class OverlayWindow
             if(pair.Key is "timer" or "focus" && pair.Value is Grid clock){clock.RowDefinitions[0].Height=new(peekDetailed?24:18);clock.RowDefinitions[1].Height=new(peekDetailed?48:46);}
             if(pair.Value is Panel page)foreach(FrameworkElement child in page.Children)
             {
-                bool primary=pair.Key=="media"?Grid.GetRow(child)==0:pair.Key is "timer" or "focus"?Grid.GetRow(child)<2:page.Children.IndexOf(child)<(pair.Key=="notes"?1:2);
+                bool primary=pair.Key=="media"?Grid.GetRow(child)<(portrait?3:1):pair.Key is "timer" or "focus"?Grid.GetRow(child)<2:page.Children.IndexOf(child)<(pair.Key=="notes"?1:2);
                 if(!primary){if(!peekDetailed)child.Visibility=Visibility.Hidden;else if(child.Visibility==Visibility.Hidden)child.Visibility=Visibility.Visible;}
             }
         }
         // Media metadata keeps a flexible title column even for very long tracks.
         peekTrackPrevious.Visibility=peekTrackNext.Visibility=Visibility.Visible;
-        if(peekViews["media"] is Grid media && media.Children.OfType<Grid>().LastOrDefault() is Grid controls)
-        {bool narrow=safe.Width<260;controls.ColumnDefinitions[0].Width=new(narrow?0:34);controls.ColumnDefinitions[1].Width=new(narrow?0:34);peekTrackPrevious.Visibility=peekTrackNext.Visibility=narrow?Visibility.Collapsed:Visibility.Visible;}
+        bool narrow=safe.Width<(portrait?196:260);
+        peekMediaControls.ColumnDefinitions[0].Width=new(narrow?0:34);
+        peekMediaControls.ColumnDefinitions[1].Width=new(narrow?0:34);
+        peekTrackPrevious.Visibility=peekTrackNext.Visibility=narrow?Visibility.Collapsed:Visibility.Visible;
     }
     internal void OpenPeekPage()
     {

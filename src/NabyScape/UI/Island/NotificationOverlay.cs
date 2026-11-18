@@ -19,7 +19,7 @@ public sealed partial class OverlayWindow
         if(noticeEdge==null){noticeEdge=new(){Width=18,Height=2,CornerRadius=new(1),Background=Brushes.White,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Top,IsHitTestVisible=false};visuals.Children.Add(noticeEdge);}
         // A short accent line under the closed dock means unread alerts are waiting in the center.
         noticeEdge.Width=20;noticeEdge.Height=3;noticeEdge.CornerRadius=new(1.5);noticeEdge.Background=ClosedAccent();
-        noticeEdge.Margin=new(0,app.Settings.Height-4,0,0);
+        noticeEdge.Margin=new(0,ClosedSurfaceHeight-4,0,0);
         bool waiting=app.Notifications.Current!=null || app.Notifications.Unread>0;
         noticeEdge.Visibility=waiting && !expanded && !peeking?Visibility.Visible:Visibility.Collapsed;
     }
@@ -93,13 +93,15 @@ public sealed partial class OverlayWindow
         var all=UI.CaptionButton("View all",()=>{Collapse();app.Notifications.Clear();OpenNotificationCenter();});
         foreach(var action in new[]{dismiss,noticeNext,clear,all}){action.FontSize=11;action.MinHeight=30;action.Padding=new(9,4,9,4);action.Margin=new(0,0,6,0);actions.Children.Add(action);}content.Children.Add(actions);
         var screen=Native.ChooseScreen(app.Settings);double scale=Native.Scale(screen);
-        double width=Math.Max(260,PeekSurfaceWidth);
+        double width=PortraitDock?PeekSurfaceWidth:Math.Max(260,PeekSurfaceWidth);
         var viewport=new ScrollViewer{Content=content,MaxHeight=Math.Max(100,Math.Min(HostHeight-40,screen.WorkingArea.Height/scale-48)),VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};
         noticeCard=new(){Child=viewport,Width=width-(surface.Notch?64:32),Margin=new(0,16,0,0),VerticalAlignment=VerticalAlignment.Top,HorizontalAlignment=HorizontalAlignment.Center};
         visuals.Children.Add(noticeCard);compact.IsHitTestVisible=false;compact.Opacity=0;Show();Dimensions();
         viewport.Measure(new Size(noticeCard.Width,double.PositiveInfinity));
         motion.Go(surface,IslandSurface.SurfaceWidthProperty,width,app.Settings.AnimationMs);
-        motion.Go(surface,IslandSurface.SurfaceHeightProperty,viewport.DesiredSize.Height+32,app.Settings.AnimationMs);
+        motion.Go(surface,IslandSurface.SurfaceHeightProperty,PortraitDock
+            ?Math.Min(portraitAvailableHeight,Math.Max(width+32,viewport.DesiredSize.Height+32))
+            :viewport.DesiredSize.Height+32,app.Settings.AnimationMs);
         ControlFeedback.Notice(noticeCard,app.Settings.NotificationAnimation);
     }
     internal static FrameworkElement NoticeGlyph(InternalNotice notice,double size)=>NoticeAvatar.Create(notice,size);

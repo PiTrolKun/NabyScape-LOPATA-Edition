@@ -80,12 +80,12 @@ public sealed partial class OverlayWindow
         foreach(var tab in compactTabs)StyleCategory(tab.Value,tab.Key,tab.Key==(activePage=="mixer"?"media":activePage));
         if(previous.Geometry!=next.Geometry || previous.Reflow!=next.Reflow)
         {
-            refreshHz=Native.RefreshRate(Native.ChooseScreen(s));compact.Width=Math.Max(120,Math.Min(s.Width,expandedWidth)-(surface.Notch?32:12));compact.Height=s.Height;compact.MinHeight=s.Height;
-            Dimensions();foreach(var reflow in bodyReflow)reflow();Dimensions();foreach(var tab in compactTabs)StyleCategory(tab.Value,tab.Key,tab.Key==(activePage=="mixer"?"media":activePage));Width=WindowHostWidth;Height=Math.Max(HostHeight,s.Height);
+            refreshHz=Native.RefreshRate(Native.ChooseScreen(s));
+            Dimensions();foreach(var reflow in bodyReflow)reflow();Dimensions();foreach(var tab in compactTabs)StyleCategory(tab.Value,tab.Key,tab.Key==(activePage=="mixer"?"media":activePage));Width=WindowHostWidth;Height=Math.Max(HostHeight,ClosedSurfaceHeight);
             surface.BeginUpdate();
-            try{motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:peeking?PeekSurfaceWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:peeking?(assistantPeeking?AssistantPeekHeight:peekDetailed?PeekExpandedHeight:100):s.Height);}
+            try{if(!noticeShowing){motion.Snap(surface,IslandSurface.SurfaceWidthProperty,expanded?expandedWidth:peeking?PeekSurfaceWidth:ClosedSurfaceWidth);motion.Snap(surface,IslandSurface.SurfaceHeightProperty,expanded?expandedHeight:peeking?CurrentPeekHeight:ClosedSurfaceHeight);}}
             finally{surface.EndUpdate();}
-            if(peeking)PreparePeekDeck();
+            if(peeking && !noticeShowing){if(assistantPeeking)LayoutAssistantPeek();else PreparePeekDeck();}
         }
         surface.Refresh();ApplyEnvironmentTuck();Position();Update();ConfigureLiveActivity();return true;
     }

@@ -30,10 +30,10 @@ public sealed partial class OverlayWindow
     private void ArrangeMediaLyrics()
     {
         if(mediaLyricsLayout==null || lyricsAside==null || mediaLyrics==null)return;
-        bool visible=mediaLyrics.Visibility==Visibility.Visible,side=visible && bodyWidth>=MediaLyricsLayout.MinimumBodyWidth;
+        bool visible=mediaLyrics.Visibility==Visibility.Visible,side=visible && !PortraitDock && bodyWidth>=MediaLyricsLayout.MinimumBodyWidth;
         lyricsAside.Visibility=visible?Visibility.Visible:Visibility.Collapsed;
         Grid.SetColumn(lyricsAside,side?1:0);Grid.SetRow(lyricsAside,side?0:1);
         lyricsAside.Width=side?256:double.NaN;lyricsAside.Margin=side?new Thickness(24,0,0,0):new Thickness(0,8,0,0);lyricsAside.Padding=side?new Thickness(20,0,0,0):new Thickness(0);lyricsAside.BorderThickness=side?new Thickness(1,0,0,0):new Thickness(0);
-        mediaLyrics.Height=side?200:130;mediaLyrics.Margin=side?new Thickness(0):new Thickness(0,6,0,12);mediaLyrics.VerticalAlignment=VerticalAlignment.Center;
+        mediaLyrics.Height=side?200:PortraitDock?180:130;mediaLyrics.Margin=side?new Thickness(0):new Thickness(0,6,0,12);mediaLyrics.VerticalAlignment=VerticalAlignment.Center;
     }
 }

@@ -35,10 +35,10 @@ internal static class PeekLayout
     internal const double FooterHeight = 24;
     internal const double MinimumDetailedHeight = TopPadding + DetailedContentHeight + FooterHeight + BottomPadding;
 
-    internal static Rect SafeBounds(double width,double height,double radius,bool notch)
+    internal static Rect SafeBounds(double width,double height,double radius,bool notch,bool portrait=false)
     {
         var geometry=IslandGeometry.Create(width,height,radius,notch);
-        double top=TopPadding,bottom=height-BottomPadding,inset=32;
+        double top=TopPadding,bottom=height-BottomPadding,inset=portrait?16:32;
         while(inset<width/2-1 && (!geometry.FillContains(new Point(inset,top)) || !geometry.FillContains(new Point(inset,bottom))))inset++;
         return new Rect(inset,top,Math.Max(1,width-2*inset),Math.Max(1,bottom-top));
     }

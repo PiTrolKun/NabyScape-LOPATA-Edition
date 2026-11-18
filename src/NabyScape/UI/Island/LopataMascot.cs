@@ -92,9 +92,18 @@ public sealed partial class OverlayWindow
         assistantCharacterButton.Width = Math.Round(height * 58 / 34);
         assistantCharacterButton.Height = height;
         assistantHeaderSpace.Width = assistantCharacterButton.Width + 8;
-        assistantCharacterHost.Width = ClosedContentWidth;
-        assistantCharacterHost.Height = app.Settings.Height;
+        ArrangeClosedMascot();
         SyncLopataMascot();
+    }
+
+    private void ArrangeClosedMascot()
+    {
+        assistantCharacterHost.Width = ClosedContentWidth;
+        bool side = PortraitDock;
+        assistantCharacterHost.Height = side ? assistantCharacterButton.Height : app.Settings.Height;
+        assistantCharacterHost.Margin = side ? new Thickness(0, Math.Max(0, ClosedSurfaceHeight-46), 0, 0) : new Thickness(0);
+        assistantCharacterButton.HorizontalAlignment = side ? HorizontalAlignment.Center : HorizontalAlignment.Right;
+        assistantCharacterButton.Margin = side ? new Thickness(0) : new Thickness(0, 0, 8, 0);
     }
 
     private void ReadMascotRuntime() => ObserveMascotRuntime(app.LopataLink.State, app.LopataLink.CoreWorking,

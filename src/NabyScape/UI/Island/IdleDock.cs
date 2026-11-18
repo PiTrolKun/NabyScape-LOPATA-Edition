@@ -10,6 +10,7 @@ public sealed partial class OverlayWindow
     private readonly bool idleDockReady;
     private readonly TextBlock idleDate=new(){FontSize=11,FontWeight=FontWeights.Medium,Foreground=UI.Muted,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center,TextAlignment=TextAlignment.Center,TextWrapping=TextWrapping.NoWrap,ClipToBounds=true,Visibility=Visibility.Collapsed};
     private DateTime idleDateDay;
+    private bool idleDatePortrait;
     private bool idleClosed;
     private double lastClosedWidth=double.NaN;
     private bool? idleLayoutState;
@@ -18,8 +19,8 @@ public sealed partial class OverlayWindow
         !(ClosedMediaActive) &&
         !(WidgetOn("focus") && app.Session.Focus.Remaining(DateTimeOffset.UtcNow)>0) &&
         !(WidgetOn("timer") && app.Session.Timer.Remaining(DateTimeOffset.UtcNow)>0);
-    private double ClosedSurfaceWidth=>ClosedLyricsWidth;
-    private double ClosedContentWidth=>ClosedClockLayout.ContentWidth(ClosedSurfaceWidth,expandedWidth,surface.Notch);
+    private double ClosedSurfaceWidth=>PortraitDock?SideDockLayout.ClosedWidth(app.Settings):ClosedLyricsWidth;
+    private double ClosedContentWidth=>PortraitDock?ClosedSurfaceWidth-8:ClosedClockLayout.ContentWidth(ClosedSurfaceWidth,expandedWidth,surface.Notch);
     private ClosedClockSlot? clockSlot;
     // Applies the Settings > Layout > Closed island clock position (see ClosedClockLayout for the rules).
     private void PlaceClosedClock()
@@ -49,19 +50,24 @@ public sealed partial class OverlayWindow
             else summary.Visibility=closedTitleWave.Visibility==Visibility.Visible?Visibility.Collapsed:Visibility.Visible;
             UpdateAmbientMotion();
         }
-        PlaceClosedClock();
+        if(!PortraitDock)PlaceClosedClock();
         if(idleClosed)summary.Visibility=Visibility.Collapsed;
         // Equal side clearance keeps the date on the dock's center, independent of the clock or character;
         // a centered clock takes the middle, so the date moves to the left edge.
-        var dateRoom=ClosedClockLayout.Date(clockSlot??ClosedClockSlot.Leading,ClosedContentWidth-compact.Padding.Left-compact.Padding.Right,compactClock.ActualWidth);
+        var dateRoom=PortraitDock
+            ? (Visible: true, Leading: false, MaxWidth: ClosedContentWidth-8)
+            : ClosedClockLayout.Date(clockSlot??ClosedClockSlot.Leading,ClosedContentWidth-compact.Padding.Left-compact.Padding.Right,compactClock.ActualWidth);
         idleDate.MaxWidth=dateRoom.MaxWidth;idleDate.HorizontalAlignment=dateRoom.Leading?HorizontalAlignment.Left:HorizontalAlignment.Center;idleDate.TextAlignment=dateRoom.Leading?TextAlignment.Left:TextAlignment.Center;
         idleDate.Visibility=idleClosed && app.Settings.ShowDate && compactClock.Visibility==Visibility.Visible && dateRoom.Visible?Visibility.Visible:Visibility.Collapsed;
-        if(idleDate.Visibility==Visibility.Visible && idleDateDay!=DateTime.Today)
+        if(idleDate.Visibility==Visibility.Visible && (idleDateDay!=DateTime.Today || idleDatePortrait!=PortraitDock))
         {
-            idleDateDay=DateTime.Today;var culture=Localization.Culture;
+            idleDateDay=DateTime.Today;idleDatePortrait=PortraitDock;var culture=Localization.Culture;
             idleDate.Inlines.Clear();
-            idleDate.Inlines.Add(new Run(idleDateDay.ToString("ddd",culture).ToUpper(culture)){FontSize=9*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#9DA3AD")});
-            idleDate.Inlines.Add(new Run("  ·  "){FontSize=9*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#626873")});
+            if (!idleDatePortrait)
+            {
+                idleDate.Inlines.Add(new Run(idleDateDay.ToString("ddd",culture).ToUpper(culture)){FontSize=9*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#9DA3AD")});
+                idleDate.Inlines.Add(new Run("  ·  "){FontSize=9*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#626873")});
+            }
             idleDate.Inlines.Add(new Run(idleDateDay.ToString("dd",culture)){FontSize=12*Accessibility.TextScale,FontWeight=FontWeights.SemiBold,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#E5E8ED")});
             idleDate.Inlines.Add(new Run(" "+idleDateDay.ToString("MMM",culture).ToUpper(culture)){FontSize=10*Accessibility.TextScale,Foreground=Accessibility.HighContrast?SystemColors.WindowTextBrush:UI.Brush("#B7BDC7")});
             idleDate.ToolTip=idleDateDay.ToString("D",culture);

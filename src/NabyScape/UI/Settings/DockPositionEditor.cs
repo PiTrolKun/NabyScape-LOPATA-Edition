@@ -41,14 +41,20 @@ internal sealed class DockPositionEditor : UserControl
         horizontal.Value=s.Horizontal;x.Text=s.Horizontal.ToString("0.0",CultureInfo.InvariantCulture);
         bool side=s.DockEdge is "Left" or "Right",bottom=s.DockEdge=="Bottom";vertical.Minimum=0;vertical.Maximum=side?100:bottom?200:Math.Min(3000,Math.Max(0,height-s.Height));vertical.TickFrequency=side?.1:1;vertical.IsSnapToTickEnabled=true;vertical.Value=side?s.DockVertical:bottom?s.DockInset:s.Top;y.Text=vertical.Value.ToString("0.#",CultureInfo.InvariantCulture);verticalLabel.Text=side?Localization.Text("Vertical · %"):bottom?Localization.Text("Bottom inset · px"):Localization.Text("Top offset · px");
         vertical.IsEnabled=!(s.Preset=="Mac" && s.DockEdge=="Top");
-        double left=(screen.WorkingArea.Width/scale-s.Width)*s.Horizontal/100,top=side?(height-s.Height)*s.DockVertical/100:bottom?height-s.Height-s.DockInset:s.Top;
-        if(side)left=s.DockEdge=="Left"?s.DockInset:screen.WorkingArea.Width/scale-s.Width-s.DockInset;
+        bool portrait=side && app.UsesLopataEdition;
+        double closedWidth=portrait?SideDockLayout.ClosedWidth(s):s.Width;
+        double closedHeight=portrait?Math.Min(SideDockLayout.ClosedHeight(s),height-16):s.Height;
+        double left=(screen.WorkingArea.Width/scale-closedWidth)*s.Horizontal/100,top=side?(height-closedHeight)*s.DockVertical/100:bottom?height-closedHeight-s.DockInset:s.Top;
+        if(side)left=s.DockEdge=="Left"?s.DockInset:screen.WorkingArea.Width/scale-closedWidth-s.DockInset;
         double off=side?s.DockVertical-50:s.Horizontal-50;alignment.Text=Math.Abs(off)<.05?Localization.Text("Centered on this screen"):$"{Math.Abs(off):0.#}% {(side?(off<0?"above":"below"):(off<0?"left of":"right of"))} center";alignment.Foreground=Math.Abs(off)<.05?UI.Brush("#A4CEC0"):UI.Muted;
         coordinates.Text=Localization.Format("Left {0:0} px · Top {1:0} px · {2:0}% display scaling",left,top,scale*100);syncing=false;Draw();
     }
     private void Drag(Point point)
     {
-        double w=Math.Max(1,map.ActualWidth-32),h=map.ActualHeight-24;var s=app.Settings;double px=Math.Clamp((point.X-45)/Math.Max(1,w-58)*100,0,100),py=Math.Clamp((point.Y-19.5)/Math.Max(1,h-15)*100,0,100);
+        double w=Math.Max(1,map.ActualWidth-32),h=map.ActualHeight-24;var s=app.Settings;
+        var size=MarkerSize();
+        double px=Math.Clamp((point.X-16-size.Width/2)/Math.Max(1,w-size.Width)*100,0,100);
+        double py=Math.Clamp((point.Y-12-size.Height/2)/Math.Max(1,h-size.Height)*100,0,100);
         if(Math.Abs(px-50)<1)px=50;if(Math.Abs(py-50)<1)py=50;
         if(s.DockEdge is "Left" or "Right")s.DockVertical=py;else s.Horizontal=px;
         if(s.DockEdge=="Floating" || s.DockEdge=="Top" && s.Preset!="Mac")s.Top=Math.Round(py/100*vertical.Maximum);
@@ -61,6 +67,11 @@ internal sealed class DockPositionEditor : UserControl
         Line(16+w/2,8,16+w/2,h+16);Line(12,12+h/2,w+20,12+h/2);
         double dx=s.Horizontal/100,dy=s.DockEdge=="Bottom"?1:s.DockEdge is "Left" or "Right"?s.DockVertical/100:s.DockEdge=="Floating" || s.Preset!="Mac"?s.Top/Math.Max(1,vertical.Maximum):0;
         if(s.DockEdge=="Left")dx=0;if(s.DockEdge=="Right")dx=1;
-        var marker=new Border{Width=58,Height=15,CornerRadius=new(6),Background=Brushes.Black,BorderBrush=UI.Brush("#CAD9EA"),BorderThickness=new(1),IsHitTestVisible=false};Canvas.SetLeft(marker,16+dx*(w-58));Canvas.SetTop(marker,12+dy*(h-15));map.Children.Add(marker);
+        var size=MarkerSize();
+        var marker=new Border{Width=size.Width,Height=size.Height,CornerRadius=new(6),Background=Brushes.Black,BorderBrush=UI.Brush("#CAD9EA"),BorderThickness=new(1),IsHitTestVisible=false};
+        Canvas.SetLeft(marker,16+dx*(w-size.Width));Canvas.SetTop(marker,12+dy*(h-size.Height));map.Children.Add(marker);
     }
+
+    private Size MarkerSize() => app.UsesLopataEdition && SideDockLayout.IsSide(app.Settings.DockEdge)
+        ? new Size(13, 52) : new Size(58, 15);
 }

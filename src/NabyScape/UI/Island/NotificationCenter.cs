@@ -59,10 +59,11 @@ public sealed partial class OverlayWindow
         var screen=Native.ChooseScreen(app.Settings);double scale=Native.Scale(screen);
         // Panel width and Maximum panel height from Position & size; the host window is sized to them.
         Dimensions();if(Width<WindowHostWidth)Width=WindowHostWidth;if(Height<HostHeight)Height=HostHeight;
-        double width=Math.Clamp(app.Settings.PanelWidth,300,Math.Max(300,WindowHostWidth));
+        double width=PortraitDock?expandedWidth:Math.Clamp(app.Settings.PanelWidth,300,Math.Max(300,WindowHostWidth));
         centerViewport=new ScrollViewer{Content=centerList,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled};
         UI.LocalizedName(centerViewport,"Notification center");Grid.SetRow(centerViewport,2);content.Children.Add(centerViewport);
         content.MaxHeight=Math.Max(160,HostHeight-40);centerFrame=content;
+        if(PortraitDock)content.MinHeight=Math.Min(content.MaxHeight,width*1.30-36);
         noticeCard=new(){Child=content,Width=width-(surface.Notch?64:32),Margin=new(0,16,0,0),VerticalAlignment=VerticalAlignment.Top,HorizontalAlignment=HorizontalAlignment.Center};
         visuals.Children.Add(noticeCard);compact.IsHitTestVisible=false;compact.Opacity=0;Show();Dimensions();
         FillNotificationCenter();
