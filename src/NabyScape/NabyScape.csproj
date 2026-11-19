@@ -35,6 +35,9 @@
     <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandVoiceCommands.cs" Link="Features\Media\IslandVoiceCommands.cs" />
     <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandVoiceQuery.cs" Link="Features\Media\IslandVoiceQuery.cs" />
     <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandVoiceProtocol.cs" Link="Features\Media\IslandVoiceProtocol.cs" />
+    <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\MailHub\MailHubFiles.cs" Link="Application\MailHubFiles.cs" />
+    <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Controls\MailHub\MailHubPlayback.cs" Link="UI\Island\MailHubPlayback.cs" />
+    <EmbeddedResource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Localization\en.json" LogicalName="NabyScape.LopataEnglish.json" />
     <EmbeddedResource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Assets\IslandVoice\lopata-na-svyazi-ru.wav" LogicalName="NabyScape.IslandReady.ru.wav" />
     <EmbeddedResource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Assets\IslandVoice\lopata-here-go-ahead-en.wav" LogicalName="NabyScape.IslandReady.en.wav" />
     <PackageReference Include="System.Management" Version="10.0.0" />

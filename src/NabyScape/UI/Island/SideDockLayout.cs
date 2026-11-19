@@ -40,7 +40,7 @@ public sealed partial class OverlayWindow
             {
                 portraitClosed = new Grid();
                 // The middle carries the current activity. The mascot has a separate hit target at the foot.
-                double[] fixedHeights = [14, 0, 0, 8, 0, -1, 0, 8, 0, 0, 0, 52];
+                double[] fixedHeights = [14, 0, 0, 0, 8, 0, -1, 0, 8, 0, 0, 0, 52];
                 foreach (double height in fixedHeights)
                     portraitClosed.RowDefinitions.Add(new()
                     {
@@ -49,20 +49,21 @@ public sealed partial class OverlayWindow
                     });
             }
             Move(compactClock, 1);
-            Move(idleDate, 2);
-            Move(islandVoiceIndicator, 3);
-            Move(closedCover, 4);
-            Move(activity, 4);
-            Move(feedbackIcon, 4);
-            Move(closedSummaryHost, 5);
+            if (closedMailHubBadge is { } mail) Move(mail, 2);
+            Move(idleDate, 3);
+            Move(islandVoiceIndicator, 4);
+            Move(closedCover, 5);
+            Move(activity, 5);
+            Move(feedbackIcon, 5);
+            Move(closedSummaryHost, 6);
             closedSummaryHost.LayoutTransform = new RotateTransform(-90);
             closedSummaryHost.VerticalAlignment = VerticalAlignment.Stretch;
             closedSummaryHost.Margin = new Thickness(0, 6, 0, 6);
-            Move(closedTitleWave, 5, stretch: true);
-            Move(feedbackLevel, 6);
-            Move(lopataActivity, 8);
-            Move(lopataUpdateBadge, 9);
-            Move(awakeMark, 10);
+            Move(closedTitleWave, 6, stretch: true);
+            Move(feedbackLevel, 7);
+            Move(lopataActivity, 9);
+            Move(lopataUpdateBadge, 10);
+            Move(awakeMark, 11);
             compact.Content = portraitClosed;
             summary.TextAlignment = TextAlignment.Center;
         }

@@ -283,6 +283,10 @@
     {
       "Id": "links",
       "Enabled": true
+    },
+    {
+      "Id": "mail",
+      "Enabled": true
     }
   ],
   "CoverAmbient": true,

@@ -14,6 +14,7 @@ internal static class Localization
     internal static string? LopataLanguage { get; set; }
     private static IReadOnlyDictionary<string, string> translations = LocalizationCatalog.Translations("en");
     private static readonly Lazy<IReadOnlyDictionary<string, string>> LopataRussian = new(ReadLopataRussian);
+    private static readonly Lazy<IReadOnlyDictionary<string, string>> LopataEnglish = new(() => ReadCatalog("NabyScape.LopataEnglish.json"));
     internal static void Configure(Settings settings)
     {
         settings.NormalizeLanguageAccessibility();
@@ -43,15 +44,28 @@ internal static class Localization
     private static IReadOnlyDictionary<string, string> ReadLopataRussian()
     {
         const string prefix = "NabyScape.";
-        using var stream = typeof(Localization).Assembly.GetManifestResourceStream("NabyScape.LopataRussian.json")
-            ?? throw new InvalidOperationException("The LOPATA Edition package has no shared Russian catalog.");
-        var catalog = JsonSerializer.Deserialize<Dictionary<string, string>>(stream)
-            ?? throw new InvalidOperationException("The shared Russian catalog is empty.");
+        var catalog = ReadCatalog("NabyScape.LopataRussian.json");
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in catalog)
-            if (key.StartsWith(prefix, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(value))
+            if (key.StartsWith("MailHub.", StringComparison.Ordinal)) result.Add(key, value);
+            else if (key.StartsWith(prefix, StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(value))
                 result.Add(key[prefix.Length..], value);
         return result;
+    }
+
+    private static IReadOnlyDictionary<string, string> ReadCatalog(string resource)
+    {
+        using var stream = typeof(Localization).Assembly.GetManifestResourceStream(resource)
+            ?? throw new InvalidOperationException("The LOPATA catalog is missing.");
+        return JsonSerializer.Deserialize<Dictionary<string, string>>(stream)
+            ?? throw new InvalidOperationException("The LOPATA catalog is empty.");
+    }
+
+    internal static string Mail(string key)
+    {
+        if (LopataCaptions.TryGetValue(key, out var custom) && !string.IsNullOrWhiteSpace(custom)) return custom;
+        if ((LopataLanguage ?? Language) == "ru" && LopataRussian.Value.TryGetValue(key, out var russian)) return russian;
+        return LopataEnglish.Value.TryGetValue(key, out var english) ? english : key;
     }
 
     internal static string Format(string english, params object[] values)

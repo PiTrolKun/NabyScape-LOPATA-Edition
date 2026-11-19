@@ -139,6 +139,7 @@ public sealed partial class App : Application
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         UsesLopataEdition = !diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture || restartFixture;
         if (UsesLopataEdition) PrepareLopataSettings();
+        if (UsesLopataEdition && diagnosticPath is null) StartIslandMailHub();
         if (musicFixture || languageFixture || lopataFixture || updatesFixture || restartFixture) Settings.MediaIntegrationEnabled = false;
         if (musicFixture) Settings.LyricsEnabled = false;
         if(isolatedFixture){Settings.HotkeyEnabled=Settings.VisibilityHotkeyEnabled=Settings.TuckHotkeyEnabled=false;Settings.HideFullscreen=Settings.HideMaximized=false;}
@@ -307,6 +308,7 @@ public sealed partial class App : Application
     { quitting=true;Shutdown(); }
     protected override void OnExit(ExitEventArgs e)
     {
+        StopIslandMailHub();
         StopIslandVoice();
         DisposeRuntimeRecovery();
         welcomeWindow?.Close();tick?.Stop();Weather?.Dispose();AmbientAudio?.Dispose();Lyrics.Dispose();CountdownAudio.Dispose();Downloads?.Dispose();ExternalNotifications?.Dispose();
