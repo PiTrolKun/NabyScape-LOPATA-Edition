@@ -328,5 +328,7 @@
   "NotificationsSnoozedUntil": null,
   "HomeWidget": "media",
   "PlaybackOrder": 0,
-  "LocalMusicFolder": ""
+  "LocalMusicFolder": "",
+  "LocalMusicVolume": 100,
+  "MusicListeningHistory": false
 }
