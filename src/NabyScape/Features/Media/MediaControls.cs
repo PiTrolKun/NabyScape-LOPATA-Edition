@@ -24,7 +24,9 @@ internal sealed class MediaControls : Grid
     private readonly Func<string?> selected;
     private readonly Func<FrameworkElement> volumeContent;
     private readonly FrameworkElement sourceHeading;
+    private readonly double headingExtras;
     private string kind="",sourceSignature="",iconKey="",levelIconKey="";
+    private bool showsLocalVolume;
     private Button? anchor;
     internal event Action? LayoutRequested;
     internal bool IsOpen=>kind.Length>0;
@@ -34,7 +36,7 @@ internal sealed class MediaControls : Grid
     internal Button VolumeButton=>level;
     internal Button LibraryButton=>library;
 
-    internal MediaControls(StackPanel content,bool media,bool volume,Func<IReadOnlyList<MediaSourceChoice>> sources,Func<string?> selected,Func<FrameworkElement> volumeContent,Action? openList=null,bool musicActionsFirst=false,Func<FrameworkElement,FrameworkElement>? decorateHeading=null)
+    internal MediaControls(StackPanel content,bool media,bool volume,Func<IReadOnlyList<MediaSourceChoice>> sources,Func<string?> selected,Func<FrameworkElement> volumeContent,Action? openList=null,bool musicActionsFirst=false,Func<FrameworkElement,FrameworkElement>? decorateHeading=null, double extraHeadingWidth=0)
     {
         this.sources=sources;this.selected=selected;this.volumeContent=volumeContent;
         footer.ColumnDefinitions.Add(new());footer.ColumnDefinitions.Add(new(){Width=GridLength.Auto});
@@ -43,6 +45,7 @@ internal sealed class MediaControls : Grid
         if (musicActionsFirst) UI.LocalizedName(source, "Media source");
         var chevron=Icons.Create("chevron",8,UI.Muted);chevron.Margin=new(7,0,0,0);source.Content=UI.Row(sourceIcon,sourceName,chevron);source.HorizontalAlignment=HorizontalAlignment.Left;source.Visibility=media?Visibility.Visible:Visibility.Collapsed;source.ToolTip=Localization.Text("Choose media source · Enter or Space to open");
         sourceHeading = media ? decorateHeading?.Invoke(source) ?? source : source;
+        headingExtras = sourceHeading == source ? 0 : 30 + extraHeadingWidth;
         footer.Children.Add(sourceHeading);
         library=FooterButton("Open music list",()=>{Close(false);openList?.Invoke();});
         UI.LocalizedName(library,"Open music list");
@@ -88,10 +91,18 @@ internal sealed class MediaControls : Grid
     {
         var button=UI.Button(name,run);button.MinHeight=28;button.Padding=new(5,3,5,3);button.Margin=new(0);button.Background=Brushes.Transparent;button.BorderThickness=new(0);return button;
     }
-    internal void Refresh(double value,bool muted,bool available,bool refreshSources=true)
+    internal void Refresh(double value,bool muted,bool available,bool refreshSources=true,bool localVolume=false)
     {
         levelText.Text=available?$"{value:0}%":"—";string levelKey=muted?"muted":"volume";
         if(levelKey!=levelIconKey){levelIconKey=levelKey;levelIcon.Children.Clear();levelIcon.Children.Add(Icons.Create(levelKey,16));}
+        if (showsLocalVolume != localVolume)
+        {
+            showsLocalVolume = localVolume;
+            UI.Named(level, Localization.Text(localVolume ? "Local player volume" : "Volume controls"));
+            level.ToolTip = Localization.Text(localVolume
+                ? "Local player volume" : "Volume, mute, mixer and audio devices · Enter or Space to open");
+            if (OpenKind == "volume") Close(false);
+        }
         if(!refreshSources)return;
         var choices=sources();string? id=selected();var current=choices.FirstOrDefault(item=>item.Id==id);
         string signature=string.Join("\n",choices.Select(item=>item.Id+"\t"+item.Name))+"\nselected:"+id;
@@ -139,13 +150,13 @@ internal sealed class MediaControls : Grid
     private void Place()
     {
         SizeSourceName();if(!IsOpen || ActualWidth<=0)return;
-        popover.Width=Math.Min(kind=="volume"?240:224,ActualWidth);popover.MaxHeight=kind=="volume"?100:146;
+        popover.Width=Math.Min(kind=="volume"?240:224,ActualWidth);popover.MaxHeight=kind=="volume"?(showsLocalVolume?132:100):146;
         popover.HorizontalAlignment=kind=="volume"?HorizontalAlignment.Right:HorizontalAlignment.Left;
     }
     private void SizeSourceName()
     {
         bool decorated = sourceHeading != source;
-        double reserved = (library.Visibility == Visibility.Visible ? 215 : 145) + (decorated ? 30 : 0);
+        double reserved = (library.Visibility == Visibility.Visible ? 215 : 145) + headingExtras;
         sourceName.MaxWidth = Math.Max(decorated ? 32 : 48, ActualWidth - reserved);
     }
     private static FrameworkElement SourceGlyph(string id)

@@ -60,15 +60,24 @@ internal static class LopataEdition
 
     internal static void OpenHost(string? executable)
     {
+        if (!TryOpenHost(executable, out var error))
+            MessageBox.Show(Localization.Text("Open LOPATA") + " · " + error?.Message, Name);
+    }
+
+    internal static bool TryOpenHost(string? executable, out Exception? failure)
+    {
         try
         {
             var target = executable ?? HostExecutable() ?? throw new FileNotFoundException();
             // LOPATA routes a second launch to its existing instance and restores it from the tray.
             Process.Start(new ProcessStartInfo(target) { UseShellExecute = true, WorkingDirectory = Path.GetDirectoryName(target)! })?.Dispose();
+            failure = null;
+            return true;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
         {
-            MessageBox.Show(Localization.Text("Open LOPATA") + " · " + error.Message, Name);
+            failure = error;
+            return false;
         }
     }
 

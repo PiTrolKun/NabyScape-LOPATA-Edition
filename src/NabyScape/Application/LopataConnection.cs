@@ -42,6 +42,9 @@ internal sealed class LopataConnection(Func<string?> findExecutable) : IDisposab
         return response;
     }
 
+    internal Task<IslandResponse> ReadVoiceStateAsync(CancellationToken token) =>
+        RequestAsync(new("status"), token, seconds: 3);
+
     internal Task<IslandResponse> TransferAsync(string id, string text, string? pauseId, CancellationToken token) =>
         RequestAsync(new("draft", id, text, pauseId), token);
 

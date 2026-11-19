@@ -32,6 +32,11 @@
     <Resource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Assets\logo_crt_black_hole_matrix_tight_transparent_1x1.png"
               Link="Assets\lopata-mascot.png" />
     <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandLink.cs" Link="Application\IslandLink.cs" />
+    <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandVoiceCommands.cs" Link="Features\Media\IslandVoiceCommands.cs" />
+    <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandVoiceQuery.cs" Link="Features\Media\IslandVoiceQuery.cs" />
+    <Compile Include="$(LopataRepositoryRoot)\Исходники\AIHub\Services\Island\IslandVoiceProtocol.cs" Link="Features\Media\IslandVoiceProtocol.cs" />
+    <EmbeddedResource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Assets\IslandVoice\lopata-na-svyazi-ru.wav" LogicalName="NabyScape.IslandReady.ru.wav" />
+    <EmbeddedResource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Assets\IslandVoice\lopata-here-go-ahead-en.wav" LogicalName="NabyScape.IslandReady.en.wav" />
     <PackageReference Include="System.Management" Version="10.0.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Lucene.Net.Analysis.Kuromoji" Version="4.8.0-beta00018" />

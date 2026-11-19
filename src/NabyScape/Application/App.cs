@@ -128,7 +128,8 @@ public sealed partial class App : Application
         }
         bool lopataFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-edition-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
-        bool musicFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-music-only") &&
+        bool voiceFixture = Array.Exists(e.Args, a => a == "--lopata-voice-only");
+        bool musicFixture = isolatedFixture && (voiceFixture || Array.Exists(e.Args, a => a == "--lopata-music-only")) &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         bool updatesFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-updates-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
@@ -195,6 +196,12 @@ public sealed partial class App : Application
         SettingsChanged+=ConfigureExternal;ConfigureExternal();
         ConfigureDownloads();
         Media.LocalNavigationFailed += message => Notify(Localization.Text("Media"), Localization.Text(message));
+        history = new LocalMusicHistory(Store.DirectoryPath, Store.Log);
+        history.Prune(DateTimeOffset.Now);
+        Media.LocalPlaybackStarted += (track, artist) =>
+        {
+            if (Settings.MusicListeningHistory) history.Record(track, artist, DateTimeOffset.Now);
+        };
         Media.Changed+=()=>{Lyrics.ObserveTrack(Media);PublishUpdate(RuntimeChange.Media);};
         Audio.Changed+=()=>{PrivateDiagnostics.SetServiceState(DiagnosticService.Audio,Audio.Available?DiagnosticServiceState.Ready:DiagnosticServiceState.Degraded);PublishUpdate(RuntimeChange.Audio);};
         Productivity.Changed+=()=>PublishUpdate(RuntimeChange.Productivity);Calendar.Changed+=()=>PublishUpdate(RuntimeChange.Calendar);
@@ -206,6 +213,7 @@ public sealed partial class App : Application
         tick.Tick+=(_,_)=>
         {
             CheckCountdowns();if(NotificationPolicy.Quiet(Settings,DateTimeOffset.UtcNow) && Notifications.Count>0 && Notifications.Current?.Kind!="preview" && !(Notifications.Current?.Kind=="external" && Settings.ExternalNotificationQuietHours))Notifications.Clear();else Notifications.Tick(DateTimeOffset.UtcNow,overlay.NotificationBusy,Settings.NotificationSeconds);
+            CheckVoiceMusicStop(System.Diagnostics.Stopwatch.GetTimestamp());
             try{Awake.Tick(DateTimeOffset.UtcNow);}catch(Exception ex){Store.Log(ex);Notify("Could not update keep awake",ex.Message);}
             var changed=RuntimeChange.Clock;
             if(Session.Timer.Running || Session.Stopwatch.Running)changed|=RuntimeChange.Countdown;
@@ -226,8 +234,9 @@ public sealed partial class App : Application
         InitializeRuntimeRecovery();
         PrivateDiagnostics.SetServiceState(DiagnosticService.Application,DiagnosticServiceState.Ready);
         PrivateDiagnostics.Record(DiagnosticStage.Application,DiagnosticCode.Completed,startupClock.Elapsed);
-        if (!diagnosticMode || lopataFixture || languageFixture || musicFixture) ObserveLopataSettings();
-        if(musicFixture) _=LopataMusicDiagnostics.Run(this,overlay,diagnosticPath!);
+        if (!diagnosticMode || lopataFixture || languageFixture || musicFixture && !voiceFixture) ObserveLopataSettings();
+        if(musicFixture && voiceFixture) _=IslandVoicePlaybackDiagnostics.RunAsync(this, overlay, diagnosticPath!);
+        else if(musicFixture) _=LopataMusicDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(lopataFixture) _=LopataEditionDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(updateDiagnostics is not null) _=updateDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(languageFixture) _=LopataLanguageDiagnostics.Run(this,diagnosticPath!);
@@ -298,6 +307,7 @@ public sealed partial class App : Application
     { quitting=true;Shutdown(); }
     protected override void OnExit(ExitEventArgs e)
     {
+        StopIslandVoice();
         DisposeRuntimeRecovery();
         welcomeWindow?.Close();tick?.Stop();Weather?.Dispose();AmbientAudio?.Dispose();Lyrics.Dispose();CountdownAudio.Dispose();Downloads?.Dispose();ExternalNotifications?.Dispose();
         if(Session!=null) SaveSession();

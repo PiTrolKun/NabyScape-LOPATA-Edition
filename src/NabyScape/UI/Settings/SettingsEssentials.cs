@@ -19,7 +19,7 @@ public sealed partial class SettingsWindow
         ["Visibility"]=new[]{"Automatic tucking","Hide or show the island"},
         ["Controls"]=new[]{"Notch gestures","Global hotkey"},
         ["Content"]=new[]{"Enabled widgets & order","Clipboard history"},
-        ["Audio"]=new[]{"Closed media display","Lyrics"},
+        ["Audio"]=new[]{"Closed media display","Lyrics","Voice commands","Listening history"},
         ["Notifications"]=new[]{"Notifications","Other apps"},
         ["Application"]=new[]{"Language & accessibility","Behavior","Updates","Local storage","About NabyScape"},
         ["System"]=new[]{"Clock"},

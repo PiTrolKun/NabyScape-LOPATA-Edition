@@ -27,7 +27,12 @@ public sealed partial class MediaService
     private LocalMusicPlayback? localPlayback;
     private LocalMusicQueue localQueue = new();
     private LocalPlaybackOrder playbackOrder;
+    private int localMusicVolume = 100;
+    private bool voiceDucking;
     internal event Action<string>? LocalNavigationFailed;
+    internal event Action<LocalMusicTrack, string>? LocalPlaybackStarted;
+    internal LocalMusicCatalog MusicCatalog { get; }
+    internal Guid LocalQueueId { get; private set; }
 
     private void ConfigurePlaybackOrder(LocalPlaybackOrder order)
     {
@@ -37,6 +42,20 @@ public sealed partial class MediaService
         localQueue.Reorder(active.Track, order);
         PublishLocal();
     }
+
+    private void ConfigureLocalVolume(int volume)
+    {
+        localMusicVolume = Math.Clamp(volume, 0, 100);
+        ApplyLocalVolume();
+    }
+
+    internal void SetVoiceDucking(bool enabled)
+    {
+        voiceDucking = enabled;
+        ApplyLocalVolume();
+    }
+
+    private void ApplyLocalVolume() => localPlayback?.SetVolume(localMusicVolume / 100d * (voiceDucking ? .1 : 1));
     private CancellationTokenSource? openingLocal;
 
     internal static string LocalSourceId(LocalMusicSource source) =>
@@ -45,6 +64,8 @@ public sealed partial class MediaService
     internal static bool IsLocalSource(string id) => id is "@lopata-library" or "@music-folder" or FavoritesSourceId;
     internal const string LocalMeterSource = "@island-audio";
     internal string? AudioMeterSource => localPlayback is null ? Selected?.SourceAppUserModelId : LocalMeterSource;
+    internal GlobalSystemMediaTransportControlsSession? VoiceExternalSource =>
+        localPlayback is null && !SourceDisabled ? Selected : null;
     internal LocalMusicDetails? LocalDetails => localPlayback?.Details;
     internal LocalMusicTrack? LocalTrack => localPlayback?.Track;
     internal bool NetworkLyricsAllowed => localPlayback?.Details.IsLopata != true;
@@ -68,7 +89,8 @@ public sealed partial class MediaService
 
     Task<bool> ILocalMusicTransport.PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack> queue, CancellationToken token) => PlayLocalAsync(track, queue, token);
 
-    private async Task<bool> PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack>? queue, CancellationToken token = default)
+    private async Task<bool> PlayLocalAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack>? queue,
+        CancellationToken token = default, bool allowExternalPause = true)
     {
         if (disposed || DiagnosticFixture) return false;
         if (!System.IO.File.Exists(track.Path))
@@ -83,12 +105,12 @@ public sealed partial class MediaService
         LocalMusicPlayback? candidate = null;
         try
         {
-            candidate = await LocalMusicPlayback.OpenAsync(track, library, opening.Token);
+            candidate = await LocalMusicPlayback.OpenAsync(track, library, MusicCatalog.CorrectionFor(track), opening.Token);
             opening.Token.ThrowIfCancellationRequested();
             if (selected is { } external && Playing && localPlayback is null)
             {
                 var control = external.GetPlaybackInfo()?.Controls;
-                if (control?.IsPauseEnabled != true || !await external.TryPauseAsync().AsTask(opening.Token))
+                if (!allowExternalPause || control?.IsPauseEnabled != true || !await external.TryPauseAsync().AsTask(opening.Token))
                 {
                     LocalOpenError = "Pause the other player before starting a local track.";
                     return false;
@@ -98,7 +120,11 @@ public sealed partial class MediaService
             localPlayback?.Dispose();
             localPlayback = candidate;
             candidate = null;
-            if (queue is not null) localQueue.Start(queue, track, playbackOrder);
+            if (queue is not null)
+            {
+                localQueue.Start(queue, track, playbackOrder);
+                LocalQueueId = Guid.NewGuid();
+            }
             else localQueue.MoveTo(track);
             sourceSelection.Select(LocalSourceId(track.Source));
             var active = localPlayback;
@@ -110,8 +136,10 @@ public sealed partial class MediaService
                 LocalOpenError = "Local playback failed.";
                 PublishLocal();
             };
+            ApplyLocalVolume();
             active.Play();
             Select(null, manual:false);
+            LocalPlaybackStarted?.Invoke(track, active.Details.Artist);
             return true;
         }
         catch (OperationCanceledException) when (opening.IsCancellationRequested) { return false; }
@@ -164,8 +192,15 @@ public sealed partial class MediaService
         else if (command == "previous")
             await NavigateLocalAsync(localQueue.Previous);
         else if (command == "toggle")
+            SetLocalPlaying(!active.Playing);
+    }
+
+    internal bool SetLocalPlaying(bool playing)
+    {
+        if (localPlayback is not { } active) return false;
+        if (playing != active.Playing)
         {
-            if (active.Playing) active.Pause();
+            if (!playing) active.Pause();
             else
             {
                 var (elapsed, duration) = active.Timeline();
@@ -174,6 +209,24 @@ public sealed partial class MediaService
             }
             PublishLocal();
         }
+        return true;
+    }
+
+    internal async Task<bool> NavigateLocalFromVoiceAsync(bool forward, CancellationToken token) =>
+        localPlayback is not null && openingLocal is null && (forward ? localQueue.Next : localQueue.Previous) is { } track
+        && await PlayLocalAsync(track, null, token, allowExternalPause: false);
+
+    internal Task<bool> PlayVoiceQueueAsync(LocalMusicTrack track, IReadOnlyList<LocalMusicTrack> queue, CancellationToken token) =>
+        PlayLocalAsync(track, queue, token, allowExternalPause: false);
+
+    internal bool SeekLocalSeconds(int seconds, bool relative)
+    {
+        if (localPlayback is not { } active) return false;
+        var (elapsed, duration) = active.Timeline();
+        if (duration <= 0) return false;
+        active.Seek(((relative ? elapsed : 0) + seconds) / duration);
+        PublishLocal();
+        return true;
     }
 
     private async Task NavigateLocalAsync(LocalMusicTrack? track)
@@ -189,5 +242,6 @@ public sealed partial class MediaService
         localPlayback?.Dispose();
         localPlayback = null;
         localQueue = new();
+        LocalQueueId = Guid.Empty;
     }
 }

@@ -50,6 +50,7 @@ public sealed partial class OverlayWindow
             }
             Move(compactClock, 1);
             Move(idleDate, 2);
+            Move(islandVoiceIndicator, 3);
             Move(closedCover, 4);
             Move(activity, 4);
             Move(feedbackIcon, 4);

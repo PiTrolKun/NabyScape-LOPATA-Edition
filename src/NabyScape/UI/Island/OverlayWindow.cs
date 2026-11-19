@@ -64,7 +64,7 @@ public sealed partial class OverlayWindow : Window
         compact.Click+=(_,_)=> {if(app.Notifications.Current!=null && !expanded){OpenNotice();return;}if(expanded)Collapse();else Reveal();};
         scroll=UI.Scroll(body);scroll.VerticalScrollBarVisibility=ScrollBarVisibility.Hidden;scroll.HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled;scroll.VerticalAlignment=VerticalAlignment.Top;scroll.HorizontalAlignment=HorizontalAlignment.Center;scroll.Visibility=Visibility.Collapsed;scroll.Opacity=0;scroll.RenderTransform=bodySlide;
         root.RenderTransform=tuckSlide;root.MouseLeftButtonDown+=(_,e)=>{if(TuckRequested && !expanded && e.OriginalSource==surface){Reveal();e.Handled=true;}};root.Children.Add(surface);root.Children.Add(visuals);visuals.Children.Add(compact);visuals.Children.Add(scroll);dockHost.Children.Add(root);dockHost.Clip=dockBoundary;Content=dockHost;
-        InitializeClosedMascot(header);InitializeLopataWork(header);InitializeLopataUpdateBadge(header);Grid.SetColumnSpan(idleDate,header.ColumnDefinitions.Count);header.Children.Add(idleDate);idleDockReady=true;InitializeDockEditing();
+        InitializeClosedMascot(header);InitializeLopataWork(header);InitializeLopataUpdateBadge(header);InitializeIslandVoiceIndicator(header);Grid.SetColumnSpan(idleDate,header.ColumnDefinitions.Count);header.Children.Add(idleDate);idleDockReady=true;InitializeDockEditing();
         surface.ContourChanged+=()=>{visuals.Clip=surface.Contour;PositionCore(true);};
         foreach(var number in new[]{clock,compactClock,idleDate,cpu,ram})Typography.SetNumeralAlignment(number,FontNumeralAlignment.Tabular);
         title.FontWeight=FontWeights.SemiBold;clock.FontWeight=compactClock.FontWeight=FontWeights.Bold;

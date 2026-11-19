@@ -168,6 +168,7 @@ internal sealed record LocalMusicDetails(string Title, string Artist, LyricResul
 internal sealed class LocalMusicPlayback : IDisposable
 {
     private readonly MediaPlayer player = new();
+    private readonly double defaultVolume;
     internal LocalMusicTrack Track { get; }
     internal LocalMusicDetails Details { get; private set; }
     internal bool Playing { get; private set; }
@@ -176,12 +177,14 @@ internal sealed class LocalMusicPlayback : IDisposable
 
     private LocalMusicPlayback(LocalMusicTrack track)
     {
+        defaultVolume = player.Volume;
         Track = track;
         Details = new(track.Name, "", null, track.Source == LocalMusicSource.Collection, null);
         player.MediaEnded += (_, _) => { Playing = false; Ended?.Invoke(); };
     }
 
-    internal static async Task<LocalMusicPlayback> OpenAsync(LocalMusicTrack track, LocalMusicLibrary library, CancellationToken token)
+    internal static async Task<LocalMusicPlayback> OpenAsync(LocalMusicTrack track, LocalMusicLibrary library,
+        LocalMusicCorrection correction, CancellationToken token)
     {
         var result = new LocalMusicPlayback(track);
         var opened = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -197,6 +200,12 @@ internal sealed class LocalMusicPlayback : IDisposable
             result.player.Open(new Uri(track.Path));
             await opened.Task.WaitAsync(budget.Token);
             result.Details = await metadata;
+            if (correction.Title.Length > 0 || correction.Artist.Length > 0)
+                result.Details = result.Details with
+                {
+                    Title = correction.Title.Length > 0 ? correction.Title : result.Details.Title,
+                    Artist = correction.Artist.Length > 0 ? correction.Artist : result.Details.Artist
+                };
             result.player.MediaFailed += (_, args) =>
             {
                 result.Playing = false;
@@ -223,6 +232,7 @@ internal sealed class LocalMusicPlayback : IDisposable
 
     internal void Play() { player.Play(); Playing = true; }
     internal void Pause() { player.Pause(); Playing = false; }
+    internal void SetVolume(double volume) => player.Volume = defaultVolume * volume;
     internal void Restart()
     {
         player.Stop();

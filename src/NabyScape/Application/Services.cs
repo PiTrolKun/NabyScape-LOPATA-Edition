@@ -76,10 +76,12 @@ public sealed partial class MediaService : IDisposable, ILocalMusicTransport
         dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
         this.log = log;
         library = new LocalMusicLibrary(collectionRoot, profile);
+        MusicCatalog = new LocalMusicCatalog(profile ?? collectionRoot ?? LopataEdition.ProfileDirectory, log);
     }
     internal void Configure(Settings settings)
     {
         ConfigurePlaybackOrder(settings.PlaybackOrder);
+        ConfigureLocalVolume(settings.LocalMusicVolume);
         followPlayback=settings.MediaFollowsPlayback;browserPreviews=settings.BrowserMediaPreviews;
         if(excludeBrowserMedia==settings.ExcludeBrowserMedia)return;
         excludeBrowserMedia=settings.ExcludeBrowserMedia;

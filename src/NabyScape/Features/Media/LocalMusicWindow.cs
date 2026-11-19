@@ -29,7 +29,7 @@ internal sealed class LocalMusicWindow : Window
     private readonly TextBlock status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 8, 0, 0) };
     private readonly TextBlock folder = new() { TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBox search = new() { Margin = new(0, 3, 0, 8) };
-    private readonly Button play, favorite, chooseFolder;
+    private readonly Button play, favorite, editCard, chooseFolder;
     private readonly DispatcherTimer collectionRefresh = new() { Interval = TimeSpan.FromSeconds(10) };
     private CancellationTokenSource? loading, opening;
     private IReadOnlyList<LocalMusicTrack> listing = [];
@@ -79,12 +79,15 @@ internal sealed class LocalMusicWindow : Window
         play.IsEnabled = false;
         favorite = UI.CaptionButton("Add to favorites", ToggleFavorite);
         favorite.IsEnabled = false;
+        editCard = UI.CaptionButton("Edit track search details", EditCard);
+        editCard.IsEnabled = false;
         var footer = new StackPanel();
         status.Foreground = UI.Muted;
         footer.Children.Add(status);
         var trackActions = new WrapPanel();
         trackActions.Children.Add(play);
         trackActions.Children.Add(favorite);
+        if (app.UsesLopataEdition) trackActions.Children.Add(editCard);
         footer.Children.Add(trackActions);
         DockPanel.SetDock(footer, Dock.Bottom); dock.Children.Add(footer);
         tracks.Background = UI.Brush("#202A39");
@@ -154,10 +157,17 @@ internal sealed class LocalMusicWindow : Window
         var track = tracks.SelectedItem as LocalMusicTrack;
         play.IsEnabled = track is not null && !playing;
         favorite.IsEnabled = track is not null;
+        editCard.IsEnabled = track is not null;
         bool saved = track is not null && app.MusicLists.IsFavorite(track);
         var caption = saved ? "Remove from favorites" : "Add to favorites";
         favorite.Content = Localization.Text(caption);
         UI.LocalizedName(favorite, caption);
+    }
+
+    private void EditCard()
+    {
+        if (tracks.SelectedItem is LocalMusicTrack track)
+            new LocalMusicCardEditor(app.Media.MusicCatalog, track) { Owner = this, Topmost = Topmost }.ShowDialog();
     }
 
     private void ToggleFavorite()

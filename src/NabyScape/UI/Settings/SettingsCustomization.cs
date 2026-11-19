@@ -77,6 +77,16 @@ public sealed partial class SettingsWindow
     private void AudioSettings()
     {
         MediaAppearanceSettings();MediaExperienceSettings();AudioFeedbackSettings();
+        if (app.UsesLopataEdition)
+        {
+            page.Children.Add(Section("Voice commands", UI.CaptionButton("Voice commands", ShowIslandVoiceCommands)));
+            var historyStatus = UI.Text("", 11, UI.Muted);
+            page.Children.Add(Section("Listening history",
+                Check("Keep local listening history", app.Settings.MusicListeningHistory, value => app.Settings.MusicListeningHistory = value),
+                UI.Caption("Save played local tracks on this device for 30 days. Voice commands can search this history.", 11, UI.Muted),
+                UI.CaptionButton("Clear listening history", () => historyStatus.Text = Localization.Text(
+                    app.ClearMusicListeningHistory() ? "Listening history cleared." : "Could not clear listening history.")), historyStatus));
+        }
         page.Children.Add(Section("Volume mixer",UI.Text(Localization.Text("In the compact media panel, choose the speaker button for volume and mute. The mixer icon opens Apps or Outputs; the chevron opens devices and microphone controls. Choose the media source button to switch playing apps. Tab to a button and press Enter or Space; Esc closes its popover."),12,UI.Muted),UI.Button(Localization.Text("Open volume mixer"),()=>app.OpenMixer())));
         var signal=new StackPanel();audioSignalWave=new ActivityVisual{WaveOnly=true,Width=96,Height=16,HorizontalAlignment=HorizontalAlignment.Left,Margin=new(0,4,0,12)};signal.Children.Add(audioSignalWave);audioSignalState=UI.Text(Localization.Text("Reading selected app…"),11,UI.Muted);signal.Children.Add(audioSignalState);
         page.Children.Add(Section("Live signal",UI.Text(Localization.Text("Follows the selected app across its active outputs. Spectrum includes other sounds sharing those outputs; Amplitude history reads the selected app level only."),11,UI.Muted),signal,UI.Text(Localization.Text("Spectrum shows 25 real frequency bands from low to high. If output capture is unavailable, the waveform uses measured amplitude history. Sensitivity changes the visible range without adding artificial beats."),11,UI.Muted)));
