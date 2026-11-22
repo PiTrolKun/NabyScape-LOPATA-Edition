@@ -170,6 +170,14 @@ public sealed partial class OverlayWindow : Window
                 AddFullMascot(widgetHeader);
                 body.Children.Add(widgetHeader);
             }
+            if (hoverPanelWidget == InspectorAdvicePage.WidgetId)
+                body.Children.Add(UI.CaptionButton("Back to widgets", () =>
+                {
+                    hoverPanelWidget = null;
+                    BuildBody();
+                    scroll.ScrollToTop();
+                    ResizeToolPanel();
+                }));
             if(Settings.ToolNames.ContainsKey(hoverPanelWidget)){toolsMode=hoverPanelWidget;body.Children.Add(UI.Button(Localization.Text("Back to widgets"),()=>{hoverPanelWidget=null;BuildBody();ResizeToolPanel();}));body.Children.Add(BuildToolsPage());}else body.Children.Add(BuildCompactPage(PageFor(hoverPanelWidget)));
             return;
         }
@@ -216,6 +224,10 @@ public sealed partial class OverlayWindow : Window
                     var shortcuts=new WrapPanel();foreach(var shortcut in app.Settings.Shortcuts){var button=LaunchButton(shortcut);shortcuts.Children.Add(button);}card=UI.Card(Localization.Text("Quick launch"),UI.Button(Localization.Text("Search commands  ·  Ctrl+K"),()=>ShowCommands()),shortcuts);break;
                 case "tools":card=UI.Card(Localization.Text("Tools"),BuildToolsPage());break;
                 case "mail":card=UI.Card(Localization.Text("Mail hub"),BuildMailHubWidget());break;
+                case InspectorAdvicePage.WidgetId:
+                    card = UI.Card(Localization.Text(InspectorAdvicePage.Title),
+                        UI.CaptionButton("Open inspector advice", OpenInspectorAdvice));
+                    break;
                 default:if(Settings.ToolNames.ContainsKey(widget.Id)){string toolId=widget.Id;card=UI.Card(Settings.ToolNames[toolId],UI.Button("Open "+Settings.ToolNames[toolId],()=>ShowTools(toolId)));}else continue;break;
             }
             card.Width=small && !PortraitDock?half:full;card.Margin=new(0,0,small && !PortraitDock?10:0,10);

@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="$(LopataRepositoryRoot)\Исходники\LOPATA.Collection\LOPATA.Collection.csproj" />
     <ProjectReference Include="$(LopataRepositoryRoot)\Исходники\LOPATA.Updates\LOPATA.Updates.csproj" />
+    <ProjectReference Include="$(LopataRepositoryRoot)\Исходники\LOPATA.Inspector\LOPATA.Inspector.csproj" />
     <EmbeddedResource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Localization\ru.json" LogicalName="NabyScape.LopataRussian.json" />
     <Resource Include="$(LopataRepositoryRoot)\Исходники\AIHub\Assets\logo_crt_black_hole_matrix_tight_transparent_1x1.png"
               Link="Assets\lopata-mascot.png" />

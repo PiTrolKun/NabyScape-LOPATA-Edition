@@ -25,6 +25,7 @@ public sealed partial class App : Application
     internal CountdownAudio CountdownAudio {get;}=new();
     internal DownloadArrivals? Downloads {get;private set;}
     private bool diagnosticMode;
+    internal bool DiagnosticMode => diagnosticMode;
     private string downloadConfiguration="";
     private int downloadEpoch;
     private void DownloadReady(string[] paths)
@@ -137,6 +138,7 @@ public sealed partial class App : Application
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
         bool restartFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--lopata-restart-only") &&
             !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("LOPATA_ISLAND_PROFILE"));
+        bool inspectorFixture = isolatedFixture && Array.Exists(e.Args, a => a == "--inspector-advice-only");
         UsesLopataEdition = !diagnosticMode || lopataFixture || musicFixture || updatesFixture || languageFixture || restartFixture;
         if (UsesLopataEdition) PrepareLopataSettings();
         if (UsesLopataEdition && diagnosticPath is null) StartIslandMailHub();
@@ -170,6 +172,7 @@ public sealed partial class App : Application
         AddTray("Open island", () => overlay?.Reveal());
         AddTray("Command bar", () => overlay?.ShowCommands());
         AddTray("Notifications", OpenNotifications);
+        AddTray(InspectorAdvicePage.Title, () => overlay?.OpenInspectorAdvice());
         AddTray("Send test notification", SendTestNotification);
         AddTray("Settings", ShowSettings);
         AddTray(UsesLopataEdition ? "Move island" : "Move & resize island", () => overlay?.ToggleDockEditing());
@@ -242,6 +245,7 @@ public sealed partial class App : Application
         else if(updateDiagnostics is not null) _=updateDiagnostics.Run(this,overlay,diagnosticPath!);
         else if(languageFixture) _=LopataLanguageDiagnostics.Run(this,diagnosticPath!);
         else if(restartFixture) _=RunIslandRestartDiagnostics(overlay, diagnosticPath!, e.Args);
+        else if(inspectorFixture) _=InspectorAdviceDiagnostics.Run(this, overlay, diagnosticPath!);
         else if(diagnosticPath!=null) _=Diagnostics.Run(this,overlay,diagnosticPath);
         else
         {

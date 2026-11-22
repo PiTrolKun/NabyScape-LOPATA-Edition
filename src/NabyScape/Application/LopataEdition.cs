@@ -37,7 +37,28 @@ internal static class LopataEdition
         new(OpenCaption, "Открыть ЛОПАТУ"),
         new(CloseCaption, "Закрыть остров"),
         new(LayerCaption, "Поверх окон"),
-        new("Updates are managed by LOPATA", "Обновления управляются ЛОПАТОЙ")
+        new("Updates are managed by LOPATA", "Обновления управляются ЛОПАТОЙ"),
+        new(InspectorAdvicePage.Title, "Советы инспектора за сутки"),
+        new("Open inspector advice", "Открыть советы инспектора"),
+        new("Review the inspector’s advice from the past 24 hours", "Посмотреть советы инспектора за последние 24 часа"),
+        new("No advice in the past 24 hours", "За последние 24 часа советов не было"),
+        new("Reading inspector advice…", "Загружаются советы инспектора…"),
+        new("Inspector advice is temporarily unavailable", "Советы инспектора пока недоступны"),
+        new("Your rating was not saved. Try again.", "Оценка не сохранилась. Попробуйте ещё раз."),
+        new("This advice is no longer available for rating.", "Этот совет уже недоступен для оценки."),
+        new("Show earlier advice", "Показать более ранние советы"),
+        new("Helpful", "Полезно"),
+        new("Not helpful", "Не полезно"),
+        new("Inspector result pending", "Итог задачи ещё неизвестен"),
+        new("Inspector result unknown", "Итог задачи определить не удалось"),
+        new("Inspector task finished", "Задача выполнена"),
+        new("Inspector task cancelled", "Задача отменена"),
+        new("Inspector task failed", "Задача завершилась с ошибкой"),
+        new("Inspector ran out of video memory", "Не хватило видеопамяти"),
+        new("Inspector ran out of system memory", "Не хватило оперативной памяти"),
+        new("Inspector failed to save the result", "Не удалось сохранить результат"),
+        new("Inspector lost contact with the engine", "Потеряна связь с движком"),
+        new("Inspector retry on CPU", "Повтор на процессоре")
     ];
 
     internal static string? HostExecutable() => HostExecutable(null);

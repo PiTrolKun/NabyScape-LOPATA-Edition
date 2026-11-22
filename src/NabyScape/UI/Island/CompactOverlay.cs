@@ -43,9 +43,9 @@ public sealed partial class OverlayWindow
     }
     internal bool IsPeeking=>peeking;
     internal string ActivePage=>activePage;
-    internal static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer"=>"timer","stopwatch"=>"stopwatch","shortcuts"=>"access","tools"=>"tools","mail"=>"mail",_=>"status"};
+    internal static string PageFor(string widget)=>Settings.ToolNames.ContainsKey(widget)?widget:widget switch{"media" or "volume"=>"media","timer"=>"timer","stopwatch"=>"stopwatch","shortcuts"=>"access","tools"=>"tools","mail"=>"mail",InspectorAdvicePage.WidgetId=>InspectorAdvicePage.WidgetId,_=>"status"};
     private string PageName(string page)=>PageName(app,page);
-    internal static string PageName(App app,string page)=>Localization.Text(Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","timer"=>"Timer","stopwatch"=>"Stopwatch","status"=>"Status","tools"=>"Tools","mail"=>"Mail hub",_=>"Launch"});
+    internal static string PageName(App app,string page)=>Localization.Text(Settings.ToolNames.TryGetValue(page,out var tool)?tool:page switch{"media"=>"Media","timer"=>"Timer","stopwatch"=>"Stopwatch","status"=>"Status","tools"=>"Tools","mail"=>"Mail hub",InspectorAdvicePage.WidgetId=>InspectorAdvicePage.Title,_=>"Launch"});
     private string? hoverPanelWidget;
     private bool WidgetOn(string id)=>app.SupportsWidget(id) && (id==hoverPanelWidget || app.Settings.Widgets.Any(w=>w.Enabled && w.Id==id));
     private IEnumerable<WidgetSetting> PanelWidgets=>app.Settings.Widgets.Where(w=>app.SupportsWidget(w.Id) && (w.Enabled || w.Id==hoverPanelWidget));
@@ -53,7 +53,8 @@ public sealed partial class OverlayWindow
     {
 
         string page=PageFor(widget);
-        bool hidden=!app.Settings.Widgets.Any(w=>w.Enabled && w.Id==widget) || !app.Settings.CompactLayout && Settings.ToolNames.ContainsKey(widget);
+        bool hidden=!app.Settings.Widgets.Any(w=>w.Enabled && w.Id==widget)
+            || !app.Settings.CompactLayout && (Settings.ToolNames.ContainsKey(widget) || widget==InspectorAdvicePage.WidgetId);
         bool leavingMixer=classicMixerOpen;classicMixerOpen=false;
         if(leavingMixer || hoverPanelWidget!=(hidden?widget:null))
         {FlushNotes();hoverPanelWidget=hidden?widget:null;activePage=page;BuildBody();}
@@ -225,6 +226,7 @@ public sealed partial class OverlayWindow
     private FrameworkElement BuildCompactPage(string page)
     {
         if(page=="mail")return BuildMailHubWidget();
+        if(page==InspectorAdvicePage.WidgetId)return BuildInspectorAdvicePage();
         if(Settings.ToolNames.ContainsKey(page))return new StackPanel();
         if(page=="tools")return BuildToolsPage();
         if(page=="media")

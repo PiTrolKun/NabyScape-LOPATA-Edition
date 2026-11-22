@@ -53,6 +53,7 @@ public sealed partial class OverlayWindow
     {
         yield return ("LOPATA chat", "Use LOPATA's local core to chat", app.ShowLopataChat);
         yield return ("Notifications","See every recent alert, including Downloads · Enter",()=>{CloseCommands();OpenNotificationCenter();});
+        yield return (Localization.Text(InspectorAdvicePage.Title), Localization.Text("Review the inspector’s advice from the past 24 hours"), OpenInspectorAdvice);
         yield return ("Tuck / Return to automatic","Toggle the manual tuck latch; hover the edge to preview",()=>{CloseCommands();ToggleTuck();});
         yield return ("Open Settings","Appearance, widgets, and interaction",app.ShowSettings);
         foreach(var pair in new[]{("media","Media controls"),("timer","Timer"),("status","System status"),("access","Quick launch")})
